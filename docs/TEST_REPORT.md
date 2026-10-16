@@ -1,76 +1,42 @@
-# FORGE V0.2 validation report
+# FORGE V0.3 validation report
 
-**Build:** 0.2.0 · **Date:** 16 October 2026 · **Incremental base:** the supplied FORGE V0.1 ZIP
+Target product: Windows 11 local browser Studio. Validation host: Linux x86-64, Python 3.12.14. This release retains the supplied V0.2 baseline and focuses on local update review and recovery. V0.2 historical evidence is retained under `docs/history/` and is not counted as current execution.
 
-This report records executed checks and explicitly separates them from untested Windows and optional-engine behavior. It is not a security audit, transcription-accuracy benchmark, Windows certification or guarantee of compatibility with every codec or GPU.
+## Executed results
 
-## Results
-
-| Check | Observed result |
+| Check | Result |
 |---|---|
-| Python unit/API/worker/media/updater tests | **143 passed**, final run **23.69 seconds**, no skipped tests |
-| Browser interface/workflow checks | **70 passed**, no uncaught JavaScript errors |
-| Real HTTP service lifecycle | Cookie-authorized API access survived an immediate same-port service restart and native-token rotation |
-| Full V0.1 upgrade integration | Manifest validation, real V0.2 application/QR execution, preservation and code-only rollback passed on Linux; exact candidate hash in `UPGRADE_INTEGRATION.json` |
-| Python compilation | `compileall` passed for application, launcher/server and scripts |
-| Browser source syntax | `node --check` passed for both `web/app.js` and `web/v2.js` |
-| Uploaded originals | All **8 original files** remained byte-identical to V0.1 during the full upgrade/rollback test |
+| Supplied V0.2 baseline regression suite | 143 passed before implementation |
+| Final Python unit/API/worker/media/updater suite | **185 passed**, no skipped tests, 16.28 seconds |
+| Browser checks | **100 passed**: 89 transport-bridge checks and 11 direct Chromium checks; no uncaught JavaScript errors |
+| V0.1 → V0.3 → code rollback | Passed with real candidate API and queued QR worker |
+| V0.2 → V0.3 → code rollback | Passed, including retained workflows/favorites |
+| Preservation in each upgrade path | All 8 original scripts, 10 private file markers, settings, presets, history, inputs and outputs retained; baseline source bytes restored on rollback |
+| Real HTTP service restart | Same-port restart, runtime-token rotation, remembered cookie and CSRF persistence passed |
+| Source validation | Python compileall, all three JavaScript syntax checks and Git whitespace check with native CRLF BAT handling passed |
+| Cloud setup repeatability | Saved installation commands rerun successfully; pip check passed; authenticated API and real QR output verified after startup |
 
-The Python total comprises 82 retained baseline tests, 34 V0.2 tests (including parametrizations), and 27 updater tests. It does not mean 143 distinct Windows end-user scenarios. Test source and logs are included. No model inference or download success is inferred from a mocked adapter contract.
+The Python suite has one upstream Starlette/AnyIO deprecation warning. It is not a test failure. Direct dependency pins remain unchanged; no optional engine/model is required for the update workflow.
 
-## Environment and method
+## V0.3 coverage
 
-Linux x86-64, CPython 3.13.5, FastAPI 0.128.2, Uvicorn 0.48.0, qrcode 8.2, Pillow 12.3.0, psutil 7.2.2, pytest 9.0.2, HTTPX 0.28.1, Playwright 1.57.0, Node 22.16.0, system Chromium and FFmpeg/FFprobe. NumPy supported the baseline signal-analysis tests. Optional speech/speaker models, actual CUDA inference and authenticated remote media downloads were not exercised.
+New checks exercise manual local inventory, compatible semantic-version selection, all newest-version duplicate conflicts, corrupt/malformed packages, linked ZIPs, local target conflicts, backup integrity and rollback status. Browser controls require explicit consent and CSRF, accept fixed action names only, refuse extra command/path fields and busy queues, and prevent duplicate console openings. Actual Windows Popen arguments are inspected with a test double; Windows console execution is not inferred from that test.
 
-Managed Chromium in this environment rejects normal URL navigation, including localhost, with `ERR_BLOCKED_BY_ADMINISTRATOR`. No policy was changed. The browser harness loads the actual bundled HTML/CSS/JavaScript and bridges its requests to a real loopback HTTP server using a Python cookie jar. This exercises UI/worker/backend behavior through that transport. It **does not test Brave/Chrome/Firefox networking, browser cookie enforcement, native browser notifications or Windows dialogs**. A second page was created without any launcher fragment, runtime-token injection or browser storage and loaded successfully through the remembered-cookie transport. Cookie/CSRF enforcement was independently tested at the API layer.
+Recovery tests cover pending and orphan maintenance markers, dry-run immutability, pause-preference persistence, tampered backups, interrupted manual rollback, and marker retention when recovery fails. A full integration run exposed same-second/same-size Python bytecode reuse; the fix invalidates only matching caches for changed/restored sources across interpreter tags, refuses linked cache paths and verifies the imported version. A deterministic subprocess regression and both real archive upgrade paths passed after correction.
 
-A separate real HTTP lifecycle check exchanged a one-use launch ticket, authorized with a cookie, stopped the service, immediately restarted on the same port and retained cookie/CSRF authorization despite native-token rotation. This was Python HTTP, not browser networking. A POSIX `TIME_WAIT` restart issue found during final validation was corrected with POSIX-only address reuse; Windows reuse semantics were deliberately not enabled. Native Windows restart behavior remains untested.
+Browser checks retain the original 70 navigation/workflow/media controls and add 19 update-panel checks plus 11 direct browser checks. Synthetic inventory fixtures are explicitly used for markup escaping and blocked-state rendering; real requests independently validate the installed version, build path, absence of automatic scans and local scan responses. Direct Chromium loads the served app, consumes a real launcher ticket, authorizes another normal tab via its cookie, completes a real queued QR job and retrieves its authenticated PNG preview. Chromium loopback networking works in this environment; no networking policy bypass was used. The bridge portion separately exercises actual FFmpeg workflow/metadata/QR workers and layouts down to 440 px.
 
-## Executed coverage
+## Evidence and delivered artifact
 
-### Browser authorization and request protection
+`PYTHON_TEST_RESULTS.txt`, `BROWSER_CHECKS.json`, `BROWSER_TEST_RESULTS.txt`, `HTTP_RESTART_RESULTS.json` and `UPGRADE_INTEGRATION.json` contain current results. The documented candidate was tested before final evidence assembly; the final delivered ZIP is independently installed and rolled back again from both baselines. Its exact hash and final artifact reports are supplied alongside the ZIP. The manifest covers every packaged application file; application/test-source bytes are checked against the candidate when assembling the final artifact.
 
-Tests cover HttpOnly/SameSite=Strict/expiry cookie attributes, server-side hashed session identifiers, cross-client and cross-service persistence, stable CSRF after reopening the launcher, one-use/expired launch tickets, expired/revoked cookies, explicit browser forgetting and exclusion of the native runtime secret from application state. Host/Origin/Fetch-Site and preflight rejection from V0.1 remain covered. Browser writes without the correct CSRF header are rejected.
+## Not executed here
 
-This is single-user loopback authorization, not a sandbox against malware running as the Windows user, an independent security assessment, or isolation from all other local services.
+- Native Windows BAT/PowerShell/bootstrap, console windows, Explorer/Tk/shortcut/Send-to integration, NTFS locks/ACLs, antivirus or power-loss behavior.
+- Windows Edge/Brave/Firefox acceptance. Direct browser execution here used Linux Chromium.
+- Actual transcription, speaker-model inference, GPU/CUDA performance, model downloads or live website downloads.
+- Digital publisher signatures, managed dependency rollback, arbitrary custom script execution, folder scheduling or online terminology verification. Those are outside V0.3 scope.
 
-### Queue and workflows
+## Windows acceptance procedure
 
-Tests exercise resource-specific dispatch limits, persistent queued order, selected-job cancellation/retry, actual worker execution of retune followed by metadata reduction, dependency blocking after failure, validated graph creation before any job is inserted, collision-safe output handoff and group retry. Jobs older than the latest 500 history records remain visible while active. V0.2 update maintenance refuses a busy queue, prevents new mutations/jobs and restores the prior pause setting when cancelled.
-
-The browser test ran an actual two-step FFmpeg workflow, verified saved workflow option snapshots survive polling, used group controls, generated an actual QR output, preserved the source image, and saved resource limits. Pause is dispatch pause; no unsupported mid-encoder checkpoint pause/resume is claimed.
-
-### Processing and transcript outputs
-
-Retained real-media tests verify 440-to-432 retuning at 44,100 and 48,000 samples/second within the fixture tolerance, supported metadata reduction, original hash preservation, image handling and non-overwrite output publication. New tests run media tag editing/remuxing and normalization/bit-depth processing on synthetic fixtures.
-
-Transcript tests use constructed recognition segments to check raw companions, clean text behavior, sentence/word layout helpers, subtitle wrapping/timing targets, JSON/CSV/HTML exports, formula-marker neutralization, HTML/script escaping, anonymous-speaker overlap assignment and authenticated media Range access. These validate serialization and integration, **not real recognition, speaker detection or linguistic accuracy**.
-
-faster-whisper and yt-dlp parameter construction is tested using mocks. Playlist ranges, subtitle flags and filename templates are checked without contacting a media website. Model-download consent and cache inventory are tested without inferring that a model download or GPU execution succeeded. Read-only diagnostics explicitly report that inference has not been tested.
-
-### Updater and preservation
-
-The updater tests cover semantic version selection, duplicate-version conflicts, version/manifest mismatch, modified bytes, duplicate JSON/path entries, traversal and protected paths, archive/target symlinks, invalid Python, unlisted files, dry-run behavior, idle checks beyond the displayed history window, backup integrity, automatic rollback after a failed smoke check, interactive rollback without recursive locking, and equality of the BAT's embedded Python with `scripts/update.py`.
-
-A separate harness extracts the actual V0.1 ZIP into a fresh directory, creates prior settings/presets/history and private-environment/tool/configuration markers, and invokes the actual updater main function. It imports the updated application, runs a real queued QR worker, then invokes code rollback and opens the current database through V0.1 again. The old preset and both old/new history entries remain. All eight originals and private markers remain intact. This tests real code replacement and SQLite compatibility on the host OS, **not Windows BAT/PowerShell, NTFS ACLs or the native launcher**.
-
-The exact tested candidate hash appears in `UPGRADE_INTEGRATION.json`. Final packaging adds the integration evidence to documentation; application and test-source bytes are checked against that candidate. A release manifest hashes every shipped application file. These checks detect corruption, not publisher authenticity; the release is not digitally signed.
-
-## Browser layout coverage
-
-The 70 named checks in `BROWSER_CHECKS.json` cover navigation, presets/drafts, favorites, advanced transcript controls, staged browser-file import, original-path paste, custom output fields, actual media/QR jobs, preview access, passwords/no-history, diagnostics, queue controls and overflow at 1920, 1366, 900 and 440 px widths. Screenshots are actual Linux-rendered application views, not design mockups or screenshots from the user's PC. No uncaught JavaScript errors were observed.
-
-## Not executed here / limitations
-
-- Windows BAT bootstrap, PowerShell installers, native C# launcher, Start/taskbar/Send-to integration, Explorer reveal and Tk dialogs.
-- Native Brave/Edge/Firefox loopback navigation, browser cookie policies/extensions, private-window behavior and OS desktop notifications.
-- NTFS permissions, locked files, antivirus interference, drive letters/UNC paths, power loss and every interrupted-update stage on the user's installation.
-- Real speech recognition, forced alignment (not implemented), speaker-model inference, multilingual accuracy, long-form endurance and GPU performance/compatibility.
-- Successful real model downloads/optional package installations and live yt-dlp website, playlist or authentication behavior.
-- Comprehensive codec/malicious-input fuzzing, formal security audit, reproducible cross-platform dependency lock or signed publisher verification.
-
-Conservative Clean is whitespace cleanup plus optional English um/uh removal, not editorial rewriting or fact-checking. Sentence timing comes from timed words/punctuation, not a separate forced-alignment model. Speaker labeling requires its separate optional environment and complete local Community-1 model; that pass is CPU-only in this release. Media metadata reduction cannot guarantee anonymity or erase identifying content within the image/audio/video. Single-pass normalization is not certified post-encode loudness measurement.
-
-## First Windows acceptance check
-
-Save the intact ZIP in `B:\Forge\Build`, put the standalone updater in `B:\Forge`, finish/cancel queued work and run it. Confirm V0.2 through the launcher, then open the plain bookmark in another normal tab. Test a QR job, a short disposable retune-to-metadata workflow and output reveal. Test CPU transcription on a short clip before trying GPU or speaker labels. Test downloads independently with media you are entitled to save. Keep the backup and report the exact failure text rather than deleting update markers or disabling request protections.
+Replace `B:\Forge\Update FORGE.bat` with the standalone V0.3 updater; put the intact `FORGE-v0.3.zip` in `B:\Forge\Build`. Finish/cancel work, run the updater and review its selection before confirming. Confirm V0.3 in Studio, open a second plain bookmark tab, run a disposable QR job and inspect its output. In Environment, check the actual build paths and verified rollback status. Review rollback in the console only if you intend to return to the earlier code. Keep Backups intact; never delete markers or weaken verification to bypass a failure.

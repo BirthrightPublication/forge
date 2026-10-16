@@ -7,3 +7,7 @@ installed-versions.txt
 runtime.json
 service.log
 *.sqlite3*
+Build/
+Backups/
+.forge-*
+update-last.json

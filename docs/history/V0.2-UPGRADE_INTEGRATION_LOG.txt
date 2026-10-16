@@ -1,0 +1,47 @@
+Created V0.1 data with preset and completed job
+
+
+FORGE LOCAL BUILD UPDATER
+Installation: /mnt/data/forge_v02_work/upgrade-final-integration/FORGE-v0.1
+Builds: /mnt/data/forge_v02_work/upgrade-final-integration/Build
+Original media, model caches, tools, environments and user settings are preserved.
+Only use builds you trust. Embedded SHA-256 hashes detect corruption; they are not a digital signature.
+
+Selected: FORGE-v0.2.zip
+Version: 0.1.0 -> 0.2.0
+ZIP SHA256: 2b846b3c1f0d01ec4fd2294e7d1a00ad13439669a534714e1c12c827acf0ffac
+
+Updated to 0.2.0
+Backup: /mnt/data/forge_v02_work/upgrade-final-integration/Backups/20261016-203230-0.1.0-to-0.2.0-26abee
+Preserved old data, loaded new API, completed real QR worker
+
+
+FORGE LOCAL BUILD UPDATER
+Installation: /mnt/data/forge_v02_work/upgrade-final-integration/FORGE-v0.1
+Builds: /mnt/data/forge_v02_work/upgrade-final-integration/Build
+Original media, model caches, tools, environments and user settings are preserved.
+Only use builds you trust. Embedded SHA-256 hashes detect corruption; they are not a digital signature.
+
+Rollback code 0.2.0 -> 0.1.0. Current user data will not be replaced.
+Code restored. The database snapshot is retained separately, not automatically restored.
+Old code reopened current database after code-only rollback; both history entries remain
+
+{
+  "result": "passed",
+  "host": "linux",
+  "base_sha256": "63489858aa087944b0aa7097e24b072ff6ee019267de2e92e83b6ef5e6855f1e",
+  "candidate_sha256": "2b846b3c1f0d01ec4fd2294e7d1a00ad13439669a534714e1c12c827acf0ffac",
+  "original_files_preserved": 8,
+  "checks": [
+    "Manifest verified",
+    "Nested V0.1 installation detected",
+    "Full release installed through updater main",
+    "Code and database backup created",
+    "Settings/preset/history preserved",
+    "New API and real QR worker executed",
+    "Code-only rollback restored V0.1",
+    "V0.1 reopened current database and retained new history",
+    "Private environment/tools/config/originals preserved"
+  ],
+  "native_windows_execution": false
+}

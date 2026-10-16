@@ -1,15 +1,14 @@
 {
   "result": "passed",
   "host": "linux",
-  "transport": "Real loopback HTTP with Python CookieJar, not browser networking",
+  "version": "0.3.0",
   "checks": [
-    "Native one-use launcher ticket exchange",
-    "Cookie authorizes API without native token",
-    "Clean server shutdown",
-    "Immediate same-port restart",
-    "Runtime token rotated",
-    "Remembered cookie still authorizes new server",
-    "Existing CSRF remains valid across restart"
+    "Real HTTP launch-ticket exchange",
+    "Cookie-authorized state request",
+    "Clean same-port service restart",
+    "Runtime token rotation",
+    "Remembered cookie and CSRF remain valid",
+    "Prior queue pause restored"
   ],
-  "port": 18766
+  "native_windows_execution": false
 }

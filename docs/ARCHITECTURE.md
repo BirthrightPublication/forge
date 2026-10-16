@@ -1,6 +1,14 @@
-# FORGE V0.2 architecture
+# FORGE V0.3 architecture
 
 The working V0.1 architecture is retained: Python/FastAPI on exact IPv4 loopback, dependency-free browser JavaScript, SQLite persistence, isolated worker processes and a Windows launcher. There is no React migration or frontend build requirement.
+
+## V0.3 additions
+
+`forge/update_manager.py` exposes authenticated, local-only inventory and fixed Windows console launch endpoints. Inventory shares archive, target and backup validation with `scripts/update.py`. It reads but never imports or executes release contents. No archive/executable path is accepted from the browser. Opening a console requires CSRF and explicit consent; active jobs, maintenance, interrupted updates and duplicate consoles are refused. The console supplies final confirmation and revalidates disk/queue state.
+
+`web/v3.js` extends the existing Environment page; package scanning is manual and separate from the existing PyPI metadata feature. No frontend framework, dependency migration, new external service or background scanner was introduced.
+
+Native maintenance preparation persists the original queue pause preference in SQLite before freezing admission. The updater also writes a durable, installation/data-specific marker before stopping older runtimes. Pending journals protect code replacement and manual rollback; recovery verifies backups, takes the service lock, restores code/pause state, and removes markers only after recovery succeeds. Dry runs avoid even lock-file writes. These measures reduce crash risk; they do not certify power-loss behavior on NTFS.
 
 ## Components
 

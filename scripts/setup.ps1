@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $root
-Write-Host "`nFORGE V0.2 - local setup`n"
+Write-Host "`nFORGE V0.3 - local setup`n"
 Write-Host 'Creates a private Python environment in this folder and a Start shortcut.'
 Write-Host 'Downloads the listed Python packages from PyPI. No media is uploaded.'
 Write-Host 'No administrator rights, startup task, CUDA installation, or firewall rule.'

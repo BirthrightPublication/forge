@@ -29,6 +29,7 @@ def mount(app,store,manager,sessions,destination,token):
             if any(j['status'] in {'running','queued','cancelling','finalizing'} for j in store.jobs(limit=100000)):
                 raise ValueError('The queue is not idle. Finish or cancel jobs before updating.')
             app.state.pre_update_settings=store.settings()
+            store.set('update_maintenance', {'root':str(ROOT.resolve()), 'queue_paused':bool(app.state.pre_update_settings.get('queue_paused',False))})
             manager.maintenance=True
             store.set('settings',{**app.state.pre_update_settings,'queue_paused':True})
         return {'previous_settings':app.state.pre_update_settings}
@@ -41,6 +42,7 @@ def mount(app,store,manager,sessions,destination,token):
             if manager.maintenance:
                 store.set('settings',app.state.pre_update_settings)
             manager.maintenance=False
+            store.set('update_maintenance', None)
         return {'ok':True}
 
     @app.post('/api/launch-ticket')

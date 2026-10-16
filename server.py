@@ -8,6 +8,7 @@ from pathlib import Path
 import psutil
 import uvicorn
 from forge.app import create_app
+from forge import __version__
 from forge.core import data_directory, json_write
 
 
@@ -46,7 +47,7 @@ def main():
                             log_config=None, proxy_headers=False, server_header=False, timeout_keep_alive=5)
     server = uvicorn.Server(config)
     app.state.shutdown = lambda: setattr(server, 'should_exit', True)
-    runtime = {'port':port,'token':token,'pid':os.getpid(),'started':psutil.Process().create_time(),'version':'0.2.0','root':str(Path(__file__).resolve().parent)}
+    runtime = {'port':port,'token':token,'pid':os.getpid(),'started':psutil.Process().create_time(),'version':__version__,'root':str(Path(__file__).resolve().parent)}
     json_write(data/'runtime.json', runtime)
     try:
         server.run(sockets=[sock])

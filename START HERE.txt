@@ -1,16 +1,16 @@
-FORGE V0.2 (0.2.0) — LOCAL PRODUCTION STUDIO
+FORGE V0.3 (0.3.0) — LOCAL PRODUCTION STUDIO
 Incremental update • 16 October 2026
 
 UPGRADING YOUR EXISTING B:\Forge INSTALLATION
 
-1. Save FORGE-v0.2.zip in:
+1. Save FORGE-v0.3.zip in:
       B:\Forge\Build
-   Leave the ZIP intact. Do not extract a second installation beside V0.1.
+   Leave the ZIP intact. Do not extract a second installation beside the active version.
 
-2. For this FIRST upgrade only, save the separately supplied file:
+2. Replace the external updater with the V0.3 standalone file:
       B:\Forge\Update FORGE.bat
-   The BAT includes its own updater, so V0.1 does not need one already installed.
-   Future releases include the updater and use the same Build-folder process.
+   This updates the recovery command in the main folder too. Both V0.1 and
+   V0.2 can upgrade directly; no fresh installation is needed.
 
 3. Finish or cancel queued/running jobs. Do not submit work during the update.
    Double-click Update FORGE.bat. It finds the active installation at B:\Forge
@@ -24,8 +24,15 @@ UPGRADING YOUR EXISTING B:\Forge INSTALLATION
    It does NOT download or upgrade Python dependencies automatically.
 
 5. FORGE opens through its launcher after the update. Close or reload old
-   V0.1 tabs. The displayed version should be V0.2. Authorize this browser once
+   tabs. The displayed version should be V0.3. Authorize this browser once
    through Open FORGE.bat / the existing shortcut if it was not opened for you.
+
+SMART UPDATE MANAGER
+   In Environment -> Application updates, choose Check local build folder.
+   The check reads local packages only and displays actual paths, compatibility,
+   file counts, SHA-256 and verified rollback status. Review update/rollback in
+   console requires confirmation there before FORGE stops or files change.
+   SHA-256 is integrity checking, not a publisher signature. Use trusted builds.
 
 BOOKMARK / NEW TAB FIX
    Bookmark the plain address: http://127.0.0.1:8765
@@ -66,7 +73,7 @@ ROLLBACK / RECOVERY
 NEW INSTALLATION ONLY
    Extract the complete ZIP to a permanent writable local folder and run
    Setup FORGE.bat. Requires installed 64-bit Python 3.11, 3.12 or 3.13 with
-   Tcl/Tk. Existing V0.1 users should use the updater instead of reinstalling.
+   Tcl/Tk. Existing users should use the updater instead of reinstalling.
 
 VALIDATION BOUNDARY
    Automated API, worker, media, updater and browser-interface checks ran on

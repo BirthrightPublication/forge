@@ -54,7 +54,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
                     installed = None
                 entry = {'package': name, 'installed': installed, 'latest': None}
                 try:
-                    req = urllib.request.Request(f'https://pypi.org/pypi/{name}/json', headers={'User-Agent':'FORGE/0.2 release-check'})
+                    req = urllib.request.Request(f'https://pypi.org/pypi/{name}/json', headers={'User-Agent':f'FORGE/{__version__} release-check'})
                     with urllib.request.urlopen(req, timeout=4) as response:
                         doc = json.loads(response.read(4_000_000))
                     entry['latest'] = doc['info']['version']
@@ -135,7 +135,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.get('/assets/{name}')
     def asset(name: str):
-        if name not in {'app.js','v2.js','style.css','forge.ico'}:
+        if name not in {'app.js','v2.js','v3.js','style.css','forge.ico'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -389,4 +389,6 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     from .v2_api import mount
     mount(app,store,manager,sessions,destination,token)
+    from .update_manager import mount as mount_updates
+    mount_updates(app,store,manager,ROOT)
     return app
