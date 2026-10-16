@@ -1,0 +1,71 @@
+20:29:26 PASS Seven tool cards
+20:29:26 PASS Navigation transcribe
+20:29:26 PASS Desktop no overflow transcribe
+20:29:26 PASS Navigation retune
+20:29:26 PASS Desktop no overflow retune
+20:29:26 PASS Navigation download_audio
+20:29:26 PASS Desktop no overflow download_audio
+20:29:26 PASS Navigation download_video
+20:29:26 PASS Desktop no overflow download_video
+20:29:26 PASS Navigation metadata
+20:29:27 PASS Desktop no overflow metadata
+20:29:27 PASS Navigation qr
+20:29:27 PASS Desktop no overflow qr
+20:29:27 PASS Navigation password
+20:29:27 PASS Desktop no overflow password
+20:29:27 PASS Navigation queue
+20:29:27 PASS Desktop no overflow queue
+20:29:27 PASS Navigation workflows
+20:29:27 PASS Desktop no overflow workflows
+20:29:27 PASS Navigation settings
+20:29:27 PASS Desktop no overflow settings
+20:29:27 PASS New tab boot uses remembered cookie without launcher fragment
+20:29:27 PASS No persistent runtime secret in JS
+20:29:28 PASS Draft settings retained
+20:29:28 PASS Saved preset reloads
+20:29:28 PASS Advanced transcript controls accept sentence / clean / CSV selections
+20:29:28 PASS Favorite tool persisted
+20:29:28 PASS Pinning preserves unsaved tool draft
+20:29:28 PASS Browser import labels staging
+20:29:28 PASS Staged source changes destination
+20:29:29 PASS Pasted original path keeps source destination
+20:29:29 PASS Custom directory field appears
+20:29:33 PASS Saved workflow snapshot survives state polling
+20:29:33 PASS Saved workflow has copied preset settings
+20:29:36 PASS Actual browser workflow completed both linked FFmpeg steps
+20:29:36 PASS Workflow group controls visible
+20:29:38 PASS QR completed through browser queue
+20:29:38 PASS Authorized actual QR preview displayed
+20:29:38 PASS Original source preserved after UI metadata task
+20:29:38 PASS Password generated
+20:29:38 PASS Password cleared on navigation
+20:29:38 PASS Password did not create a queue record
+20:29:39 PASS Resource limits saved
+20:29:39 PASS Model inventory rendered
+20:29:42 PASS Read-only diagnostics rendered
+20:29:42 PASS Build folder instructions retain Windows separators
+20:29:43 PASS Queue priority controls accepted
+20:29:44 PASS Batch cancellation persisted
+20:29:44 PASS No overflow 1366px overview
+20:29:44 PASS No overflow 1366px transcribe
+20:29:44 PASS No overflow 1366px queue
+20:29:44 PASS No overflow 1366px workflows
+20:29:45 PASS No overflow 1366px metadata
+20:29:45 PASS No overflow 1366px password
+20:29:45 PASS No overflow 1366px settings
+20:29:45 PASS No overflow 900px overview
+20:29:45 PASS No overflow 900px transcribe
+20:29:45 PASS No overflow 900px queue
+20:29:45 PASS No overflow 900px workflows
+20:29:45 PASS No overflow 900px metadata
+20:29:45 PASS No overflow 900px password
+20:29:45 PASS No overflow 900px settings
+20:29:45 PASS No overflow 440px overview
+20:29:45 PASS No overflow 440px transcribe
+20:29:45 PASS No overflow 440px queue
+20:29:45 PASS No overflow 440px workflows
+20:29:45 PASS No overflow 440px metadata
+20:29:45 PASS No overflow 440px password
+20:29:45 PASS No overflow 440px settings
+20:29:45 PASS No uncaught JavaScript errors
+70 browser checks passed

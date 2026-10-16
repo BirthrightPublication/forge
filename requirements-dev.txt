@@ -1,0 +1,5 @@
+-r requirements-core.txt
+pytest==9.0.2
+httpx==0.28.1
+numpy>=2.2,<3
+playwright==1.57.0

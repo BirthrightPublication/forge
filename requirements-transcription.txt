@@ -1,0 +1,2 @@
+# Optional; model weights and NVIDIA runtimes are separate.
+faster-whisper==1.2.1

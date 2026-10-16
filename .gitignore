@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+FORGE.exe
+installed-versions.txt
+runtime.json
+service.log
+*.sqlite3*

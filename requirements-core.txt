@@ -1,0 +1,6 @@
+# Direct dependencies used in the validation environment. Not a full hash lock.
+fastapi==0.128.2
+uvicorn==0.48.0
+qrcode==8.2
+pillow==12.3.0
+psutil==7.2.2

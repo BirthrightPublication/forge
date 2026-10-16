@@ -1,0 +1,3 @@
+# Optional isolated CPU speaker-label environment. Publisher model is not bundled.
+# Explicit installer only; latest compatible 4.x, recorded in installed-diarization-versions.txt.
+pyannote.audio>=4,<5
