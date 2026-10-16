@@ -20,15 +20,15 @@ def emit(kind: str, **data):
     print(json.dumps({'kind': kind, **data}, ensure_ascii=False), flush=True)
 
 
-def progress(value: float, message: str, **metrics):
-    emit('progress', progress=min(99, max(0, value)), message=message, **metrics)
+def progress(value: float, message: str, *, progress_measured: bool = False, **metrics):
+    emit('progress', progress=min(99, max(0, value)), message=message, progress_measured=progress_measured, **metrics)
 
 
 def probe(path: Path, settings: dict) -> dict:
     binary = executable('ffprobe', settings)
     if not binary:
         raise RuntimeError('FFprobe was not found. Set its path in Environment, normally beside ffmpeg.exe.')
-    p = subprocess.run([binary, '-v', 'error', '-show_format', '-show_streams', '-of', 'json', str(path)],
+    p = subprocess.run([binary, '-v', 'error', '-show_format', '-show_streams', '-show_chapters', '-of', 'json', str(path)],
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='replace', timeout=120, **no_window())
     if p.returncode:
         raise RuntimeError('Could not inspect the media: ' + p.stderr[-1200:])
@@ -64,7 +64,7 @@ def run_ffmpeg(args: list[str], settings: dict, total: float = 0):
                 with contextlib.suppress(ValueError): speed=float(value.rstrip('x'))
             if key == 'out_time_us' and value.isdigit() and total:
                 done=int(value)/1_000_000
-                progress(5+85*done/total,'Processing media',stage='Media conversion',speed=f'{speed:.2f}x' if speed else '',eta_seconds=max(0,total-done)/speed if speed>0 else None)
+                progress(100*done/total,'Processing media',progress_measured=True,stage='Media conversion',speed=f'{speed:.2f}x' if speed else '',eta_seconds=max(0,total-done)/speed if speed>0 else None)
         code = p.wait()
         reader.join(timeout=3)
     if code:
@@ -140,48 +140,29 @@ def retune(source: Path, stage: Path, options: dict, settings: dict):
 
 
 def image_metadata(path: Path) -> dict:
-    from PIL import Image
-    with Image.open(path) as image:
-        return {'format': image.format, 'size': list(image.size),
-                'info': {k: str(v)[:2000] for k, v in image.info.items()},
-                'exif': {str(k): str(v)[:2000] for k, v in image.getexif().items()}}
+    from .media_extensions import image_inspection
+    return image_inspection(path)
 
 
 def media_metadata(info: dict) -> dict:
-    return {'format_tags': info.get('format', {}).get('tags', {}),
-            'stream_tags': [{'index': s.get('index'), 'type': s.get('codec_type'), 'tags': s.get('tags', {})} for s in info.get('streams', [])]}
+    from .media_extensions import media_inspection
+    return media_inspection(info)
 
 
-def wipe(source: Path, stage: Path, settings: dict):
+def wipe(source: Path, stage: Path, settings: dict, options: dict | None = None):
     ext = source.suffix.lower()
+    level = (options or {}).get('cleaning_level', 'maximum')
+    if level not in {'standard', 'maximum'}:
+        raise ValueError('Choose Standard or Maximum metadata reduction.')
     if ext in IMAGES:
-        from PIL import Image, ImageOps
-        before = image_metadata(source)
-        with Image.open(source) as original:
-            if getattr(original, 'is_animated', False):
-                raise RuntimeError('Animated image cleaning is not implemented; the original was left untouched.')
-            im = ImageOps.exif_transpose(original)
-            im.load()
-            # A new image avoids carrying EXIF, PNG text or ICC fields into the output.
-            mode = 'RGBA' if 'A' in im.mode or 'transparency' in im.info else 'RGB'
-            pixels = im.convert(mode)  # Preserve palette colors and tRNS alpha.
-            clean = Image.new(mode, im.size)
-            clean.paste(pixels)
-            if ext in {'.jpg', '.jpeg'}:
-                clean.convert('RGB').save(stage, 'JPEG', quality=95, subsampling=0)
-            elif ext == '.webp':
-                clean.convert('RGBA').save(stage, 'WEBP', lossless=True)
-            else:
-                clean.save(stage, 'PNG')
-        after = image_metadata(stage)
-        warnings = ['Image was re-encoded. Orientation is applied; ICC profile removal can alter color appearance.',
-                    'Metadata removal does not conceal visible content, watermarks, steganography, filenames or filesystem history.']
-        return before, after, warnings
+        from .media_extensions import clean_image
+        return clean_image(source, stage, level)
     if ext not in CLEAN_MEDIA:
         raise RuntimeError('This format is not supported by this cleaner. PDF and Office sanitization are deliberately not advertised.')
     info = probe(source, settings)
     before = media_metadata(info)
-    keep = [s for s in info.get('streams', []) if s.get('codec_type') in {'audio','video'} and not s.get('disposition', {}).get('attached_pic')]
+    types = {'audio', 'video', 'subtitle'} if level == 'standard' else {'audio', 'video'}
+    keep = [s for s in info.get('streams', []) if s.get('codec_type') in types and not s.get('disposition', {}).get('attached_pic')]
     if not keep:
         raise RuntimeError('No supported audio/video stream to copy.')
     args = ['-i', str(source)]
@@ -193,10 +174,13 @@ def wipe(source: Path, stage: Path, settings: dict):
         args += ['-id3v2_version', '0', '-write_id3v1', '0']
     run_ffmpeg(args + [str(stage)], settings, duration(info))
     after_info = probe(stage, settings)
-    if not after_info.get('streams'):
-        raise RuntimeError('Output verification failed: no media streams.')
+    expected = [(s.get('codec_type'), s.get('codec_name')) for s in keep]
+    actual = [(s.get('codec_type'), s.get('codec_name')) for s in after_info.get('streams', [])]
+    if sorted(expected) != sorted(actual):
+        raise RuntimeError('Output verification failed: expected copied streams were not preserved.')
     after = media_metadata(after_info)
-    return before, after, ['Audio/video streams were copied, not re-encoded. Covers, attachments, subtitles, data tracks and chapters were excluded.',
+    stream_note = 'Audio/video and compatible subtitle streams were copied without re-encoding. Covers, attachments, data tracks and chapters were excluded.' if level == 'standard' else 'Audio/video streams were copied, not re-encoded. Covers, attachments, subtitles, data tracks and chapters were excluded.'
+    return before, after, [stream_note,
                            'Containers may regenerate technical tags. This is metadata reduction, not forensic anonymization.']
 
 
@@ -262,6 +246,8 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
         generated, info = model.transcribe(str(source), language=options['language'] or None,
                     task=options['task'], beam_size=options['beam_size'], vad_filter=options['vad'],
                     word_timestamps=need_words, initial_prompt=options['vocabulary'] or None)
+        total = float(info.duration or 0)
+        measured = math.isfinite(total) and total > 0
         segments = []
         for s in generated:
             item = {'start': s.start, 'end': s.end, 'text': s.text, 'avg_logprob': s.avg_logprob,
@@ -271,7 +257,7 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
             segments.append(item)
             elapsed=max(.001,time.monotonic()-started)
             speed=s.end/elapsed
-            progress(5+80*s.end/max(info.duration,1),f'Transcribing on {dev} · {timestamp(s.end)}',stage='Speech recognition',speed=f'{speed:.2f}x audio',eta_seconds=max(0,info.duration-s.end)/speed if speed>0 else None)
+            progress(100*s.end/total if measured else 0,f'Transcribing on {dev} · {timestamp(s.end)}',progress_measured=measured,stage='Speech recognition',speed=f'{speed:.2f}x audio',eta_seconds=max(0,total-s.end)/speed if measured and speed>0 else None)
         details = {'language': info.language, 'language_probability': info.language_probability,
                    'duration': info.duration, 'device': dev, 'task': options['task']}
         return segments, details
@@ -328,10 +314,11 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
         if now - last_progress[0] < 0.3:
             return
         last_progress[0] = now
-        total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+        total = d.get('total_bytes') or 0
+        measured = total > 0 and not options.get('playlist')
         if d.get('status') == 'downloading':
             done = d.get('downloaded_bytes', 0)
-            progress(5+75*done/total if total and not options.get('playlist') else 5, 'Downloading playlist item '+str(d.get('info_dict',{}).get('playlist_index','?')) if options.get('playlist') else 'Downloading media',stage='Playlist / current file' if options.get('playlist') else 'Download',speed=(f'{d.get("speed",0)/1048576:.2f} MB/s' if d.get('speed') else ''),eta_seconds=d.get('eta') if not options.get('playlist') else None)
+            progress(100*done/total if measured else 0, 'Downloading playlist item '+str(d.get('info_dict',{}).get('playlist_index','?')) if options.get('playlist') else 'Downloading media',progress_measured=bool(measured),stage='Playlist / current file' if options.get('playlist') else 'Download',speed=(f'{d.get("speed",0)/1048576:.2f} MB/s' if d.get('speed') else ''),eta_seconds=d.get('eta') if measured else None)
         elif d.get('status') == 'finished':
             progress(85, 'Download finished; post-processing')
     ff = executable('ffmpeg', settings)
@@ -422,17 +409,11 @@ def run(payload: dict):
             json_write(report,{'model':options['model'],'cache':str(cached),'note':'Downloaded/cached; inference has not been tested.'})
             files=[report]
         elif tool == 'qr':
-            import qrcode
-            import qrcode.image.svg
-            correction = getattr(qrcode.constants, 'ERROR_CORRECT_' + options['error_correction'])
-            qr = qrcode.QRCode(error_correction=correction, box_size=options['box_size'], border=options['border'])
-            qr.add_data(options['text'])
-            qr.make(fit=True)
+            from .media_extensions import qr_bytes, qr_sensitive
+            if qr_sensitive(options):
+                raise ValueError('Wi-Fi QR codes use the private preview/export endpoint; secret values cannot be processed in job history.')
             path = stage_dir / (safe_name(options['name']) + '.' + options['format'])
-            if options['format'] == 'svg':
-                qr.make_image(image_factory=qrcode.image.svg.SvgPathImage).save(str(path))
-            else:
-                qr.make_image(fill_color='black', back_color='white').save(path)
+            path.write_bytes(qr_bytes(options))
             files = [path]
         elif tool == 'retune':
             path = stage_dir / (safe_name(source.stem) + f'_{options["target_hz"]:g}hz.' + options['format'])
@@ -441,14 +422,22 @@ def run(payload: dict):
         elif tool == 'metadata':
             path = stage_dir / (safe_name(source.stem) + ('_metadata-reduced' if options.get('mode','wipe')=='wipe' else '_metadata-edited') + source.suffix.lower())
             if options.get('mode','wipe')=='wipe':
-                before,after,warnings=wipe(source,path,settings)
+                before,after,warnings=wipe(source,path,settings,options)
             else:
                 before,after,warnings=edit_metadata(source,path,options,settings)
             files = [path]
+            from .media_extensions import capabilities, metadata_inventory
+            remaining = metadata_inventory(after)
             if options['audit_report']:
                 report = stage_dir / (path.stem + '_PRIVATE-audit.json')
                 json_write(report, {'warning': 'This private report contains metadata from the ORIGINAL file. Do not publish it with the cleaned file.',
-                                    'before': before, 'after': after, 'limitations': warnings})
+                                    'before': before, 'after': after, 'remaining': remaining,
+                                    'capabilities': capabilities(source.suffix), 'limitations': warnings})
+                files.append(report)
+            if options.get('remaining_report'):
+                report = stage_dir / (path.stem + '_remaining-metadata.json')
+                json_write(report, {'warning': 'Remaining metadata can still contain private fields. Review before sharing.',
+                                    'remaining': remaining, 'capabilities': capabilities(source.suffix), 'limitations': warnings})
                 files.append(report)
         elif tool == 'transcribe':
             files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)

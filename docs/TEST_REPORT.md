@@ -1,42 +1,56 @@
-# FORGE V0.3 validation report
+# FORGE V0.4 validation report
 
-Target product: Windows 11 local browser Studio. Validation host: Linux x86-64, Python 3.12.14. This release retains the supplied V0.2 baseline and focuses on local update review and recovery. V0.2 historical evidence is retained under `docs/history/` and is not counted as current execution.
+Target: Windows 11 local browser application. Validation host: Linux x86-64, Python 3.12.14, system Chromium and FFmpeg. Prior V0.3 reports and its superseded browser harness are archived under `docs/history/v0.3`; their counts are not included below.
 
 ## Executed results
 
 | Check | Result |
 |---|---|
-| Supplied V0.2 baseline regression suite | 143 passed before implementation |
-| Final Python unit/API/worker/media/updater suite | **185 passed**, no skipped tests, 16.28 seconds |
-| Browser checks | **100 passed**: 89 transport-bridge checks and 11 direct Chromium checks; no uncaught JavaScript errors |
-| V0.1 → V0.3 → code rollback | Passed with real candidate API and queued QR worker |
-| V0.2 → V0.3 → code rollback | Passed, including retained workflows/favorites |
-| Preservation in each upgrade path | All 8 original scripts, 10 private file markers, settings, presets, history, inputs and outputs retained; baseline source bytes restored on rollback |
-| Real HTTP service restart | Same-port restart, runtime-token rotation, remembered cookie and CSRF persistence passed |
-| Source validation | Python compileall, all three JavaScript syntax checks and Git whitespace check with native CRLF BAT handling passed |
-| Cloud setup repeatability | Saved installation commands rerun successfully; pip check passed; authenticated API and real QR output verified after startup |
+| Final Python unit/API/worker/media/updater suite | **352 passed**, no skips, 24.68 seconds |
+| Direct Chromium browser checks | **207 passed**: Studio 98, Black Scripting 26, generators 83; zero uncaught JavaScript errors |
+| Real worker behavior | Concurrent QR/FFmpeg work, retune→metadata chain, dependency routing, cancellation/retry, source/output preservation passed |
+| Metadata integration | JPEG/PNG/WebP pixel preservation, orientation handling, embedded EXIF thumbnail removal, real FFmpeg subtitle/attached-cover removal and audio preservation passed |
+| Independent QR decoding | PNG and rasterized SVG decoded with ZXing for text, URL, contact and Wi-Fi, including Unicode, escaping, colors and quiet zones |
+| Upgrade and code rollback | V0.1→V0.4, V0.2→V0.4, V0.3→V0.4 passed with real candidate API and queued QR execution |
+| Preservation per upgrade path | All 8 original scripts, 10 private file markers, prior settings/presets/history and outputs preserved; original code bytes restored on rollback |
+| V0.4 compatibility after upgrade | Eleven-tool registry, offline grants, legacy-script projection and memory-only generators worked; new script/config-preset records survived rollback |
+| Source/dependencies | Python compilation, all seven JS syntax checks, Git whitespace and pip consistency passed |
+| Cloud startup | V0.4 authenticated API, eleven-tool registry and real QR output passed in the prepared environment |
 
-The Python suite has one upstream Starlette/AnyIO deprecation warning. It is not a test failure. Direct dependency pins remain unchanged; no optional engine/model is required for the update workflow.
+One upstream Starlette/AnyIO deprecation warning remains. Core runtime dependency pins are unchanged. `zxing-cpp` is a development-only independent test decoder; it is not a production QR dependency.
 
-## V0.3 coverage
+## Behavioral coverage
 
-New checks exercise manual local inventory, compatible semantic-version selection, all newest-version duplicate conflicts, corrupt/malformed packages, linked ZIPs, local target conflicts, backup integrity and rollback status. Browser controls require explicit consent and CSRF, accept fixed action names only, refuse extra command/path fields and busy queues, and prevent duplicate console openings. Actual Windows Popen arguments are inspected with a test double; Windows console execution is not inferred from that test.
+Queue checks cover manual/Auto ceilings, CPU/GPU/network/disk constraints, unknown telemetry, measured VRAM with conservative budgets, ambiguous device mapping, destination-volume space, dependency order, concurrent real workers, restart persistence, failure/cancellation/retry and bulk record removal without physical deletion. Old active and failed records remain visible beyond the 500-record terminal history window. Windows association opening is tested with mocks for media/plain transcripts and rejects executable/active-document/symlink escapes. These are simulated Windows/GPU cases, not evidence of native execution or inference performance.
 
-Recovery tests cover pending and orphan maintenance markers, dry-run immutability, pause-preference persistence, tampered backups, interrupted manual rollback, and marker retention when recovery fails. A full integration run exposed same-second/same-size Python bytecode reuse; the fix invalidates only matching caches for changed/restored sources across interpreter tags, refuses linked cache paths and verifies the imported version. A deterministic subprocess regression and both real archive upgrade paths passed after correction.
+Black Scripting tests cover initially empty workspaces, versioned nodes/connections, all editing actions, immutable preset snapshots, save/rename/duplicate/import/export, legacy non-mutating projection, malformed/branched/cyclic definitions, preview fingerprints, disabled nodes and real retune→metadata processing. Existing legacy workflow tests still pass.
 
-Browser checks retain the original 70 navigation/workflow/media controls and add 19 update-panel checks plus 11 direct browser checks. Synthetic inventory fixtures are explicitly used for markup escaping and blocked-state rendering; real requests independently validate the installed version, build path, absence of automatic scans and local scan responses. Direct Chromium loads the served app, consumes a real launcher ticket, authorizes another normal tab via its cookie, completes a real queued QR job and retrieves its authenticated PNG preview. Chromium loopback networking works in this environment; no networking policy bypass was used. The bridge portion separately exercises actual FFmpeg workflow/metadata/QR workers and layouts down to 440 px.
+Generator tests cover bounded policies, required alphabets/exclusions, secure choices, synthetic country formats, reserved-domain emails, formula-safe exports, presets, private value non-persistence and entitlement denial. Browser tests use actual downloads and generated batches. Timer behavior uses Chromium's virtual clock; hidden-tab behavior is an explicitly simulated event. Navigation/search clearing and all four real tool APIs are independently exercised.
 
-## Evidence and delivered artifact
+Media checks verify actual pixels, audio hashes, metadata structures and independently decoded QR payloads. ASR-duration and downloader-progress regressions use mocked adapters: unknown duration, estimated byte totals and playlist scope do not claim measured whole-job progress. Full ASR, speaker or website execution is not implied.
 
-`PYTHON_TEST_RESULTS.txt`, `BROWSER_CHECKS.json`, `BROWSER_TEST_RESULTS.txt`, `HTTP_RESTART_RESULTS.json` and `UPGRADE_INTEGRATION.json` contain current results. The documented candidate was tested before final evidence assembly; the final delivered ZIP is independently installed and rolled back again from both baselines. Its exact hash and final artifact reports are supplied alongside the ZIP. The manifest covers every packaged application file; application/test-source bytes are checked against the candidate when assembling the final artifact.
+Direct browser tests load served assets through a real loopback service and consume one-use launcher tickets, then test remembered normal tabs. They cover accessible icon tabs, retained draft values, visible output controls, all tool/navigation views, queue actions/details, real QR/metadata jobs, generator exports/presets, the Black Scripting workbench and responsive widths down to 390 px. Large-history records are explicitly labeled database fixtures in disposable data; those fixtures do not substitute for real worker tests. Screenshots show the implemented interface.
 
-## Not executed here
+## Reproduction and artifact verification
 
-- Native Windows BAT/PowerShell/bootstrap, console windows, Explorer/Tk/shortcut/Send-to integration, NTFS locks/ACLs, antivirus or power-loss behavior.
-- Windows Edge/Brave/Firefox acceptance. Direct browser execution here used Linux Chromium.
-- Actual transcription, speaker-model inference, GPU/CUDA performance, model downloads or live website downloads.
-- Digital publisher signatures, managed dependency rollback, arbitrary custom script execution, folder scheduling or online terminology verification. Those are outside V0.3 scope.
+```text
+.venv/bin/python -m pytest -q
+.venv/bin/python tests/browser_v4_check.py --runtime <disposable-runtime.json> --output <evidence-directory> --allow-test-writes
+.venv/bin/python tests/browser_black_scripting_check.py --output <evidence-directory> --allow-test-writes
+.venv/bin/python tests/browser_generators_check.py --output <evidence-directory>
+.venv/bin/python tests/integration_upgrade.py --base <prior-zip> --build <candidate-zip> --output <new-disposable-directory> --allow-test-writes
+```
 
-## Windows acceptance procedure
+The two domain browser harnesses start and clean up their own temporary runtimes. The Studio harness requires an explicitly selected disposable runtime and changes its settings/jobs; never use production data. On Windows substitute the appropriate Python executable. System FFmpeg/FFprobe and Chromium are needed for these development checks.
 
-Replace `B:\Forge\Update FORGE.bat` with the standalone V0.3 updater; put the intact `FORGE-v0.3.zip` in `B:\Forge\Build`. Finish/cancel work, run the updater and review its selection before confirming. Confirm V0.3 in Studio, open a second plain bookmark tab, run a disposable QR job and inspect its output. In Environment, check the actual build paths and verified rollback status. Review rollback in the console only if you intend to return to the earlier code. Keep Backups intact; never delete markers or weaken verification to bypass a failure.
+`BROWSER_CHECKS.json`, `BROWSER_TEST_RESULTS.txt`, `PYTHON_TEST_RESULTS.txt`, `UPGRADE_INTEGRATION.json` and screenshots contain current evidence. The packaged report describes the pre-evidence candidate; the exact final ZIP is independently installed and rolled back again from all three baselines. Final hash/results accompany the ZIP. Final application/test source hashes are compared against the validated source/candidate when assembling delivery. The manifest covers all packaged application files and excludes user data/environments/models/tools.
+
+## Remaining acceptance checks
+
+- Native Windows BAT/PowerShell/bootstrap, Explorer/Tk, shortcuts/Send-to, NTFS locks/ACLs, antivirus and power-loss behavior.
+- Windows 11 Edge/Brave/Firefox acceptance; direct browser execution here used Linux Chromium.
+- Physical CUDA memory/inference behavior, optional transcription/speaker models, live downloads and target-phone QR scanning.
+- Exact visual comparison/custom icon integration: the screenshot, icon and video/transcript referenced in the brief were not attached. Existing branding and a local SVG icon are used provisionally.
+- Production billing, account/device activation, signed-license cryptography and signed release distribution are intentionally absent. V0.4 supplies offline development grants and adapter boundaries only.
+
+For Windows acceptance, put the intact V0.4 ZIP in `B:\Forge\Build`, finish/cancel queued work and run `B:\Forge\Update FORGE.bat`. Confirm V0.4, open a second normal browser tab, run a short disposable media chain and QR job, inspect all outputs and check existing presets/history. Keep `Backups` intact for the verified code-rollback path.

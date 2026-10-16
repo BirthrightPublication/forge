@@ -1,12 +1,12 @@
 # FORGE — Local Production Studio
 
-**V0.3.0 · Smart Update Manager · Windows 11 · 16 October 2026**
+**V0.4.0 · Studio, Queue 3.0 and Black Scripting · Windows 11 · 16 October 2026**
 
-A Windows-local production studio opened in your default browser. V0.3 retains the V0.2 tools, queue, workflows, authorization and charcoal/gold interface, and adds a local Smart Update Manager with safer recovery. Application source is included; your original batch files are kept for reference and are not executed by the web service.
+A Windows-local production studio opened in your default browser. V0.4 adds compact tool workspaces, a resource-aware queue, the Black Scripting visual workbench and four local generators while retaining V0.3 authorization, processing and update recovery. Application source is included; your original batch files are kept for reference and are not executed by the web service.
 
 ## Update the existing installation
 
-Save `FORGE-v0.3.zip` in **`B:\Forge\Build`**, without extracting it. Replace the standalone **`Update FORGE.bat`** in **`B:\Forge`** with the V0.3 copy supplied alongside this release. This also brings the external recovery updater up to date. Finish or cancel active/queued work, then double-click the BAT and press Enter to update.
+Save `FORGE-v0.4.zip` in **`B:\Forge\Build`**, without extracting it. Replace the standalone **`Update FORGE.bat`** in **`B:\Forge`** with the V0.4 copy supplied alongside this release. This also brings the external recovery updater up to date. Finish or cancel active/queued work, then double-click the BAT and press Enter to update.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 
@@ -14,17 +14,18 @@ The update is local: no dependency or model installation is performed. Backups a
 
 For a new installation only, extract the ZIP, run `Setup FORGE.bat`, then `Open FORGE.bat`. Setup uses installed 64-bit Python 3.11–3.13 with Tcl/Tk and creates a private `.venv`. It asks before downloading core dependencies. Start-menu/taskbar/Send-to integration uses the existing Windows launcher setup.
 
-## What changes in V0.3
+## What changes in V0.4
 
-In **Environment → Application updates**, select **Check local build folder**. This reads local ZIPs only; ordinary startup and queue polling do not scan packages. The panel shows the actual application/home/Build/Backups paths, installed version, package hash, compatibility, changed/new file counts, rejected builds, and verified code rollback availability.
+- Compact charcoal/gold tool pages with centered inputs, accessible icon tabs, retained per-tool settings, presets and visible Start/Add to Queue controls.
+- Queue 3.0 has Active & Queued, Failed and History tabs; selection, dispatch pause/resume, cancellation, retry, order changes, output details and record removal that retains physical files. Auto or manual limits admit at most five workers, constrained by CPU, GPU, network and disk budgets.
+- **Black Scripting** opens from the global gold header control, outside the normal sidebar. Start with an empty horizontal chain, add known media operations, edit their settings or preset snapshots, disable/reorder/duplicate nodes, choose an output and preview dependencies before submitting. Linear versioned JSON scripts support save, duplicate, rename, import and export.
+- **Identity Studio**, **Obfuscation Studio**, **Random Address Generator** and **Random String Generator** share bounded generation, configuration presets and explicit TXT/CSV/JSON export. Names/addresses are fictional or synthetic. Generated values stay out of job history and presets; secure strings use OS entropy. Supported region vocabularies and country formats are listed in each tool.
+- **Metadata Hyper Cleaner** adds Standard/Maximum privacy reduction, actual embedded-preview inspection where supported and opt-in before/after or remaining-data reports. **QR Studio** supports text/URL/contact/Wi-Fi, color/size/quiet zone, PNG/SVG previews, bulk ZIP export and local content presets. Wi-Fi credentials are memory-only and cannot be queued or saved in presets.
+- Stable Birthright module IDs, entitlement/provider interfaces, offline policies and signed-license adapter boundaries are present. The default development provider grants every feature offline. No billing, activation, identity collection or remote license transport is implemented.
 
-The highest compatible, verified newer version is selected. A corrupt build is reported individually; incompatible versions are skipped. Conflicting newest ZIPs block selection. An already installed or older version is shown without being offered as an update. Local target conflicts and source links are rejected before choosing a build.
+V0.3's local Smart Update Manager and recovery protections are retained. Environment → Application and package updates → Check local build folder reads local ZIPs, verifies compatibility and shows rollback availability. Update/rollback console actions retain final native confirmation.
 
-On Windows, **Review update in console** or **Review rollback in console** opens the fixed local Python updater. Confirm opening it in Studio, then review and confirm the actual operation in the console. Merely checking builds or opening the console does not stop FORGE or install anything. The console rechecks the queue and package before maintenance. There is no browser command field, automatic internet update, or automatic dependency upgrade.
-
-Recovery now retains the prior queue pause preference, clears recovered maintenance markers, journals interrupted manual rollback, and keeps `--dry-run` read-only during recovery. Changed Python modules have their generated bytecode invalidated so quick updates cannot silently import an old version. A recovery-required installation must use the external **Update FORGE.bat** before normal startup. Existing backups and current user data remain separate from code rollback.
-
-SHA-256 verifies file integrity, **not publisher identity**. This release is not digitally signed. Read [the V0.3 scope and roadmap](docs/V03_PLAN.md), [update guide](docs/UPDATE_GUIDE.md), and [validation report](docs/TEST_REPORT.md).
+Read [the V0.4 feature and compatibility notes](docs/V04_RELEASE.md), [commercial dependency review](docs/COMMERCIAL_DEPENDENCIES.md), [update guide](docs/UPDATE_GUIDE.md), and [validation report](docs/TEST_REPORT.md).
 
 ## Bookmark and browser authorization
 
@@ -44,11 +45,11 @@ This remains a trusted, single-user local application. It binds to IPv4 loopback
 | Transcript outputs | TXT, SRT, VTT, JSON, CSV and standalone HTML; JSON enables an in-Studio searchable viewer with timestamp-linked source playback |
 | Optional speaker labels | Separate CPU pyannote environment and trusted local Community-1 model; anonymous speaker labels assigned by greatest temporal overlap, not identity recognition |
 | Retuning | Detected source sample rate, entered source/target tuning, optional tempo preservation, quality/MP3 bitrate/WAV bit depth, audio or copied-primary-video outputs, optional single-pass loudness normalization |
-| Metadata Studio | Read-only inspector, supported-field privacy reduction, selective media tag removal, media tag editing, optional PRIVATE before/after report |
+| Metadata Hyper Cleaner | Read-only inspector, embedded-preview inventory, Standard/Maximum reduction, selective media tag removal/editing and optional PRIVATE reports |
 | Downloads | One job per URL; audio/video format and quality controls, bounded playlist ranges, available human/automatic subtitle sidecars, three safe filename layouts, optional explicitly supplied cookies file |
-| QR / passwords | Local PNG/SVG QR creation and cryptographic password generation; passwords are not placed in queue history |
+| QR / generators | Local QR PNG/SVG/contact/Wi-Fi/bulk preview; passwords/tokens/aliases/fictional addresses with explicit export and no generated-value history |
 | Queue | Total and resource-specific limits, persistent order, selected-job actions, dependency blocking, workflow group cancellation/retry, stage/speed/ETA when measurable |
-| Workflows | One to six local media steps, saved tool presets/snapshots, retune and metadata steps followed by optional final transcription |
+| Black Scripting | Empty visual workbench, up to 24 versioned linear nodes, preset snapshots, previewed dependency plan, retune/metadata followed by optional transcription |
 | Environment | Guided optional installers, isolated read-only GPU diagnostics, model cache inventory, consented model-download jobs, release metadata checks and export settings |
 | Navigation | Optional pinned tools and a scrollable navigation region that keeps Environment accessible in shorter windows |
 
@@ -72,17 +73,17 @@ Standalone HTML has no remote assets or network calls. Select the matching local
 
 Select that directory, enable speaker labels, and set plausible minimum/maximum speakers. Model use is offline; pyannote metrics and Hugging Face telemetry are disabled in the runner. This release runs the separate speaker pass on CPU, regardless of ASR GPU selection. Speaker turns are estimates; overlaps, brief utterances and background speech may require manual correction. Actual optional model inference was not validated in the build environment.
 
-## Universal queue and workflows
+## Universal queue and Black Scripting
 
-The total job limit caps all active workers. CPU, GPU/Auto-transcription and download caps further constrain dispatch. Auto transcription conservatively reserves a GPU slot even if it later falls back to CPU. Model downloads do not run alongside speech inference using the shared cache. Limits take effect for new dispatch; changing them does not forcibly terminate current work.
+Auto adjusts the configured ceiling (up to five workers) to measured CPU/system-memory pressure. Manual uses the configured ceiling. CPU, GPU/Auto-transcription, network and disk caps further constrain dispatch. NVIDIA free VRAM is measured through nvidia-smi where available and compared with explicitly estimated model budgets plus a reserve. Missing GPU telemetry serializes GPU work; it does not display invented memory values. Matching GPU models are serialized rather than loaded concurrently. Auto transcription conservatively reserves a GPU slot even if it later falls back to CPU. Model downloads do not run alongside speech inference using the shared cache. Limits take effect for new dispatch; changing them does not forcibly terminate current work.
 
 Move queued jobs up/down. Priority does not break dependencies or preempt a running task. **Pause dispatch** stops new starts, not an in-progress encoder. **Retry** starts new work from the beginning and never claims checkpoint-level continuation. Failed, cancelled or interrupted parents block their dependent steps.
 
-Workflows create an independent chain for each source. They pass the parent's actual published media output, including any collision-safe filename, to the next step. Each step uses the selected export destination and keeps completed intermediate files. Transcription must be last because its outputs are text. Metadata workflow steps currently use full supported-field reduction, not selective/edit modes. Download-to-workflow chaining, visual branches and arbitrary shell/script steps are not included.
+Black Scripting creates an independent chain for each source. They pass the parent's actual published media output, including any collision-safe filename, to the next step. Each step uses the selected export destination and keeps completed intermediate files. Transcription must be last because its outputs are text. Current Black Scripting nodes accept Standard/Maximum wipe and supported media selective/edit options. The legacy workflow API retains its old restriction for compatibility. Download-to-workflow chaining, visual branches and arbitrary shell/script steps are not included.
 
-Saved workflows retain their own option snapshots, even if an underlying tool preset changes later. Retrying an entire group creates new linked jobs and new non-overwriting outputs. Retry a group rather than separately retrying a child whose parent did not complete.
+Saved scripts retain their own option snapshots, even if an underlying tool preset changes later. Retrying an entire group creates new linked jobs and new non-overwriting outputs. Retry a group rather than separately retrying a child whose parent did not complete.
 
-The UI lists every active job plus the latest 500 records; older finished records remain in SQLite. Browser desktop notifications are optional and need explicit permission plus an open authorized tab. They are not a separate Windows notification service. No ETA is invented where the adapter cannot measure progress; playlist progress messages describe the current item rather than an accurate whole-playlist completion forecast.
+The UI lists every active or failed job plus the latest 500 records; older finished records remain in SQLite. Browser desktop notifications are optional and need explicit permission plus an open authorized tab. They are not a separate Windows notification service. No ETA is invented where the adapter cannot measure progress; playlist progress messages describe the current item rather than an accurate whole-playlist completion forecast.
 
 ## Files, destinations and safety
 
@@ -90,7 +91,7 @@ Native browse, pasted absolute paths and Explorer Send to preserve the real sour
 
 Output modes are source folder, custom directory, last custom directory and default export folder, with an optional simple subfolder. File names receive descriptive suffixes and collision-safe numbered alternatives. There is no replace-original mode. Processing happens in job-owned staging directories; outputs are verified before publication. If a source changes after queuing, the job requires review/retry rather than silently processing a different input.
 
-Media metadata editing remuxes compatible streams without intentionally re-encoding. Images currently support full supported-field reduction only. Metadata reduction is not an anonymity guarantee: visible content, steganography, watermarks, filenames, filesystem history and necessary container/codec tags can remain. Orientation is applied before image metadata removal; stripping a color profile may change appearance. PDF, Office and animated-image sanitization remain unsupported.
+Media metadata editing remuxes compatible streams without intentionally re-encoding. Images support wipe only; JPEG/PNG/WebP compressed image data is retained where supported and no orientation transform is required. Orientation correction can re-encode. Standard preserves compatible color profiles/subtitles; Maximum removes them, which can affect color appearance. Capability reports disclose each format boundary. Metadata reduction is not an anonymity guarantee: visible content, steganography, watermarks, filenames, filesystem history and necessary container/codec tags can remain. Orientation is applied before image metadata removal; stripping a color profile may change appearance. PDF, Office and animated-image sanitization remain unsupported.
 
 Retuning assumes the entered original tuning; it cannot establish how the recording was originally tuned. Lossless output encoding cannot recover information lost in a lossy input. Normalization is single-pass; requested LUFS/true-peak targets are not a certified post-encode measurement.
 
@@ -104,10 +105,10 @@ Code updates preserve local environments, tools, data and models. The release ma
 
 Failure recovery restores backed-up code. Manual code rollback retains current user data and the separate database snapshot; it does not silently restore an older database. Newer saved options may need adjustment in older code. Backup/journal handling reduces update risk but is not a power-loss or filesystem-failure guarantee. See the update guide.
 
-Release checks contact PyPI for version metadata only. Optional startup checks are cached for 24 hours; no packages/models are installed merely by opening FORGE. Guided engine installation is a separate, explicitly approved action. Signed release distribution, comprehensive dependency rollback, script importing, scheduling, online terminology research and additional transcription intelligence remain later work. V0.3 does not claim those features.
+Release checks contact PyPI for version metadata only. Optional startup checks are cached for 24 hours; no packages/models are installed merely by opening FORGE. Guided engine installation is a separate, explicitly approved action. Signed release distribution, comprehensive dependency rollback, arbitrary code/script execution, scheduling, online terminology research and additional transcription intelligence remain later work. Black Scripting imports validated definitions of known operations only.
 
 ## Tests and build source
 
-See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json`. Automated checks ran on Linux. Native Windows BAT/PowerShell/Explorer integration, ordinary Brave loopback networking, actual speech/speaker inference, GPU performance and live website downloads remain local acceptance checks.
+See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json`. Automated checks ran on Linux. Native Windows BAT/PowerShell/Explorer integration, Edge/Brave/Firefox acceptance, actual speech/speaker inference, GPU performance and live website downloads remain local acceptance checks.
 
 `python -m pytest` runs unit/API/media/updater tests after installing development requirements. The browser and full-upgrade harnesses require explicit disposable directories and test-write consent; never point them at production data. `scripts/package_release.py` creates a manifest-verified source release in a selected output directory and excludes data/environments/tools. Existing Windows users should use the supplied updater, not run the packaging script.

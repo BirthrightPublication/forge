@@ -25,12 +25,17 @@ TOOLS = {
     'retune': {'title': '432Hz Conversion', 'group': 'Media', 'description': 'Retune audio or video without replacing the original.', 'accept': sorted(MEDIA)},
     'download_audio': {'title': 'Audio Download', 'group': 'Downloads', 'description': 'Download and extract audio from a supplied URL.', 'accept': []},
     'download_video': {'title': 'Video Download', 'group': 'Downloads', 'description': 'Download video using a fresh yt-dlp integration.', 'accept': []},
-    'metadata': {'title': 'Metadata Studio', 'group': 'Privacy', 'description': 'Inspect, reduce or edit supported metadata without changing originals.', 'accept': sorted(IMAGES | CLEAN_MEDIA)},
-    'qr': {'title': 'QR Codes', 'group': 'Utilities', 'description': 'Generate PNG and SVG codes entirely on your computer.', 'accept': []},
-    'password': {'title': 'Passwords', 'group': 'Utilities', 'description': 'Cryptographic passwords. Never written to job history.', 'accept': []},
+    'metadata': {'title': 'Metadata Hyper Cleaner', 'group': 'FORGE OS', 'description': 'Inspect, reduce or edit supported metadata without changing originals.', 'accept': sorted(IMAGES | CLEAN_MEDIA)},
+    'qr': {'title': 'QR Studio', 'group': 'FORGE OS', 'description': 'Local text, URL, contact and Wi-Fi codes with PNG/SVG exports.', 'accept': []},
+    'password': {'title': 'Passwords', 'group': 'FORGE OS', 'description': 'Cryptographic passwords. Never written to job history.', 'accept': []},
+    'identity': {'title':'Identity Studio', 'group':'FORGE OS', 'description':'Fictional names and privacy aliases using secure local randomness.', 'accept':[]},
+    'obfuscation': {'title':'Obfuscation Studio', 'group':'FORGE OS', 'description':'Fictional plate-like patterns, identifiers and usernames.', 'accept':[]},
+    'addresses': {'title':'Random Address Generator', 'group':'FORGE OS', 'description':'Clearly synthetic addresses for fictional and test-data use.', 'accept':[]},
+    'strings': {'title':'Random String Generator', 'group':'FORGE OS', 'description':'Secure passwords, tokens, identifiers and reserved-domain email examples.', 'accept':[]},
 }
-DEFAULTS = {'workers': 2, 'ffmpeg': '', 'ffprobe': '', 'last_output': '', 'default_output': '',
-            'daily_update_check': False, 'queue_paused': False, 'cpu_workers':2, 'gpu_workers':1, 'download_workers':2, 'desktop_notifications':False}
+DEFAULTS = {'workers': 5, 'concurrency_mode':'auto', 'ffmpeg': '', 'ffprobe': '', 'last_output': '', 'default_output': '',
+            'daily_update_check': False, 'queue_paused': False, 'cpu_workers':2, 'gpu_workers':1, 'download_workers':2,
+            'disk_workers':2, 'gpu_memory_reserve_mb':1024, 'desktop_notifications':False}
 
 
 def data_directory() -> Path:
@@ -195,7 +200,15 @@ class Store:
             self.db.commit()
 
     def settings(self):
-        return {**DEFAULTS, **self.get('settings', {})}
+        stored = self.get('settings', {})
+        values = {**DEFAULTS, **stored}
+        # Project older limits safely without rewriting the saved baseline; code
+        # rollback can still read its original settings. Existing choices stay manual.
+        if 'concurrency_mode' not in stored and 'workers' in stored:
+            values['concurrency_mode'] = 'manual'
+        for key in ('workers','cpu_workers','gpu_workers','download_workers','disk_workers'):
+            values[key] = max(1, min(5, int(values[key])))
+        return values
 
     def register(self, p: Path, mode='native') -> dict:
         p = p.resolve()
@@ -250,11 +263,11 @@ class Store:
         return sorted(jobs,key=lambda j:j.get('rank',j['created'])) if status=='queued' else jobs
 
     def visible_jobs(self, limit=500) -> list[dict]:
-        """Keep unfinished work visible even when newer history exceeds the window."""
+        """Keep unfinished and failed work visible beyond the terminal history window."""
         with self.lock:
             rows = self.db.execute("""SELECT jobs.*, job_meta.value AS _meta
                 FROM jobs LEFT JOIN job_meta USING(id)
-                WHERE status IN ('queued','running','cancelling','finalizing')
+                WHERE status IN ('queued','running','cancelling','finalizing','failed','blocked','interrupted')
                 OR jobs.id IN (SELECT id FROM jobs ORDER BY created DESC LIMIT ?)
                 ORDER BY jobs.created DESC""", (limit,)).fetchall()
         return [self._decode(row) for row in rows]
@@ -269,7 +282,7 @@ class Store:
             self.db.commit()
 
     def update_meta(self, id: str, **fields):
-        allowed={'rank','batch_id','workflow_name','depends_on','step','steps','resource','started','eta_seconds','speed','stage'}
+        allowed={'rank','batch_id','workflow_name','depends_on','step','steps','resource','started','eta_seconds','speed','stage','progress_measured'}
         if not set(fields)<=allowed:
             raise ValueError('Invalid job metadata update.')
         with self.lock:

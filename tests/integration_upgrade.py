@@ -125,6 +125,29 @@ try:
         if fixture['workflow'] is not None:
             assert state['workflows'] == [fixture['workflow']]
             assert state['favorites'] == fixture['favorites']
+        if tuple(map(int, state['version'].split('.'))) >= (0, 4, 0):
+            assert len(state['tools']) == 11
+            assert state['settings']['concurrency_mode'] == 'manual'
+            assert all(item['enabled'] for item in state['entitlements']['modules'])
+            scripts = c.get('/api/black-scripting/scripts').json()['scripts']
+            if fixture['workflow'] is not None:
+                assert any(item['name'] == fixture['workflow']['name'] for item in scripts)
+            response = c.post('/api/black-scripting/save', json={
+                'name': 'Post-upgrade empty workbench', 'nodes': [], 'connections': [],
+                'output': {'mode': 'default'}})
+            assert response.status_code == 200, response.text
+            fixture['v4_script'] = response.json()['script']
+            response = c.post('/api/generators/presets', json={
+                'tool': 'strings', 'name': 'Post-upgrade policy',
+                'options': {'kind': 'token', 'alphabet': 'hex', 'count': 3}})
+            assert response.status_code == 200, response.text
+            fixture['v4_generator_preset'] = response.json()['preset']
+            before = len(app.state.store.jobs())
+            response = c.post('/api/generators/generate', json={
+                'tool': 'strings', 'options': {'kind': 'token', 'alphabet': 'hex', 'count': 3}})
+            assert response.status_code == 200, response.text
+            assert len(response.json()['rows']) == 3
+            assert len(app.state.store.jobs()) == before
         response = c.post('/api/jobs', json={
             'tool': 'qr', 'options': {'text': 'Post-upgrade real worker', 'name': 'Post-upgrade QR'},
             'output': {'mode': 'default'}})
@@ -170,6 +193,9 @@ try:
     assert new['outputs'][0]['path'] == fixture['new_output']
     output = Path(fixture['new_output'])
     assert hashlib.sha256(output.read_bytes()).hexdigest() == fixture['new_output_sha256']
+    if 'v4_script' in fixture:
+        assert s.get('black_scripting') == [fixture['v4_script']]
+        assert s.get('generator_presets') == [fixture['v4_generator_preset']]
 finally:
     s.close()
 print('Baseline code reopened current data; both history entries and new output remain')
@@ -279,6 +305,9 @@ def main():
         ]
         if fixture['workflow'] is not None:
             checks.append('Baseline workflow and favorites preserved through upgrade and rollback')
+        if 'v4_script' in fixture:
+            checks.append('V0.4 registry, offline grants, legacy projection and memory-only generator execute after upgrade')
+            checks.append('New Black Scripting and generator configuration records survive code rollback unchanged')
         report = {
             'result': 'passed', 'host': sys.platform,
             'base_version': base_version, 'candidate_version': target_version,

@@ -12,15 +12,34 @@ import time
 from pathlib import Path
 import psutil
 from .core import ROOT, Store, no_window
+from .resources import ResourceMonitor, admission_reason, admission_state, primary_resource, required_resources
+
+TERMINAL = {'failed', 'cancelled', 'interrupted', 'completed', 'blocked'}
+
+
+def public_job(job):
+    """Expose useful processing choices without QR contents, cookies or prompts."""
+    result = {key: value for key, value in job.items() if key != 'payload'}
+    options = job.get('payload', {}).get('options', {})
+    fields = {'model', 'format', 'quality', 'max_height', 'device', 'language', 'timestamps', 'formats'}
+    summary = {key: value for key, value in options.items() if key in fields
+               and (isinstance(value, (str, int, bool)) or (key == 'formats' and isinstance(value, list)))}
+    if job['tool'].startswith('download'):
+        summary['method'] = 'yt-dlp'
+    result.update(options_summary=summary, resources=sorted(required_resources(job)),
+                  progress_measured=job.get('progress_measured') is True)
+    return result
 
 class QueueManager:
     def __init__(self, store: Store):
         self.store = store
         self.lock = threading.RLock()
         self.maintenance = False
+        self.require_feature = None  # Optional server-owned entitlement boundary.
         self.active: dict[str, subprocess.Popen] = {}
         self.threads: list[threading.Thread] = []
         self.stop_event = threading.Event()
+        self.monitor = ResourceMonitor()
         self.scheduler = threading.Thread(target=self.loop, name='forge-scheduler', daemon=True)
 
     def check_accepting(self):
@@ -33,47 +52,66 @@ class QueueManager:
     def loop(self):
         while not self.stop_event.wait(0.35):
             try:
-                with self.lock:
-                    settings = self.store.settings()
-                    if settings['queue_paused']:
-                        continue
-                    for job in self.store.jobs(status='queued',limit=100000):
-                        if len(self.active) >= settings['workers'] or self.stop_event.is_set():
-                            break
-                        if not self.prepare_dependency(job):
-                            continue
-                        resource=self.resource(job)
-                        active_jobs=[self.store.job(i) for i in self.active]
-                        used=sum(self.resource(j)==resource for j in active_jobs)
-                        cap=settings.get(resource+'_workers',1)
-                        if used>=cap:
-                            continue
-                        # Model downloads and inference must not race in the shared cache.
-                        if job['tool']=='model_download' and any(j['tool'] in {'transcribe','model_download'} for j in active_jobs):
-                            continue
-                        if job['tool']=='transcribe' and any(j['tool']=='model_download' for j in active_jobs):
-                            continue
-                        self.launch(job)
-                    self.threads = [t for t in self.threads if t.is_alive()]
+                self.dispatch_once()
             except Exception:
                 # Preserve the service and show an actionable queue error rather than silently dying.
                 self.store.set('queue_error', 'The dispatcher encountered an error. Restart FORGE and review interrupted jobs.')
 
+    def dispatch_once(self):
+        metrics = self.monitor.sample(self.store.data)
+        with self.lock:
+            settings = self.store.settings()
+            if settings['queue_paused'] or self.maintenance:
+                return
+            for job in self.store.jobs(status='queued', limit=100000):
+                if self.stop_event.is_set():
+                    break
+                if not self.prepare_dependency(job):
+                    continue
+                active_jobs = [self.store.job(id) for id in self.active]
+                state = admission_state(settings, active_jobs, metrics)
+                reason = admission_reason(job, active_jobs, state)
+                if reason:
+                    if job['message'] != reason:
+                        self.store.update_job(job['id'], message=reason)
+                    continue
+                # Dependency resolution may have refreshed the worker's source.
+                self.launch(self.store.job(job['id']))
+            self.threads = [thread for thread in self.threads if thread.is_alive()]
+            if self.store.get('queue_error'):
+                self.store.set('queue_error', None)
+
+    def status(self):
+        metrics = self.monitor.sample(self.store.data)
+        with self.lock:
+            settings = self.store.settings()
+            active_jobs = [self.store.job(id) for id in self.active]
+            state = admission_state(settings, active_jobs, metrics)
+            counts = dict.fromkeys(('queued', 'running', 'finalizing', 'cancelling', 'failed', 'blocked', 'interrupted', 'cancelled', 'completed'), 0)
+            with self.store.lock:
+                counts.update({row[0]: row[1] for row in self.store.db.execute('SELECT status, COUNT(*) FROM jobs GROUP BY status')})
+            state.update(paused=settings['queue_paused'], counts=counts,
+                         running_count=len(active_jobs), queued_count=counts['queued'],
+                         failed_count=counts['failed'] + counts['blocked'] + counts['interrupted'],
+                         active_jobs=[public_job(job) for job in active_jobs])
+            return state
+
     @staticmethod
     def resource(job):
-        if job['tool'].startswith('download') or job['tool']=='model_download':
-            return 'download'
-        if job['tool']=='transcribe' and job['payload']['options'].get('device','auto')!='cpu':
-            return 'gpu'  # Auto conservatively reserves a GPU slot even on CPU fallback.
-        return 'cpu'
+        resource = primary_resource(job)
+        return 'download' if resource == 'network' else resource
 
     def prepare_dependency(self, job):
         parent_id=job['payload'].get('depends_on')
         if not parent_id:
             return True
-        parent=self.store.job(parent_id)
+        try:
+            parent=self.store.job(parent_id)
+        except ValueError:
+            self.store.update_job(job['id'], status='blocked', message='The previous Black Scripting step is missing. Rebuild this script before retrying.')
+            return False
         if parent['status'] in {'failed','cancelled','interrupted','blocked'}:
-            self.store.update_job(job['id'],status='blocked',message='A previous workflow step did not complete. Retry the workflow group after reviewing that step.')
+            self.store.update_job(job['id'],status='blocked',message='A previous Black Scripting step did not complete. Retry the script group after reviewing that step.')
             return False
         if parent['status']!='completed':
             return False
@@ -83,12 +121,13 @@ class QueueManager:
             self.store.update_job(job['id'],status='blocked',message='The previous step has no available, compatible media output.')
             return False
         path=candidates[0]
-        source=self.store.register(path)
         payload=job['payload']
-        payload['source']=source
         stat=path.stat()
-        payload['source_stat']={'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
-        self.store.update_payload(job['id'],payload)
+        snapshot = {'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
+        if (payload.get('source') or {}).get('path') != str(path) or payload.get('source_stat') != snapshot:
+            payload['source']=self.store.register(path)
+            payload['source_stat']=snapshot
+            self.store.update_payload(job['id'],payload)
         return True
 
     def launch(self, job: dict):
@@ -97,19 +136,25 @@ class QueueManager:
         env = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONUNBUFFERED': '1', 'HF_HUB_DISABLE_TELEMETRY': '1', 'DO_NOT_TRACK': '1'}
         # pythonw has redirected pipes; use python.exe for worker diagnostics on Windows.
         python = str(Path(sys.executable).with_name('python.exe')) if os.name == 'nt' else sys.executable
+        p = None
         try:
             p = subprocess.Popen([python, '-m', 'forge.worker'], cwd=ROOT, env=env,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True, encoding='utf-8', errors='replace', **no_window())
             self.active[job['id']] = p
             self.store.update_job(job['id'], status='running', progress=0, message='Starting local worker')
-            self.store.update_meta(job['id'],resource=self.resource(job),started=time.time(),stage='Starting',eta_seconds=None,speed='')
+            self.store.update_meta(job['id'],resource=self.resource(job),started=time.time(),stage='Starting',eta_seconds=None,speed='',progress_measured=False)
             p.stdin.write(json.dumps(payload, ensure_ascii=False))
             p.stdin.close()
             t = threading.Thread(target=self.collect, args=(job, p), daemon=True)
             self.threads.append(t)
             t.start()
         except Exception as error:
+            if p is not None:
+                self.kill(p)
+                for stream in (p.stdin, p.stdout, p.stderr):
+                    with contextlib.suppress(Exception):
+                        stream.close()
             self.active.pop(job['id'], None)
             self.store.update_job(job['id'], status='failed', message='Could not start worker: ' + str(error)[:800])
 
@@ -139,9 +184,10 @@ class QueueManager:
                             self.store.update_job(id, progress=max(0, min(99, value)), message=str(event.get('message', ''))[:2000])
                             eta=event.get('eta_seconds')
                             if not isinstance(eta,(int,float)) or eta<0 or eta>10**9: eta=None
-                            self.store.update_meta(id,eta_seconds=eta,speed=str(event.get('speed',''))[:100],stage=str(event.get('stage',event.get('message','')))[:200])
+                            self.store.update_meta(id,eta_seconds=eta,speed=str(event.get('speed',''))[:100],stage=str(event.get('stage',event.get('message','')))[:200],progress_measured=event.get('progress_measured') is True)
                     elif event.get('kind') == 'finalizing' and status == 'running':
                         self.store.update_job(id, status='finalizing', progress=96, message='Publishing verified outputs')
+                        self.store.update_meta(id, progress_measured=False)
                     elif event.get('kind') == 'result':
                         result = event
                     elif event.get('kind') == 'error':
@@ -169,9 +215,9 @@ class QueueManager:
         finally:
             self.kill(p)
             with self.lock:
+                with contextlib.suppress(Exception):
+                    self.store.update_meta(id,eta_seconds=None,speed='',stage='Finished')
                 self.active.pop(id, None)
-            with contextlib.suppress(Exception):
-                self.store.update_meta(id,eta_seconds=None,speed='',stage='Finished')
             # Only this application's exact job-owned work directory is removed.
             stage = Path(job['payload']['destination']) / ('.forge-' + id + '.work')
             shutil.rmtree(stage, ignore_errors=True)
@@ -214,72 +260,126 @@ class QueueManager:
 
     def retry(self, id: str):
         with self.lock:
-            self.check_accepting()
-            j = self.store.job(id)
-            if j['status'] not in {'failed', 'cancelled', 'interrupted', 'completed','blocked'}:
-                raise ValueError('Wait until this job stops before retrying.')
-            payload = copy.deepcopy(j['payload'])
-            if payload.get('depends_on') and self.store.job(payload['depends_on'])['status']!='completed':
-                raise ValueError('Retry the workflow group, not this dependent step by itself.')
-            payload['batch_id']=uuid.uuid4().hex
-            payload['settings'] = self.store.settings()
-            # Take a new explicit snapshot; retry is a new job, not a false partial resume.
-            if payload.get('source'):
-                p = Path(payload['source']['path'])
-                if not p.is_file():
-                    raise ValueError('Source file no longer exists. Select it again.')
-                payload['source_stat'] = {'size': p.stat().st_size, 'mtime_ns': p.stat().st_mtime_ns}
-            return self.store.add_job(j['tool'], j['label'], payload)
+            return self._retry_selection([self.store.job(id)])[0]
 
     def reorder(self, id: str, direction: str):
         with self.lock:
-            queued=self.store.jobs(status='queued',limit=100000)
-            ids=[j['id'] for j in queued]
-            if id not in ids:
-                raise ValueError('Only queued jobs can be reordered.')
-            index=ids.index(id)
-            target={'up':max(0,index-1),'down':min(len(ids)-1,index+1),'first':0,'last':len(ids)-1}[direction]
-            ids.insert(target,ids.pop(index))
-            for rank,jid in enumerate(ids):
-                self.store.update_meta(jid,rank=rank)
+            self._reorder_selection([id], direction)
+
+    def _reorder_selection(self, selected, direction):
+        if direction not in {'up', 'down', 'first', 'last'}:
+            raise ValueError('Unknown queue ordering action.')
+        ids = [job['id'] for job in self.store.jobs(status='queued', limit=100000)]
+        selected = set(selected)
+        if not selected <= set(ids):
+            raise ValueError('Only queued jobs can be reordered.')
+        if direction in {'first', 'last'}:
+            picked = [id for id in ids if id in selected]
+            others = [id for id in ids if id not in selected]
+            ids = picked + others if direction == 'first' else others + picked
+        elif direction == 'up':
+            for index in range(1, len(ids)):
+                if ids[index] in selected and ids[index - 1] not in selected:
+                    ids[index - 1], ids[index] = ids[index], ids[index - 1]
+        else:
+            for index in range(len(ids) - 2, -1, -1):
+                if ids[index] in selected and ids[index + 1] not in selected:
+                    ids[index], ids[index + 1] = ids[index + 1], ids[index]
+        for rank, id in enumerate(ids):
+            self.store.update_meta(id, rank=rank)
+
+    def _retry_selection(self, originals):
+        self.check_accepting()
+        self.check_features(originals)
+        if any(job['status'] not in TERMINAL or job['id'] in self.active for job in originals):
+            raise ValueError('Wait until every selected job stops before retrying.')
+        selected = {job['id'] for job in originals}
+        batch = uuid.uuid4().hex
+        planned = []
+        pending = sorted(originals, key=lambda job: job['created'])
+        seen = set()
+        # Plan and validate the whole selection before adding any retry records.
+        while pending:
+            ready = [job for job in pending if job['payload'].get('depends_on') not in selected
+                     or job['payload'].get('depends_on') in seen]
+            if not ready:
+                raise ValueError('The Black Scripting dependency graph contains a cycle.')
+            for job in ready:
+                payload = copy.deepcopy(job['payload'])
+                parent = payload.get('depends_on')
+                if parent and parent not in selected and self.store.job(parent)['status'] != 'completed':
+                    raise ValueError('Select the unfinished parent step too, or retry the entire Black Scripting group.')
+                payload['batch_id'] = batch
+                payload['settings'] = self.store.settings()
+                if payload.get('source') and not parent:
+                    path = Path(payload['source']['path'])
+                    if not path.is_file():
+                        raise ValueError('Source file no longer exists. Select it again.')
+                    stat = path.stat()
+                    payload['source_stat'] = {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}
+                planned.append((job, payload))
+                seen.add(job['id'])
+                pending.remove(job)
+        mapping = {}
+        result = []
+        for job, payload in planned:
+            if payload.get('depends_on') in mapping:
+                payload['depends_on'] = mapping[payload['depends_on']]
+            new = self.store.add_job(job['tool'], job['label'], payload)
+            mapping[job['id']] = new['id']
+            result.append(new)
+        return result
+
+    def check_features(self, jobs):
+        """Validate every retry tool before any selected record is cloned."""
+        if self.require_feature is not None:
+            for tool in dict.fromkeys(job['tool'] for job in jobs):
+                self.require_feature(tool)
+
+    def bulk_action(self, ids, action):
+        if action not in {'cancel', 'retry', 'remove', 'up', 'down', 'first', 'last'}:
+            raise ValueError('Unknown queue action.')
+        if not isinstance(ids, list) or not 1 <= len(ids) <= 1000 or any(not isinstance(id, str) or len(id) > 100 for id in ids):
+            raise ValueError('Select between 1 and 1000 queue records.')
+        ids = list(dict.fromkeys(ids))
+        with self.lock:
+            originals = [self.store.job(id) for id in ids]
+            if action == 'retry':
+                jobs = self._retry_selection(originals)
+            elif action == 'remove':
+                if any(job['status'] not in TERMINAL or job['id'] in self.active for job in originals):
+                    raise ValueError('Only stopped, terminal queue records can be removed. Cancel pending work first.')
+                selected = set(ids)
+                # Deletion is only of database rows. Never unlink sources, outputs,
+                # staging directories, or model files when clearing queue history.
+                with self.store.lock, self.store.db:
+                    references = self.store.db.execute('SELECT id, payload FROM jobs')
+                    if any(json.loads(row['payload']).get('depends_on') in selected and row['id'] not in selected
+                           for row in references):
+                        raise ValueError('A selected record is referenced by another Black Scripting step. Select all dependent records too.')
+                    self.store.db.executemany('DELETE FROM job_meta WHERE id=?', [(id,) for id in ids])
+                    self.store.db.executemany('DELETE FROM jobs WHERE id=?', [(id,) for id in ids])
+                jobs = []
+            elif action == 'cancel':
+                if any(job['status'] not in {'queued', 'running'} for job in originals):
+                    raise ValueError('Only queued or running jobs can be cancelled; no selected jobs were changed.')
+                for id in ids:
+                    self.cancel(id)
+                jobs = [self.store.job(id) for id in ids]
+            else:
+                self._reorder_selection(ids, action)
+                jobs = [self.store.job(id) for id in ids]
+            return {'ok': True, 'action': action, 'ids': ids, 'jobs': [public_job(job) for job in jobs]}
 
     def retry_batch(self, batch_id: str):
         with self.lock:
-            self.check_accepting()
-            originals=sorted([j for j in self.store.jobs(limit=100000) if j.get('batch_id')==batch_id],key=lambda j:j['created'])
+            originals = [job for job in self.store.jobs(limit=100000) if job.get('batch_id') == batch_id]
             if not originals:
                 raise ValueError('Batch not found.')
-            if any(j['status'] in {'running','queued','finalizing','cancelling'} for j in originals):
-                raise ValueError('Finish or cancel the entire batch before retrying it.')
-            mapping={}
-            batch=uuid.uuid4().hex
-            planned=[]
-            seen=set()
-            for j in originals:
-                parent=j['payload'].get('depends_on')
-                if parent and parent not in seen:
-                    raise ValueError('The workflow dependency graph is incomplete. No new jobs were created.')
-                seen.add(j['id'])
-                payload=copy.deepcopy(j['payload'])
-                payload['settings']=self.store.settings()
-                payload['batch_id']=batch
-                if not payload.get('depends_on') and payload.get('source'):
-                    path=Path(payload['source']['path'])
-                    if not path.is_file():
-                        raise ValueError('A workflow source was moved or deleted; reselect it.')
-                    stat=path.stat()
-                    payload['source_stat']={'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
-                planned.append((j,payload))
-            results=[]
-            for j,payload in planned:
-                if payload.get('depends_on'):
-                    if payload['depends_on'] not in mapping:
-                        raise ValueError('The workflow dependency graph is incomplete.')
-                    payload['depends_on']=mapping[payload['depends_on']]
-                new=self.store.add_job(j['tool'],j['label'],payload)
-                mapping[j['id']]=new['id']
-                results.append(new)
-            return results
+            ids = {job['id'] for job in originals}
+            if any(job['payload'].get('depends_on') and job['payload']['depends_on'] not in ids for job in originals):
+                raise ValueError('The Black Scripting dependency graph is incomplete. No new jobs were created.')
+            return self._retry_selection(originals)
 
     def stop(self):
         self.stop_event.set()

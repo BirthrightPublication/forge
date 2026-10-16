@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 — 2026-10-16
+
+- Added compact tool-specific icon tabs, centered inputs and visible Start/Add to Queue actions.
+- Added Queue 3.0 views, safe bulk record removal, native media output opening and a useful active-job dock.
+- Added Auto/manual concurrency up to five with CPU/network/disk limits and measured NVIDIA memory admission using labeled model estimates.
+- Added the dedicated Black Scripting header launcher and empty linear workbench, versioned script definitions, preset snapshots, import/export, editing and dependency-plan preview. Legacy workflow records/APIs remain compatible.
+- Added Identity Studio, Obfuscation Studio, Random Address Generator and Random String Generator with secure local generation, configuration presets and explicit exports. Generated values are not saved in queue or preset history.
+- Extended Metadata Hyper Cleaner with Standard/Maximum reduction, embedded-preview inspection, lossless compressed-image preservation where supported and opt-in remaining-data reports.
+- Extended QR Studio with URL/contact/Wi-Fi, colors, in-memory PNG/SVG previews, bulk ZIP and non-secret presets. Wi-Fi credentials cannot enter persistent queue/preset storage.
+- Added stable Birthright module IDs, offline development grants and future verification/device/update-policy abstractions, plus a dependency license review. No billing or activation.
+- Preserved the V0.3 updater, local environments, models, data, originals and non-overwriting outputs.
+
 ## 0.3.0 — 2026-10-16
 
 - Added manual local release inventory to Environment, with actual paths, semantic versions, compatibility, SHA-256, changed/new/preserved counts and per-package rejection reasons.

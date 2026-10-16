@@ -1,0 +1,52 @@
+{
+  "note": "Executed candidate results before documentation assembly. Final delivered ZIP is independently rechecked; exact final hash and results are in the release validation sidecars. No application/test-source changes are made after these checks.",
+  "results": [
+    {
+      "result": "passed",
+      "host": "linux",
+      "base_version": "0.1.0",
+      "candidate_version": "0.3.0",
+      "base_sha256": "63489858aa087944b0aa7097e24b072ff6ee019267de2e92e83b6ef5e6855f1e",
+      "original_files_preserved": 8,
+      "protected_files_verified": 10,
+      "baseline_workflow_favorites_tested": false,
+      "checks": [
+        "Candidate manifest and source hashes verified",
+        "Baseline installation detected at version 0.1.0",
+        "Full release installed through updater main at version 0.3.0",
+        "Code backup and separate SQLite snapshot created",
+        "Baseline settings, preset and completed history preserved",
+        "Candidate API and real QR worker executed",
+        "Code-only rollback restored original baseline file bytes",
+        "Baseline code reopened current database and retained new history/output",
+        "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved"
+      ],
+      "native_windows_execution": false,
+      "pre_documentation_candidate_sha256": "6cade8147ec46d00a433d953e24caf8d1590bf8331f25538e1c2fdf2c64a434c"
+    },
+    {
+      "result": "passed",
+      "host": "linux",
+      "base_version": "0.2.0",
+      "candidate_version": "0.3.0",
+      "base_sha256": "89856a26546eb4541eda5159e4eb3dcf31c08cd7ba54896e13011bc07f539b84",
+      "original_files_preserved": 8,
+      "protected_files_verified": 10,
+      "baseline_workflow_favorites_tested": true,
+      "checks": [
+        "Candidate manifest and source hashes verified",
+        "Baseline installation detected at version 0.2.0",
+        "Full release installed through updater main at version 0.3.0",
+        "Code backup and separate SQLite snapshot created",
+        "Baseline settings, preset and completed history preserved",
+        "Candidate API and real QR worker executed",
+        "Code-only rollback restored original baseline file bytes",
+        "Baseline code reopened current database and retained new history/output",
+        "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+        "Baseline workflow and favorites preserved through upgrade and rollback"
+      ],
+      "native_windows_execution": false,
+      "pre_documentation_candidate_sha256": "6cade8147ec46d00a433d953e24caf8d1590bf8331f25538e1c2fdf2c64a434c"
+    }
+  ]
+}

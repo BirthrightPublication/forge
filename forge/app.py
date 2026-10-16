@@ -21,14 +21,12 @@ from pydantic import ValidationError
 from . import __version__
 from .core import ROOT, TOOLS, Store, absolute_path, dependency_state, no_window, passwords, safe_name
 from .models import JobRequest, OPTION_MODELS, Password, Pick, Preset, QueueAction, Register, Settings
-from .queue import QueueManager
+from .queue import QueueManager, public_job
 from .auth import BrowserSessions
+from .entitlements import EntitlementService, require_feature
+from .media_extensions import qr_sensitive
 
 UPDATE_PACKAGES = ['fastapi','uvicorn','pillow','qrcode','psutil','faster-whisper','yt-dlp']
-
-def public_job(job):
-    return {k:v for k,v in job.items() if k != 'payload'}
-
 
 def create_app(data: Path, token: str, port: int, *, workers=True):
     store = Store(data)
@@ -81,6 +79,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
                   openapi_url=None, lifespan=lifespan)
     app.state.store = store
     app.state.manager = manager
+    app.state.entitlements = EntitlementService()
+    manager.require_feature = lambda tool: require_feature(app, 'transcribe' if tool == 'model_download' else tool)
     app.state.shutdown = None
 
     @app.middleware('http')
@@ -135,7 +135,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.get('/assets/{name}')
     def asset(name: str):
-        if name not in {'app.js','v2.js','v3.js','style.css','forge.ico'}:
+        if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
+                        'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -146,7 +147,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
                 'settings':store.settings(), 'dependencies':dependency_state(store.settings()),
                 'data_directory':str(store.data), 'presets':store.get('presets', []),
                 'updates':store.get('updates'), 'queue_error':store.get('queue_error'),
-                'platform':sys.platform, 'history_limit':500,'workflows':store.get('workflows',[]),'diagnostics':store.get('diagnostics'),'application_directory':str(ROOT),'favorites':store.get('favorites',[])}
+                'platform':sys.platform, 'history_limit':500,'workflows':store.get('workflows',[]),'diagnostics':store.get('diagnostics'),'application_directory':str(ROOT),'favorites':store.get('favorites',[]),
+                'entitlements':app.state.entitlements.snapshot(), 'scheduler':manager.status()}
 
     @app.post('/api/register')
     def register(body: Register):
@@ -247,10 +249,15 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.post('/api/jobs')
     def enqueue(body: JobRequest):
+        require_feature(app, body.tool)
         try:
             options = OPTION_MODELS[body.tool].model_validate(body.options).model_dump()
         except ValidationError as exc:
+            if body.tool == 'qr':
+                raise ValueError('Invalid QR settings. Check content, colors, size and selected QR type.') from None
             raise ValueError('Invalid tool settings: ' + str(exc)) from exc
+        if body.tool == 'qr' and qr_sensitive(options):
+            raise ValueError('Wi-Fi QR contents stay in memory. Use QR Studio Preview or Download instead of the persistent queue.')
         settings = store.settings()
         entries = []
         if body.tool in {'transcribe','retune','metadata'}:
@@ -325,13 +332,21 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.post('/api/passwords')
     def generate(body: Password):
+        require_feature(app, 'password')
         return {'passwords':passwords(**body.model_dump()), 'persisted':False}
 
     @app.post('/api/presets')
     def preset(body: Preset):
-        if body.tool not in OPTION_MODELS or body.tool == 'qr':
-            raise ValueError('Presets are supported for media and download settings, not secret values or QR contents.')
-        options = OPTION_MODELS[body.tool].model_validate(body.options).model_dump()
+        if body.tool not in OPTION_MODELS:
+            raise ValueError('This tool uses its own configuration presets.')
+        try:
+            options = OPTION_MODELS[body.tool].model_validate(body.options).model_dump()
+        except ValidationError:
+            if body.tool == 'qr':
+                raise ValueError('Invalid QR preset settings. Check content, colors, size and selected QR type.') from None
+            raise
+        if body.tool == 'qr' and qr_sensitive(options):
+            raise ValueError('Wi-Fi credentials cannot be stored in presets. Use an in-memory QR preview or download.')
         if 'cookies' in options:
             options['cookies'] = ''
         values = [p for p in store.get('presets', []) if not (p['name']==body.name and p['tool']==body.tool)]
@@ -391,4 +406,14 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount(app,store,manager,sessions,destination,token)
     from .update_manager import mount as mount_updates
     mount_updates(app,store,manager,ROOT)
+    from .queue_api import mount as mount_queue
+    mount_queue(app,store,manager)
+    from .black_scripting import mount as mount_black_scripting
+    mount_black_scripting(app,store,manager,destination)
+    from .generator_api import mount as mount_generators
+    mount_generators(app,store,manager)
+    from .media_extensions import mount as mount_media
+    mount_media(app,store)
+    from .entitlements import mount as mount_entitlements
+    mount_entitlements(app)
     return app

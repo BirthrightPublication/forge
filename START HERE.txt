@@ -1,16 +1,16 @@
-FORGE V0.3 (0.3.0) — LOCAL PRODUCTION STUDIO
+FORGE V0.4 (0.4.0) — LOCAL PRODUCTION STUDIO
 Incremental update • 16 October 2026
 
 UPGRADING YOUR EXISTING B:\Forge INSTALLATION
 
-1. Save FORGE-v0.3.zip in:
+1. Save FORGE-v0.4.zip in:
       B:\Forge\Build
    Leave the ZIP intact. Do not extract a second installation beside the active version.
 
-2. Replace the external updater with the V0.3 standalone file:
+2. Replace the external updater with the V0.4 standalone file:
       B:\Forge\Update FORGE.bat
    This updates the recovery command in the main folder too. Both V0.1 and
-   V0.2 can upgrade directly; no fresh installation is needed.
+   V0.2 and V0.3 can upgrade directly; no fresh installation is needed.
 
 3. Finish or cancel queued/running jobs. Do not submit work during the update.
    Double-click Update FORGE.bat. It finds the active installation at B:\Forge
@@ -24,7 +24,7 @@ UPGRADING YOUR EXISTING B:\Forge INSTALLATION
    It does NOT download or upgrade Python dependencies automatically.
 
 5. FORGE opens through its launcher after the update. Close or reload old
-   tabs. The displayed version should be V0.3. Authorize this browser once
+   tabs. The displayed version should be V0.4. Authorize this browser once
    through Open FORGE.bat / the existing shortcut if it was not opened for you.
 
 SMART UPDATE MANAGER
@@ -46,7 +46,7 @@ BOOKMARK / NEW TAB FIX
 
 FIRST CHECK AFTER UPDATING
    Open the bookmark in a second tab. Confirm the Studio loads, not the old
-   authorization warning. Run a QR job and reveal its result. In Workflows,
+   authorization warning. Run a QR job and reveal its result. In Black Scripting (gold header button),
    test a short disposable audio file through retune -> metadata. Review both
    outputs before using long production media.
 
@@ -81,3 +81,14 @@ VALIDATION BOUNDARY
    inference, and live website downloads were not execution-tested here.
    Read docs\TEST_REPORT.md for exact evidence. This is a development release,
    not an independently audited or Windows-certified application.
+
+V0.4 QUICK START
+   Choose a tool, then use its icon toolbar for one settings section at a time.
+   Start submits and resumes dispatch; Add to Queue preserves the pause state.
+   Queue defaults to Active & Queued; completed work is under History.
+   Open Black Scripting using the gold header button. Add operation nodes,
+   configure them, select source files/output, then preview before execution.
+   New generators return synthetic aliases/test data or secure strings in memory.
+   Copy or export explicitly before leaving; strings clear when navigating away.
+   Wi-Fi QR codes use local Preview/Download and are not saved in queue history.
+   No activation or Birthright account is needed for this development release.

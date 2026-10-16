@@ -33,3 +33,7 @@ https://huggingface.co/pyannote/speaker-diarization-community-1
 ```
 
 See the model publisher for current access and licensing conditions. FORGE neither circumvents those conditions nor bundles model credentials. The test report distinguishes source/API-contract checks from actual optional engine execution.
+
+## V0.4 review
+
+Core production pins remain unchanged. No new runtime package is needed for the generator, QR or metadata additions. `zxing-cpp==2.3.0` is added to development requirements solely for independent QR payload decoding tests. The future commercial distribution review, exact versions inspected and binary/model restrictions are in [COMMERCIAL_DEPENDENCIES.md](COMMERCIAL_DEPENDENCIES.md).

@@ -56,6 +56,8 @@ class Retune(Strict):
 class Metadata(Strict):
     audit_report: bool = False
     mode: Literal['wipe','selective','edit'] = 'wipe'
+    cleaning_level: Literal['standard','maximum'] = 'maximum'
+    remaining_report: bool = False
     remove_tags: list[str] = Field(default_factory=list, max_length=40)
     tags: dict[str,str] = Field(default_factory=dict, max_length=20)
 
@@ -76,12 +78,24 @@ class Metadata(Strict):
         return value
 
 class QR(Strict):
-    text: str = Field(min_length=1, max_length=2000)
+    kind: Literal['text','url','contact','wifi'] = 'text'
+    text: str = Field('', max_length=2000)
     name: str = Field('QR Code', min_length=1, max_length=100)
     format: Literal['png','svg'] = 'png'
     error_correction: Literal['L','M','Q','H'] = 'M'
     box_size: int = Field(12, ge=4, le=30)
     border: int = Field(4, ge=4, le=16)
+    foreground: str = Field('#111111', pattern=r'^#[0-9A-Fa-f]{6}$')
+    background: str = Field('#ffffff', pattern=r'^#[0-9A-Fa-f]{6}$')
+    contact: dict[str,str] = Field(default_factory=dict, max_length=12)
+    wifi: dict = Field(default_factory=dict, max_length=6)
+
+    @model_validator(mode='after')
+    def valid_payload(self):
+        from .media_extensions import qr_payload, validate_qr_style
+        qr_payload(self.model_dump())
+        validate_qr_style(self.model_dump())
+        return self
 
 class Download(Strict):
     format: Literal['mp3','m4a','flac','wav','mp4','mkv'] = 'mp3'
@@ -126,10 +140,13 @@ class Pick(Strict):
     kind: Literal['files','folder','executable'] = 'files'
 
 class Settings(Strict):
-    workers: int = Field(2, ge=1, le=8)
-    cpu_workers: int = Field(2, ge=1, le=8)
-    gpu_workers: int = Field(1, ge=1, le=2)
-    download_workers: int = Field(2, ge=1, le=4)
+    concurrency_mode: Literal['auto','manual'] = 'auto'
+    workers: int = Field(5, ge=1, le=5)
+    cpu_workers: int = Field(2, ge=1, le=5)
+    gpu_workers: int = Field(1, ge=1, le=5)
+    download_workers: int = Field(2, ge=1, le=5)
+    disk_workers: int = Field(2, ge=1, le=5)
+    gpu_memory_reserve_mb: int = Field(1024, ge=256, le=16384)
     desktop_notifications: bool = False
     ffmpeg: str = Field('', max_length=2000)
     ffprobe: str = Field('', max_length=2000)
@@ -172,9 +189,9 @@ class Workflow(Strict):
         for index, step in enumerate(self.steps):
             step.options = OPTION_MODELS[step.tool].model_validate(step.options).model_dump()
             if step.tool == 'transcribe' and index != len(self.steps)-1:
-                raise ValueError('Transcription must be the last workflow step: its outputs are text, not media.')
+                raise ValueError('Transcription must be the last Black Scripting step: its outputs are text, not media.')
             if step.tool == 'metadata' and step.options['mode'] != 'wipe':
-                raise ValueError('Workflow metadata steps currently use full supported-field reduction.')
+                raise ValueError('Legacy Black Scripting metadata steps use full supported-field reduction. Use the current workbench for selective or edit modes.')
         return self
 
 class WorkflowRun(Workflow):

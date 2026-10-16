@@ -1,6 +1,17 @@
-# FORGE V0.3 architecture
+# FORGE V0.4 architecture
 
 The working V0.1 architecture is retained: Python/FastAPI on exact IPv4 loopback, dependency-free browser JavaScript, SQLite persistence, isolated worker processes and a Windows launcher. There is no React migration or frontend build requirement.
+
+## V0.4 additions
+
+- `web/v4.js` / `v4.css` compose compact tool-specific tabs by moving existing form elements, preserving event handlers and capture IDs. `media_v4.js` adds metadata/QR fields before compacting; `black_scripting.js` and `generators.js` supply separate workspaces. All assets are served from an explicit allowlist.
+- `forge/resources.py` samples CPU/system memory/disk and optional NVIDIA VRAM; `queue.py` applies admission ceilings/caps/dependencies under the existing manager lock. Unknown metrics are reported as unavailable. Memory estimates are labeled and conservative; source/output volumes are checked for disk pressure. `queue_api.py` exposes fixed bulk actions, public job metadata and restricted native media opens.
+- `forge/black_scripting.py` validates versioned operation nodes and linear connections, projects legacy definitions without mutation, snapshots presets, binds previews to configurations/source fingerprints and submits normal dependent jobs. No uploaded code is executed. Empty definitions are saveable but cannot run.
+- `forge/generators.py` supplies a bounded shared framework with OS randomness and offline synthetic datasets. `generator_api.py` returns no-store memory-only results; only validated configuration presets are stored. Browser export uses the displayed batch via Blob rather than regenerating it. No generated values are added to job history.
+- `forge/media_extensions.py` supplies format capabilities, image/header inspection, compressed-image reduction, QR payload/color validation and direct preview/ZIP responses. Wi-Fi QR data is blocked from persistent job/preset routes. Worker publication retains collision-safe outputs and opt-in private reports.
+- `forge/entitlements.py` separates stable module identity, feature providers, future signed-token verification, offline expiry/device rules and update eligibility. App-owned development grants enable every feature. No request can replace a provider or supply an unsigned license; no production account, signing key, token endpoint or network transport is implemented.
+
+New storage uses additive key-value records (`black_scripting`, `generator_presets`) and settings defaults. The existing jobs table and legacy `workflows` remain readable. Older settings without concurrency mode project to manual while retaining their saved ceiling (clamped to five); original raw data is not rewritten by reads. V0.3 code rollback retains the new keys but does not expose their functionality.
 
 ## V0.3 additions
 
@@ -15,7 +26,7 @@ Native maintenance preparation persists the original queue pause preference in S
 - `launcher.py`, `server.py`: single-user runtime, stable port, native-process launch, short-lived browser tickets and startup/update interlocks.
 - `forge/auth.py`: persistent browser authorization. Cookie values are random; only their SHA-256 digests are stored. CSRF secrets are independent. Tickets are one-use, in-memory, 120 seconds. Browser records expire after 90 days; at most 20 are retained without browser fingerprinting.
 - `forge/core.py`: paths, registration, job/history store, preferences, known tools and dependency discovery. The V0.1 `jobs` table remains unchanged; additive `job_meta` stores order, batch/dependency/resource/timing data.
-- `forge/app.py`, `forge/v2_api.py`: authenticated fixed-function API, native file selection, browser staging, output serving, presets/workflows, environment actions and maintenance freezing. No route accepts an unrestricted shell command.
+- `forge/app.py`, `forge/v2_api.py`: authenticated fixed-function API, native file selection, browser staging, output serving, presets/legacy scripts, environment actions and maintenance freezing. No route accepts an unrestricted shell command.
 - `forge/queue.py`: total/resource caps, dependency resolution, worker lifecycle, cancellation, new-job retry, graph retry and queue order. Running work is not preempted by reprioritization.
 - `forge/worker.py`: job-owned staging, safe argument-list native calls, original-source stat checks, actual media processing, output validation/publication and progress events.
 - `forge/transcripts.py`: raw/clean exports, review flags, sentence/caption derivation, formula-safe CSV and standalone offline HTML.
@@ -36,8 +47,8 @@ The local build ZIP is executable application code. Embedded hashes are integrit
 
 Release updates replace allowlisted application files only. Model caches, Python environments, user tools, persistent data, original inputs and completed outputs are not in release manifests. Existing archived original scripts are never replaced. Queue worker payloads from V0.1 receive V0.2 defaults on execution. The unchanged jobs table permits older code to read baseline history after code rollback; newer option combinations still may need adjustment in an older UI.
 
-Browser drops are explicitly staging copies; native paths remain direct references. Workflow dependencies route actual successful outputs. A child never silently falls back to the original input when its parent fails. Completed intermediate files are retained rather than deleted behind the user's back.
+Browser drops are explicitly staging copies; native paths remain direct references. Black Scripting dependencies route actual successful outputs. A child never silently falls back to the original input when its parent fails. Completed intermediate files are retained rather than deleted behind the user's back.
 
 ## Remaining boundaries
 
-No arbitrary script importer, cloud speech service, online terminology rewriting, semantic editorial model, WhisperX forced alignment, remote/LAN Studio mode, automatic driver setup or signed internet update channel is implemented. Package/version checks and explicit installers are distinct from offline application ZIP updates. Native Windows integration and real optional ASR/speaker/GPU/site execution still need acceptance on the target PC.
+No arbitrary code/script importer, cloud speech service, online terminology rewriting, semantic editorial model, WhisperX forced alignment, remote/LAN Studio mode, automatic driver setup or signed internet update channel is implemented. Package/version checks and explicit installers are distinct from offline application ZIP updates. Native Windows integration and real optional ASR/speaker/GPU/site execution still need acceptance on the target PC.

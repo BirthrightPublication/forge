@@ -13,11 +13,13 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse
 from .core import ROOT, TOOLS, IMAGES, absolute_path, no_window
 from .models import BatchAction, JobOrder, ModelDownload, Workflow, WorkflowRun
+from .queue import public_job
+from .entitlements import require_feature
 
 
 def mount(app,store,manager,sessions,destination,token):
     def public(job):
-        return {k:v for k,v in job.items() if k!='payload'}
+        return public_job(job)
 
     @app.post('/api/update/prepare')
     def prepare_update(request: Request):
@@ -88,6 +90,12 @@ def mount(app,store,manager,sessions,destination,token):
 
     @app.post('/api/jobs/batch-action')
     def batch_action(body: BatchAction):
+        if body.action == 'retry':
+            selection = []
+            for id in dict.fromkeys(body.ids):
+                with contextlib.suppress(ValueError):
+                    selection.append(store.job(id))
+            manager.check_features(selection)
         result=[]
         for id in dict.fromkeys(body.ids):
             try:
@@ -125,6 +133,9 @@ def mount(app,store,manager,sessions,destination,token):
 
     @app.post('/api/workflows/run')
     def run_workflow(body: WorkflowRun):
+        require_feature(app, 'black_scripting')
+        for step in body.steps:
+            require_feature(app, step.tool)
         settings=store.settings()
         plans=[]
         # Validate the entire graph and every destination before creating jobs.
@@ -160,11 +171,15 @@ def mount(app,store,manager,sessions,destination,token):
     @app.post('/api/metadata/inspect')
     def inspect_metadata(body: dict):
         from .worker import image_metadata,media_metadata,probe
+        from .media_extensions import capabilities,metadata_inventory
+        require_feature(app, 'metadata')
         source=store.source(str(body.get('source','')))
         path=absolute_path(source['path'])
         if path.suffix.lower() not in TOOLS['metadata']['accept']:
-            raise ValueError('This file format is not supported by Metadata Studio.')
+            raise ValueError('This file format is not supported by Metadata Hyper Cleaner.')
         result=image_metadata(path) if path.suffix.lower() in IMAGES else media_metadata(probe(path,store.settings()))
+        result['capabilities']=capabilities(path.suffix)
+        result['remaining']=metadata_inventory(result)
         return {'metadata':result,'note':'Displayed only. No metadata was changed. Fields can contain private location or author information.'}
 
     @app.get('/api/jobs/{id}/media')
@@ -210,6 +225,7 @@ def mount(app,store,manager,sessions,destination,token):
 
     @app.post('/api/environment/models/download')
     def download_model(body: ModelDownload):
+        require_feature(app, 'transcribe')
         if not body.consent:
             raise ValueError('Explicit model-download consent is required.')
         if importlib.util.find_spec('faster_whisper') is None:
