@@ -4,6 +4,12 @@
 
 A Windows-local production studio opened in your default browser. V0.4 adds compact tool workspaces, a resource-aware queue, the Black Scripting visual workbench and four local generators while retaining V0.3 authorization, processing and update recovery. Application source is included; your original batch files are kept for reference and are not executed by the web service.
 
+## Source and releases
+
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Download update packages and checksums from [GitHub Releases](https://github.com/BirthrightPublication/forge/releases). Release ZIPs are assets, not Git source files. V0.4 is the latest completed release; V0.5 development is kept on `development/v0.5-media-privacy` until its release checks are complete.
+
+Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
+
 ## Update the existing installation
 
 Save `FORGE-v0.4.zip` in **`B:\Forge\Build`**, without extracting it. Replace the standalone **`Update FORGE.bat`** in **`B:\Forge`** with the V0.4 copy supplied alongside this release. This also brings the external recovery updater up to date. Finish or cancel active/queued work, then double-click the BAT and press Enter to update.

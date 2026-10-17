@@ -1,5 +1,12 @@
 # Changelog
 
+## Repository publication — 2026-10-16
+
+- Established the authoritative GitHub repository, permanent contributor instructions and source-only exclusions.
+- Preserved V0.2–V0.4 source history; removed one unused Windows shortcut containing machine identifiers before initial publication. Application code is unchanged. Original history remains privately archived.
+- Added test-gated release automation and explicit build instructions. Existing MIT terms retained with owner approval.
+- V0.5 remains on its development branch while release validation continues.
+
 ## 0.4.0 — 2026-10-16
 
 - Added compact tool-specific icon tabs, centered inputs and visible Start/Add to Queue actions.
