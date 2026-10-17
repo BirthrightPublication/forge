@@ -148,9 +148,13 @@ function Read-InstallationEvidence($Case) {
       $backupRoot=Join-Path $caseRoot 'Update-Backups'
       if ([IO.Directory]::Exists($backupRoot)) {
         $evidence.rollback_manifests=@(Get-ChildItem -LiteralPath $backupRoot -Recurse -File -Force -Filter 'rollback-manifest.json' | ForEach-Object {
+          $manifestFile=$_
+          # Windows PowerShell 5.1 emits a JSON array as one pipeline object.
+          # Assignment unwraps that object; this separate pipeline enumerates it.
+          $manifestEntries=Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json
           [ordered]@{
-            relative_path=$_.FullName.Substring($caseRoot.Length).TrimStart([char]92,[char]47)
-            entries=@(Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json | ForEach-Object {
+            relative_path=$manifestFile.FullName.Substring($caseRoot.Length).TrimStart([char]92,[char]47)
+            entries=@($manifestEntries | ForEach-Object {
               [ordered]@{path=(Sanitize-Diagnostic ([string]$_.path)); existed=$_.existed}
             })
           }
@@ -240,6 +244,10 @@ function New-Case([string]$ScenarioName, [string]$ZipPath, [string]$ShaPath, [st
     'legacy-stale-file.py'='# The supplied updater retains unrelated application files.'
   }
   foreach ($name in $sentinels.Keys) { Write-Fixture (Join-Path $root $name) $sentinels[$name] }
+  $buildFolder=Join-Path $root 'Build'
+  New-Item -ItemType Directory -Force $buildFolder | Out-Null
+  New-TestZip (Join-Path $buildFolder 'previous-release.zip') @{'app/VERSION.txt'='Preserve the previous release download.'}
+  $sentinels['Build\previous-release.zip']=''
   Copy-Item -LiteralPath $updaterFixture -Destination (Join-Path $root 'Update-Application.ps1')
   Copy-Item -LiteralPath $batchFixture -Destination (Join-Path $root 'Update FORGE.bat')
   $sentinels['Update-Application.ps1']=''
@@ -263,8 +271,7 @@ function New-Case([string]$ScenarioName, [string]$ZipPath, [string]$ShaPath, [st
     [pscustomobject]@{name=($archiveName+'.sha256');browser_download_url='https://forge-acceptance.invalid/package.sha256'}
   )
   $metadata=[pscustomobject]@{tag_name=('v'+$script:packageVersion);assets=$assets}
-  $tempRoot=Join-Path $folder 'updater-temp'
-  New-Item -ItemType Directory -Force $tempRoot | Out-Null
+  $tempRoot=$buildFolder
   $tempRoot=(Get-Item -LiteralPath $tempRoot -Force).FullName
   $config=[ordered]@{
     Updater=(Join-Path $root 'Update-Application.ps1');Zip=$ZipPath;Checksum=$ShaPath
@@ -413,7 +420,8 @@ try {
   foreach ($name in $positive.oldFiles.Keys) {
     Assert-Check ((Hash-File (Join-Path $backup $name)) -eq $positive.oldFiles[$name]) ('install: backup contains old bytes '+$name)
   }
-  $rollback=@(Get-Content -LiteralPath (Join-Path $backup 'rollback-manifest.json') -Raw | ConvertFrom-Json)
+  $rollbackEntries=Get-Content -LiteralPath (Join-Path $backup 'rollback-manifest.json') -Raw | ConvertFrom-Json
+  $rollback=@($rollbackEntries | ForEach-Object {$_})
   Assert-Check ($rollback.Count -eq $payload.Count) 'install: rollback manifest records every application path'
   foreach ($file in $payload) {
     $record=@($rollback | Where-Object {$_.path -eq $file.relative})

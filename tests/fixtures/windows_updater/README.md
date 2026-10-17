@@ -26,8 +26,10 @@ and junction checks, backups and copies run unchanged. The harness never reads
 or changes an owner's installation. These test fixtures must not be included in
 the Windows installation payload.
 
-Each child process receives its own canonical `TEMP` and `TMP` directory beneath
-the disposable scenario folder. The report includes file probes for both the
+Each child process uses the canonical `Build` folder within its disposable
+installation for `TEMP` and `TMP`, matching the documented updater setup. A valid
+`Build/previous-release.zip` sentinel must remain byte-for-byte unchanged. The
+report includes file probes for both the
 inherited TEMP and the isolated TEMP, using the supplied updater's exact
 relative-path calculation. It records redacted path forms, normalization lengths
 and the resulting relative filename, and requires the isolated result to match.
