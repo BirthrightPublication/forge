@@ -30,6 +30,15 @@ Packaging checks the exact tag's source manifest, preserves included application
 
 Keep your existing updater files. Finish queued jobs and close FORGE before running `B:\Forge\Update FORGE.bat`; the PowerShell updater prompts for `UPDATE` before copying. Its backup and log directories are `Update-Backups` and `Update-Logs`. It does not migrate data or automatically run an application health check. Release acceptance runs health checks separately on disposable installations.
 
+The supplied updater calculates relative paths using the length of its temporary source path. Windows can expand an 8.3 alias such as `RUNNER~1` when enumerating files, making that calculation wrong. Native acceptance caught an extra `app/` installation directory under the GitHub runner's shortened TEMP path. The package cannot repair that script behavior. Use a normal temporary path when invoking your existing updater. For the established FORGE installation, open PowerShell and run:
+
+```powershell
+$env:TEMP = 'B:\Forge\Build'
+& 'B:\Forge\Update FORGE.bat'
+```
+
+This changes TEMP only in that PowerShell process and its children. The updater creates and removes its own uniquely named staging directory inside Build; existing builds and updater files remain in place. Native tests use a separate normal temporary directory per scenario and retain a probe of the inherited TEMP behavior in CI evidence. Short-path handling in the supplied updater remains a known limitation.
+
 The legacy `FORGE-v0.5.zip` retains its original layout for `scripts/update.py` and the older standalone BAT. The two package formats have different updater contracts. Existing assets and tags are never renamed, replaced or deleted to correct missing Windows assets.
 
 ## Build and validate

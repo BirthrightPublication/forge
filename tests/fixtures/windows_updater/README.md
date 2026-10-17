@@ -25,3 +25,20 @@ The updater's asset selection, SHA-256 verification, extraction, protected-path
 and junction checks, backups and copies run unchanged. The harness never reads
 or changes an owner's installation. These test fixtures must not be included in
 the Windows installation payload.
+
+Each child process receives its own canonical `TEMP` and `TMP` directory beneath
+the disposable scenario folder. The report includes file probes for both the
+inherited TEMP and the isolated TEMP, using the supplied updater's exact
+relative-path calculation. It records redacted path forms, normalization lengths
+and the resulting relative filename, and requires the isolated result to match.
+
+This condition matters: the supplied updater derives relative paths by removing
+`$source.Length` characters from an enumerated filename. When TEMP uses a short
+8.3 alias and Windows expands that alias during enumeration, the differing path
+lengths can leave an extra `app` component. Native CI observed the updater report
+success while placing all 143 payload files under `installation/app/`, leaving
+the old root application in place. The probe exposes the inherited path behavior;
+isolating TEMP does not fix the original updater. Acceptance proves installation
+with canonical TEMP and does not establish compatibility with short TEMP aliases.
+Every payload file must still exist at the expected root location and match its
+archive SHA-256; no extra directory or missing file is accepted.

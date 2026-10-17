@@ -152,7 +152,9 @@ def build_validation(tag: str, directory: Path, linux: dict, windows: dict) -> P
                                           for case in windows['cases']],
                   'installed_application_smoke': 'passed', 'updater_sha256': UPDATER_SHA256,
                   'physical_gpu_tested': False,
-                  'scope': 'Updater install, preservation, rejection cases and real installed-app smoke on Windows x64. Not a physical GPU or all-codec acceptance claim.'}
+                  'temporary_directory_policy': 'A separate canonical temporary directory per native test scenario.',
+                  'updater_limitations': ['The supplied updater can miscalculate destinations when TEMP uses an 8.3 alias. Use a canonical temporary path.'],
+                  'scope': 'Updater install, preservation, rejection cases and real installed-app smoke on Windows x64 with canonical temporary paths. Not a physical GPU or all-codec acceptance claim.'}
     path = directory / release_names(tag)[2]
     path.write_text(json.dumps(validation, sort_keys=True, indent=2) + '\n', encoding='utf-8')
     return path
@@ -285,8 +287,13 @@ def append_installation_note(client, release: dict, tag: str):
             '**Windows updater package:** Download [' + names[0] + '](' + base + names[0] + ') '
             'and its [' + names[1] + '](' + base + names[1] + ') companion checksum. '
             'Use your existing `Update-Application.ps1` and its wrapper; they remain unchanged. '
-            'This package passed the tagged Python suite, exact-source package validation and native Windows updater/installed-app checks. '
-            'Earlier assets remain available for the legacy offline updater. GitHub Source code archives are not updater packages.\n')
+            'This package passed the tagged Python suite, exact-source package validation and native Windows updater/installed-app checks with canonical temporary paths. '
+            'Earlier assets remain available for the legacy offline updater. GitHub Source code archives are not updater packages.\n\n'
+            'The supplied updater miscalculates destinations if TEMP expands from an 8.3 alias. '
+            'After closing FORGE, run the existing wrapper from PowerShell with a normal staging path:\n\n'
+            "```powershell\n$env:TEMP = 'B:\\Forge\\Build'\n& 'B:\\Forge\\Update FORGE.bat'\n```\n"
+            'Type `UPDATE` at its confirmation. This changes only the current process environment; '
+            'the updater creates and removes its own temporary staging folder inside Build.\n')
     # Fetch again so independently added release notes are preserved.
     current = client.release(tag)
     require(current['id'] == release['id'] and not current.get('draft'), 'The release changed during asset publication.')

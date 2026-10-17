@@ -116,7 +116,7 @@ function Read-InstallationEvidence($Case) {
     installation_root=(Sanitize-Diagnostic $caseRoot)
     scenario_folder=(Sanitize-Diagnostic $caseFolder)
     root_exists=[IO.Directory]::Exists($caseRoot); root_entries=@(); files=@()
-    rollback_manifests=@(); updater_stdout=''; updater_stderr=''; diagnostic_error=$null
+    rollback_manifests=@(); updater_stdout=''; updater_stderr=''; temp_environment=$null; diagnostic_error=$null
   }
   $prefix=[IO.Path]::GetFullPath($Output).TrimEnd([char]92,[char]47)+[IO.Path]::DirectorySeparatorChar
   if (-not [IO.Path]::GetFullPath($caseRoot).StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
@@ -125,6 +125,10 @@ function Read-InstallationEvidence($Case) {
     return $evidence
   }
   try {
+    $tempEvidence=Join-Path $caseFolder 'temp-environment.json'
+    if ([IO.File]::Exists($tempEvidence)) {
+      $evidence.temp_environment=Get-Content -LiteralPath $tempEvidence -Raw | ConvertFrom-Json
+    }
     foreach ($channel in @('stdout','stderr')) {
       $logPath=Join-Path $caseFolder ($channel+'.log')
       if ([IO.File]::Exists($logPath)) {
@@ -259,9 +263,13 @@ function New-Case([string]$ScenarioName, [string]$ZipPath, [string]$ShaPath, [st
     [pscustomobject]@{name=($archiveName+'.sha256');browser_download_url='https://forge-acceptance.invalid/package.sha256'}
   )
   $metadata=[pscustomobject]@{tag_name=('v'+$script:packageVersion);assets=$assets}
+  $tempRoot=Join-Path $folder 'updater-temp'
+  New-Item -ItemType Directory -Force $tempRoot | Out-Null
+  $tempRoot=(Get-Item -LiteralPath $tempRoot -Force).FullName
   $config=[ordered]@{
     Updater=(Join-Path $root 'Update-Application.ps1');Zip=$ZipPath;Checksum=$ShaPath
     Response=$Response;Metadata=$metadata;Calls=(Join-Path $folder 'mock-calls.jsonl')
+    TempRoot=$tempRoot;TempEvidence=(Join-Path $folder 'temp-environment.json');AcceptanceOutput=$Output
   }
   $configPath=Join-Path $folder 'scenario.json'
   Write-Json $configPath $config
@@ -276,6 +284,48 @@ $wrapper=@'
 param([Parameter(Mandatory=$true)][string]$ScenarioFile)
 $ErrorActionPreference='Stop'
 $config=Get-Content -LiteralPath $ScenarioFile -Raw | ConvertFrom-Json
+# Isolate the updater's scratch files as well as its installation. The native
+# runner may inherit an 8.3 TEMP alias; the supplied updater derives relative
+# paths by subtracting a string length, so capture that behavior before using
+# the canonical scratch directory. This does not repair the supplied updater.
+function Redact-TempPath([string]$Path) {
+  $safe=$Path.Replace([string]$config.AcceptanceOutput,'<acceptance-output>')
+  return ($safe -replace '(?i)([A-Z]:\\Users\\)[^\\]+','${1}<profile>')
+}
+function Measure-UpdaterTemp([string]$TempPath) {
+  $probeRoot=Join-Path $TempPath ('ForgeAcceptanceProbe-'+[guid]::NewGuid().ToString('N'))
+  try {
+    $source=Join-Path $probeRoot 'extracted\app'
+    New-Item -ItemType Directory -Force $source | Out-Null
+    $probeFile=Join-Path $source 'probe.txt'
+    [IO.File]::WriteAllText($probeFile,'Disposable updater path probe.')
+    $file=@(Get-ChildItem -LiteralPath $source -Recurse -File -Force)[0]
+    $relative=$file.FullName.Substring($source.Length).TrimStart('\','/')
+    $itemPath=(Get-Item -LiteralPath $TempPath -Force).FullName
+    $resolvedPath=(Resolve-Path -LiteralPath $TempPath).ProviderPath
+    $directoryInfo=New-Object IO.DirectoryInfo($TempPath)
+    return [ordered]@{
+      raw_path=(Redact-TempPath $TempPath);raw_length=$TempPath.Length
+      contains_short_alias=($TempPath -match '(?i)~[0-9]+([\\/]|$)')
+      get_item_path=(Redact-TempPath $itemPath);get_item_length=$itemPath.Length
+      resolve_path=(Redact-TempPath $resolvedPath);resolve_path_length=$resolvedPath.Length
+      directory_info_path=(Redact-TempPath $directoryInfo.FullName)
+      source_length=$source.Length;enumerated_filename_length=$file.FullName.Length
+      filename_length_delta=($file.FullName.Length-$probeFile.Length)
+      expected_relative_path='probe.txt';updater_relative_path=$relative
+      relative_path_correct=($relative -ceq 'probe.txt')
+    }
+  } finally { Remove-Item -LiteralPath $probeRoot -Recurse -Force -ErrorAction SilentlyContinue }
+}
+$tempEvidence=[ordered]@{
+  inherited=(Measure-UpdaterTemp $env:TEMP)
+  isolated=(Measure-UpdaterTemp ([string]$config.TempRoot))
+  updater_fixture_modified=$false
+}
+$tempEvidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $config.TempEvidence -Encoding UTF8
+if (-not $tempEvidence.isolated.relative_path_correct) { throw 'Canonical disposable TEMP did not preserve updater relative paths.' }
+$env:TEMP=[string]$config.TempRoot
+$env:TMP=[string]$config.TempRoot
 function Record-Mock([string]$Kind,[string]$Value) {
   [pscustomobject]@{kind=$Kind;value=$Value} | ConvertTo-Json -Compress | Add-Content -LiteralPath $config.Calls -Encoding UTF8
 }
@@ -306,12 +356,19 @@ $wrapperPath=Join-Path $Output 'invoke-exact-updater.ps1'
 
 function Run-Case($Case,[int]$ExpectedExit,[string]$ExpectedLog,[int]$Downloads,[int]$Confirmations) {
   $firstCheck=$script:checks.Count
-  $result=[ordered]@{name=$Case.name;status='failed';expected_exit=$ExpectedExit;actual_exit=$null;checks=@()}
+  $result=[ordered]@{name=$Case.name;status='failed';expected_exit=$ExpectedExit;actual_exit=$null;checks=@();temp_environment=$null}
   [void]$script:cases.Add($result)
   $arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File '+(Quote-Argument $wrapperPath)+' -ScenarioFile '+(Quote-Argument $Case.config)
   $process=Start-Process -FilePath $nativePowerShell -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $Case.folder 'stdout.log') -RedirectStandardError (Join-Path $Case.folder 'stderr.log')
   $result.actual_exit=$process.ExitCode
+  $tempEvidence=Join-Path $Case.folder 'temp-environment.json'
+  if ([IO.File]::Exists($tempEvidence)) {
+    $result.temp_environment=Get-Content -LiteralPath $tempEvidence -Raw | ConvertFrom-Json
+    $tempSummary=$result.temp_environment | ConvertTo-Json -Depth 6 -Compress
+    Write-Host ('::notice title=Isolated updater TEMP evidence::'+(Escape-Annotation ($Case.name+': '+$tempSummary)))
+  }
   Assert-Check ($process.ExitCode -eq $ExpectedExit) ($Case.name+': expected exit code')
+  Assert-Check ($null -ne $result.temp_environment -and $result.temp_environment.isolated.relative_path_correct) ($Case.name+': isolated TEMP preserves exact updater relative paths')
   $logs=@(Get-ChildItem -LiteralPath (Join-Path $Case.root 'Update-Logs') -File)
   Assert-Check ($logs.Count -gt 0) ($Case.name+': real updater log created')
   $content=($logs | ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw}) -join ([Environment]::NewLine)
@@ -425,7 +482,7 @@ try {
   }
   Write-Host ('::error file=tests/windows_release_acceptance.ps1,line='+$report.failure_location.line+',title=Windows release acceptance failed::'+(Escape-Annotation $annotation))
   if ($null -ne $report.installation_evidence) {
-    foreach ($field in @('installation_root','root_type','root_exists','root_entries','files','rollback_manifests','updater_stdout','updater_stderr','diagnostic_error')) {
+    foreach ($field in @('installation_root','root_type','root_exists','root_entries','files','rollback_manifests','updater_stdout','updater_stderr','temp_environment','diagnostic_error')) {
       $value=$report.installation_evidence[$field] | ConvertTo-Json -Depth 8 -Compress
       Write-Host ('::error title=Disposable installation evidence::'+(Escape-Annotation ($field+'='+$value)))
     }

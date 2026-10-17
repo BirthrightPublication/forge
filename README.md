@@ -14,7 +14,7 @@ Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules,
 
 ## Update the existing installation
 
-**If `B:\Forge\Update-Application.ps1` is installed:** finish queued work, close FORGE, and run your existing `B:\Forge\Update FORGE.bat`. The script downloads the single Windows ZIP from the latest release, verifies its SHA-256 and stages `app/`; type `UPDATE` only after reviewing its plan. Keep both installed updater files. This package excludes them, settings, presets, history, user media, models, environments and original scripts. Backups and logs use `Update-Backups` and `Update-Logs`. See [Windows release compatibility](docs/WINDOWS_RELEASES.md).
+**If `B:\Forge\Update-Application.ps1` is installed:** finish queued work, close FORGE, and run your existing `B:\Forge\Update FORGE.bat` using the [temporary-path instructions](docs/WINDOWS_RELEASES.md) to avoid the supplied updater's shortened-path bug. The script downloads the single Windows ZIP from the latest release, verifies its SHA-256 and stages `app/`; type `UPDATE` only after reviewing its plan. Keep both installed updater files. This package excludes them, settings, presets, history, user media, models, environments and original scripts. Backups and logs use `Update-Backups` and `Update-Logs`.
 
 **For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 
