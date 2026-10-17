@@ -1,0 +1,458 @@
+"""Isolated, allowlisted job worker. No user-supplied shell commands are executed."""
+from __future__ import annotations
+
+import contextlib
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+from urllib.parse import urlparse
+
+from .core import CLEAN_MEDIA, IMAGES, executable, json_write, no_window, safe_name
+
+
+def emit(kind: str, **data):
+    print(json.dumps({'kind': kind, **data}, ensure_ascii=False), flush=True)
+
+
+def progress(value: float, message: str):
+    emit('progress', progress=min(99, max(0, value)), message=message)
+
+
+def probe(path: Path, settings: dict) -> dict:
+    binary = executable('ffprobe', settings)
+    if not binary:
+        raise RuntimeError('FFprobe was not found. Set its path in Environment, normally beside ffmpeg.exe.')
+    p = subprocess.run([binary, '-v', 'error', '-show_format', '-show_streams', '-of', 'json', str(path)],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='replace', timeout=120, **no_window())
+    if p.returncode:
+        raise RuntimeError('Could not inspect the media: ' + p.stderr[-1200:])
+    return json.loads(p.stdout)
+
+
+def duration(info: dict) -> float:
+    try:
+        return max(0, float(info.get('format', {}).get('duration', 0)))
+    except (ValueError, TypeError):
+        return 0
+
+
+def run_ffmpeg(args: list[str], settings: dict, total: float = 0):
+    binary = executable('ffmpeg', settings)
+    if not binary:
+        raise RuntimeError('FFmpeg was not found. Configure ffmpeg.exe in Environment.')
+    command = [binary, '-nostdin', '-hide_banner', '-loglevel', 'error', '-n', '-progress', 'pipe:1', *args]
+    errors = []
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                          encoding='utf-8', errors='replace', **no_window()) as p:
+        def drain():
+            for line in p.stderr:
+                errors.append(line)
+                if len(errors) > 100:
+                    del errors[:50]
+        reader = threading.Thread(target=drain, daemon=True)
+        reader.start()
+        for line in p.stdout:
+            key, _, value = line.strip().partition('=')
+            if key == 'out_time_us' and value.isdigit() and total:
+                progress(5 + 85 * int(value) / 1_000_000 / total, 'Processing media')
+        code = p.wait()
+        reader.join(timeout=3)
+    if code:
+        raise RuntimeError('FFmpeg failed: ' + ''.join(errors)[-2500:])
+
+
+def publish(stage: Path, destination: Path, *, allow_empty: bool = False) -> Path:
+    """Publish a finished file on the same filesystem, without overwriting any file."""
+    if not stage.is_file() or (stage.stat().st_size == 0 and not allow_empty):
+        raise RuntimeError('Refusing to publish an empty or missing output.')
+    for index in range(10000):
+        name = destination.name if index == 0 else f'{destination.stem} ({index}){destination.suffix}'
+        final = destination.with_name(name)
+        try:
+            if os.name == 'nt':
+                # Windows rename fails rather than replacing an existing destination.
+                os.rename(stage, final)
+            else:
+                # link is atomic and fails on collision; stage and final share a volume.
+                os.link(stage, final)
+                stage.unlink()
+            return final
+        except FileExistsError:
+            continue
+    raise RuntimeError('Too many existing output files. Choose another name or directory.')
+
+
+def retune(source: Path, stage: Path, options: dict, settings: dict):
+    info = probe(source, settings)
+    audio = [s for s in info.get('streams', []) if s.get('codec_type') == 'audio']
+    if not audio:
+        raise RuntimeError('The input has no audio track.')
+    sample_rate = int(audio[0].get('sample_rate') or 48000)
+    ratio = options['target_hz'] / options['source_hz']
+    warnings = ['Retuning assumes the supplied source tuning; it does not detect the original concert pitch.']
+    if len(audio) > 1:
+        warnings.append('Only the first audio track was retuned and exported.')
+    # A detected input rate avoids the old 48 kHz assumption.  The small
+    # tempo compensation is deterministic across FFmpeg builds; automatic
+    # Rubber Band selection showed measurable short-tone drift in our tests.
+    chain = f'asetrate={sample_rate}*{ratio:.12f},aresample={sample_rate}'
+    if options['preserve_tempo']:
+        chain += f',atempo={1/ratio:.12f}'
+    warnings.append('Sample-rate pitch shift with optional tempo compensation; duration can differ slightly at file boundaries.')
+    ext = options['format']
+    args = ['-i', str(source)]
+    if ext in {'mp4', 'mkv'}:
+        video = [s for s in info.get('streams', []) if s.get('codec_type') == 'video' and not s.get('disposition', {}).get('attached_pic')]
+        if not video:
+            raise RuntimeError('Video output requires a video source. Choose an audio format instead.')
+        args += ['-map', f'0:{video[0]["index"]}', '-c:v', 'copy']
+        warnings.append('Primary video is copied; subtitles, extra video tracks and attachments are not included.')
+    args += ['-map', f'0:{audio[0]["index"]}', '-af', chain, '-map_metadata', '0' if options['keep_tags'] else '-1']
+    if ext == 'mp3':
+        args += ['-c:a', 'libmp3lame', '-q:a', '2' if options['quality'] == 'high' else '4']
+    elif ext == 'wav':
+        args += ['-c:a', 'pcm_s24le']
+    elif ext == 'flac':
+        args += ['-c:a', 'flac']
+    else:
+        args += ['-c:a', 'aac', '-b:a', '256k' if options['quality'] == 'high' else '192k']
+    args += [str(stage)]
+    progress(3, 'Retuning the first audio track')
+    run_ffmpeg(args, settings, duration(info))
+    after = probe(stage, settings)
+    if not any(s.get('codec_type') == 'audio' for s in after.get('streams', [])):
+        raise RuntimeError('Output verification failed: missing audio stream.')
+    return warnings
+
+
+def image_metadata(path: Path) -> dict:
+    from PIL import Image
+    with Image.open(path) as image:
+        return {'format': image.format, 'size': list(image.size),
+                'info': {k: str(v)[:2000] for k, v in image.info.items()},
+                'exif': {str(k): str(v)[:2000] for k, v in image.getexif().items()}}
+
+
+def media_metadata(info: dict) -> dict:
+    return {'format_tags': info.get('format', {}).get('tags', {}),
+            'stream_tags': [{'index': s.get('index'), 'type': s.get('codec_type'), 'tags': s.get('tags', {})} for s in info.get('streams', [])]}
+
+
+def wipe(source: Path, stage: Path, settings: dict):
+    ext = source.suffix.lower()
+    if ext in IMAGES:
+        from PIL import Image, ImageOps
+        before = image_metadata(source)
+        with Image.open(source) as original:
+            if getattr(original, 'is_animated', False):
+                raise RuntimeError('Animated image cleaning is not implemented; the original was left untouched.')
+            im = ImageOps.exif_transpose(original)
+            im.load()
+            # A new image avoids carrying EXIF, PNG text or ICC fields into the output.
+            mode = 'RGBA' if 'A' in im.mode or 'transparency' in im.info else 'RGB'
+            pixels = im.convert(mode)  # Preserve palette colors and tRNS alpha.
+            clean = Image.new(mode, im.size)
+            clean.paste(pixels)
+            if ext in {'.jpg', '.jpeg'}:
+                clean.convert('RGB').save(stage, 'JPEG', quality=95, subsampling=0)
+            elif ext == '.webp':
+                clean.convert('RGBA').save(stage, 'WEBP', lossless=True)
+            else:
+                clean.save(stage, 'PNG')
+        after = image_metadata(stage)
+        warnings = ['Image was re-encoded. Orientation is applied; ICC profile removal can alter color appearance.',
+                    'Metadata removal does not conceal visible content, watermarks, steganography, filenames or filesystem history.']
+        return before, after, warnings
+    if ext not in CLEAN_MEDIA:
+        raise RuntimeError('This format is not supported by the V0.1 cleaner. PDF and Office sanitization are deliberately not advertised.')
+    info = probe(source, settings)
+    before = media_metadata(info)
+    keep = [s for s in info.get('streams', []) if s.get('codec_type') in {'audio','video'} and not s.get('disposition', {}).get('attached_pic')]
+    if not keep:
+        raise RuntimeError('No supported audio/video stream to copy.')
+    args = ['-i', str(source)]
+    for s in keep:
+        args += ['-map', f'0:{s["index"]}']
+    args += ['-c', 'copy', '-map_metadata', '-1', '-map_metadata:s', '-1', '-map_chapters', '-1',
+             '-metadata', 'title=', '-metadata', 'comment=', '-metadata', 'encoder=']
+    if ext == '.mp3':
+        args += ['-id3v2_version', '0', '-write_id3v1', '0']
+    run_ffmpeg(args + [str(stage)], settings, duration(info))
+    after_info = probe(stage, settings)
+    if not after_info.get('streams'):
+        raise RuntimeError('Output verification failed: no media streams.')
+    after = media_metadata(after_info)
+    return before, after, ['Audio/video streams were copied, not re-encoded. Covers, attachments, subtitles, data tracks and chapters were excluded.',
+                           'Containers may regenerate technical tags. This is metadata reduction, not forensic anonymization.']
+
+
+def timestamp(seconds: float, comma=False) -> str:
+    n = max(0, round(seconds * 1000))
+    hours, n = divmod(n, 3600000)
+    minutes, n = divmod(n, 60000)
+    secs, ms = divmod(n, 1000)
+    return f'{hours:02}:{minutes:02}:{secs:02}{"," if comma else "."}{ms:03}'
+
+
+def export_transcript(segments: list[dict], info: dict, options: dict, stage_dir: Path, stem: str) -> list[Path]:
+    outputs = []
+    mode = options['timestamps']
+    for fmt in dict.fromkeys(options['formats']):
+        p = stage_dir / f'{stem}.{fmt}'
+        if fmt == 'json':
+            value = json.dumps({'engine': 'faster-whisper', 'model': options['model'], 'info': info, 'segments': segments,
+                                'note': 'Timing is estimated. This transcript is unedited ASR output, not a guaranteed verbatim record.'}, ensure_ascii=False, indent=2)
+        elif fmt == 'txt':
+            lines = []
+            for s in segments:
+                if mode == 'word' and s.get('words'):
+                    lines.extend(f'[{timestamp(w["start"])}] {w["word"].strip()}' for w in s['words'])
+                else:
+                    lines.append((f'[{timestamp(s["start"])}] ' if mode != 'none' else '') + s['text'].strip())
+            value = ('\n'.join(lines) + '\n') if segments else '[No speech detected]\n'
+        else:
+            blocks = []
+            # Subtitle exports use segment cues; word timing is carried in TXT and JSON.
+            for i, s in enumerate(segments, 1):
+                start = s['start']
+                end = max(start + 0.001, s['end'])
+                cue = f'{timestamp(start, fmt == "srt")} --> {timestamp(end, fmt == "srt")}\n{s["text"].strip()}\n'
+                blocks.append((f'{i}\n' if fmt == 'srt' else '') + cue)
+            value = ('WEBVTT\n\n' if fmt == 'vtt' else '') + '\n'.join(blocks)
+        p.write_text(value, encoding='utf-8')
+        outputs.append(p)
+    return outputs
+
+
+def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Path):
+    try:
+        from faster_whisper import WhisperModel
+        import ctranslate2
+    except ImportError as exc:
+        raise RuntimeError('Run Install Transcription.bat once, then restart FORGE.') from exc
+    os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+    os.environ['DO_NOT_TRACK'] = '1'
+    os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
+    if not options['allow_model_download']:
+        os.environ['HF_HUB_OFFLINE'] = '1'
+    device = options['device']
+    if device == 'auto':
+        try:
+            device = 'cuda' if ctranslate2.get_cuda_device_count() > 0 else 'cpu'
+        except Exception:
+            device = 'cpu'
+    progress(1, f'Loading {options["model"]} on {device}; the first model download can take time')
+    warnings = []
+
+    def recognize(dev):
+        model = WhisperModel(options['model'], device=dev, compute_type='float16' if dev == 'cuda' else 'int8',
+                             download_root=str(data / 'models'), local_files_only=not options['allow_model_download'])
+        generated, info = model.transcribe(str(source), language=options['language'] or None,
+                    task=options['task'], beam_size=options['beam_size'], vad_filter=options['vad'],
+                    word_timestamps=options['timestamps'] == 'word', initial_prompt=options['vocabulary'] or None)
+        segments = []
+        for s in generated:
+            item = {'start': s.start, 'end': s.end, 'text': s.text, 'avg_logprob': s.avg_logprob,
+                    'no_speech_prob': s.no_speech_prob}
+            if options['timestamps'] == 'word':
+                item['words'] = [{'start': w.start, 'end': w.end, 'word': w.word, 'probability': w.probability} for w in (s.words or [])]
+            segments.append(item)
+            progress(5 + 88 * s.end / max(info.duration, 1), f'Transcribing on {dev} · {timestamp(s.end)}')
+        details = {'language': info.language, 'language_probability': info.language_probability,
+                   'duration': info.duration, 'device': dev, 'task': options['task']}
+        return segments, details
+
+    try:
+        segments, info = recognize(device)
+    except Exception as error:
+        gpu_error = any(word in str(error).lower() for word in ('cuda', 'cudnn', 'cublas', 'driver', 'device', 'float16'))
+        if options['device'] == 'auto' and device == 'cuda' and gpu_error:
+            warnings.append('GPU execution failed; Auto restarted this job on CPU.')
+            emit('warning', message=warnings[-1])
+            segments, info = recognize('cpu')
+        else:
+            if not options['allow_model_download'] and any(w in str(error).lower() for w in ('cache', 'offline', 'local', 'download', 'snapshot')):
+                raise RuntimeError('The model is not cached. Enable “Allow first model download” or choose a cached model. ' + str(error)[:500]) from error
+            raise
+    if not segments:
+        warnings.append('No speech segments were detected. Empty transcript output should be reviewed.')
+    return export_transcript(segments, info, options, stage_dir, stem), warnings
+
+
+def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str):
+    try:
+        import yt_dlp
+    except ImportError as exc:
+        raise RuntimeError('Run Install Downloads.bat once, then restart FORGE.') from exc
+    # Disable automatic third-party plugin discovery; no config or shell hooks are loaded.
+    try:
+        from yt_dlp.globals import plugin_dirs
+        plugin_dirs.value = []
+    except ImportError:
+        pass
+    last_progress = [0.0]
+    warnings = []
+    class Logger:
+        def debug(self, message): pass
+        def info(self, message): pass
+        def warning(self, message):
+            if len(warnings) < 12:
+                warnings.append(str(message)[:1200])
+        def error(self, message): pass
+
+    def hook(d):
+        now = time.monotonic()
+        if now - last_progress[0] < 0.3:
+            return
+        last_progress[0] = now
+        total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+        if d.get('status') == 'downloading':
+            done = d.get('downloaded_bytes', 0)
+            progress(5 + 75 * done / total if total else 5, 'Downloading media' if total else 'Downloading; total size is unknown')
+        elif d.get('status') == 'finished':
+            progress(85, 'Download finished; post-processing')
+    ff = executable('ffmpeg', settings)
+    if not ff or not executable('ffprobe', settings):
+        raise RuntimeError('Download conversion/merging requires FFmpeg and FFprobe. Configure them in Environment.')
+    params = {'outtmpl': str(stage_dir / '%(title).120B [%(id)s].%(ext)s'), 'paths': {'home': str(stage_dir)},
+              'quiet': True, 'no_warnings': True, 'logger': Logger(), 'progress_hooks': [hook],
+              'noplaylist': True, 'windowsfilenames': True, 'restrictfilenames': False,
+              'overwrites': False, 'socket_timeout': 25, 'retries': 3,
+              'ffmpeg_location': str(Path(ff).parent), 'cachedir': False, 'remote_components': [],
+              'postprocessors': [], 'writethumbnail': False, 'writeinfojson': False,
+              'match_filter': lambda info, **kwargs: 'Live broadcasts are not enabled in V0.1.' if info.get('is_live') else None}
+    js = {}
+    for name in ('deno', 'node'):
+        if shutil.which(name):
+            js[name] = {'path': shutil.which(name)}
+    if js:
+        params['js_runtimes'] = js
+    if options.get('cookies'):
+        # Copy only within private work storage so yt-dlp cannot rewrite the user's cookie file.
+        cookie_copy = stage_dir / '_private_cookies.txt'
+        shutil.copyfile(options['cookies'], cookie_copy)
+        params['cookiefile'] = str(cookie_copy)
+    if tool == 'download_audio':
+        params['format'] = 'bestaudio/best'
+        params['postprocessors'].append({'key': 'FFmpegExtractAudio', 'preferredcodec': options['format'],
+                                         'preferredquality': '0' if options['quality'] == 'best' else options['quality']})
+    else:
+        cap = f'[height<={options["max_height"]}]' if options['max_height'] else ''
+        if options['format'] == 'mp4':
+            params['format'] = f'bv*{cap}[ext=mp4]+ba[ext=m4a]/b{cap}[ext=mp4]'
+            params['merge_output_format'] = 'mp4'
+        else:
+            params['format'] = f'bv*{cap}+ba/b{cap}'
+            params['merge_output_format'] = 'mkv'
+            params['postprocessors'].append({'key': 'FFmpegVideoRemuxer', 'preferedformat': 'mkv'})
+    if options['embed_metadata']:
+        params['postprocessors'].append({'key': 'FFmpegMetadata', 'add_metadata': True})
+    with yt_dlp.YoutubeDL(params) as ydl:
+        ydl.extract_info(url, download=True)
+    files = [p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.mp3','.m4a','.flac','.wav','.mp4','.mkv','.webm','.opus','.ogg'}]
+    if not files:
+        raise RuntimeError('No complete media output was produced.')
+    for p in files:
+        if not probe(p, settings).get('streams'):
+            raise RuntimeError('Downloaded output failed media verification.')
+    return files, warnings
+
+
+def run(payload: dict):
+    tool, options, settings = payload['tool'], payload['options'], payload['settings']
+    dest = Path(payload['destination']).resolve()
+    dest.mkdir(parents=True, exist_ok=True)
+    data = Path(payload['data'])
+    job_id = payload['job_id']
+    stage_dir = dest / ('.forge-' + job_id + '.work')
+    stage_dir.mkdir(exist_ok=False)
+    warnings = []
+    published = []
+    manifest = data / 'work' / job_id / 'result.json'
+    try:
+        source = Path(payload['source']['path']) if payload.get('source') else None
+        if source:
+            stat = source.stat()
+            expected = payload.get('source_stat', {})
+            if expected and (stat.st_size != expected['size'] or stat.st_mtime_ns != expected['mtime_ns']):
+                raise RuntimeError('The source changed after being queued. Select the file again before retrying.')
+        if tool == 'qr':
+            import qrcode
+            import qrcode.image.svg
+            correction = getattr(qrcode.constants, 'ERROR_CORRECT_' + options['error_correction'])
+            qr = qrcode.QRCode(error_correction=correction, box_size=options['box_size'], border=options['border'])
+            qr.add_data(options['text'])
+            qr.make(fit=True)
+            path = stage_dir / (safe_name(options['name']) + '.' + options['format'])
+            if options['format'] == 'svg':
+                qr.make_image(image_factory=qrcode.image.svg.SvgPathImage).save(str(path))
+            else:
+                qr.make_image(fill_color='black', back_color='white').save(path)
+            files = [path]
+        elif tool == 'retune':
+            path = stage_dir / (safe_name(source.stem) + f'_{options["target_hz"]:g}hz.' + options['format'])
+            warnings = retune(source, path, options, settings)
+            files = [path]
+        elif tool == 'metadata':
+            path = stage_dir / (safe_name(source.stem) + '_metadata-reduced' + source.suffix.lower())
+            before, after, warnings = wipe(source, path, settings)
+            files = [path]
+            if options['audit_report']:
+                report = stage_dir / (path.stem + '_PRIVATE-audit.json')
+                json_write(report, {'warning': 'This private report contains metadata from the ORIGINAL file. Do not publish it with the cleaned file.',
+                                    'before': before, 'after': after, 'limitations': warnings})
+                files.append(report)
+        elif tool == 'transcribe':
+            files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
+        elif tool in {'download_audio','download_video'}:
+            files, warnings = download(payload['url'], stage_dir, options, settings, tool)
+        else:
+            raise RuntimeError('Tool is not registered.')
+        # Signal finalization before atomically committing finished outputs.
+        emit('finalizing', message='Verifying and publishing outputs')
+        for path in files:
+            # Empty text is useful when no speech is detected, but make it explicit.
+            if path.stat().st_size == 0 and path.suffix == '.txt':
+                path.write_text('[No speech detected]\n', encoding='utf-8')
+            final = publish(path, dest / path.name, allow_empty=(tool == 'transcribe' and path.suffix == '.srt'))
+            published.append({'name': final.name, 'path': str(final), 'size': final.stat().st_size})
+            json_write(manifest, {'outputs': published, 'warnings': warnings, 'complete': False})
+        result = {'outputs': published, 'warnings': warnings, 'complete': True}
+        json_write(manifest, result)
+        emit('result', **result)
+    finally:
+        shutil.rmtree(stage_dir, ignore_errors=True)
+
+
+def watch_parent(pid: int, started: float):
+    import psutil
+    while True:
+        time.sleep(2)
+        try:
+            p = psutil.Process(pid)
+            if abs(p.create_time() - started) < 1:
+                continue
+        except psutil.Error:
+            pass
+        # No automatic restart: stop native children if the service disappears.
+        for child in psutil.Process().children(recursive=True):
+            with contextlib.suppress(psutil.Error):
+                child.kill()
+        os._exit(2)
+
+
+if __name__ == '__main__':
+    try:
+        payload = json.load(sys.stdin)
+        if payload.get('parent_pid'):
+            threading.Thread(target=watch_parent, args=(payload['parent_pid'], payload['parent_started']), daemon=True).start()
+        run(payload)
+    except Exception as error:
+        emit('error', message=str(error)[:4000])
+        sys.exit(1)

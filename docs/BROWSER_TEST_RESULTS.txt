@@ -1,0 +1,48 @@
+PASS Seven tool cards
+PASS Navigation transcribe
+PASS Desktop no overflow transcribe
+PASS Navigation retune
+PASS Desktop no overflow retune
+PASS Navigation download_audio
+PASS Desktop no overflow download_audio
+PASS Navigation download_video
+PASS Desktop no overflow download_video
+PASS Navigation metadata
+PASS Desktop no overflow metadata
+PASS Navigation qr
+PASS Desktop no overflow qr
+PASS Navigation password
+PASS Desktop no overflow password
+PASS Navigation queue
+PASS Desktop no overflow queue
+PASS Navigation settings
+PASS Desktop no overflow settings
+PASS Draft settings retained
+PASS Saved preset reloads
+PASS Browser import labels staging
+PASS Staged source changes destination
+PASS Pasted original path keeps source destination
+PASS Custom directory field appears
+PASS QR completed through browser queue
+PASS Authorized actual QR preview displayed
+PASS Original source preserved after UI metadata task
+PASS Password generated
+PASS Password cleared on navigation
+PASS Password did not create a queue record
+PASS No overflow 1366px overview
+PASS No overflow 1366px transcribe
+PASS No overflow 1366px queue
+PASS No overflow 1366px password
+PASS No overflow 1366px settings
+PASS No overflow 900px overview
+PASS No overflow 900px transcribe
+PASS No overflow 900px queue
+PASS No overflow 900px password
+PASS No overflow 900px settings
+PASS No overflow 440px overview
+PASS No overflow 440px transcribe
+PASS No overflow 440px queue
+PASS No overflow 440px password
+PASS No overflow 440px settings
+PASS No uncaught JavaScript errors
+47 browser checks passed

@@ -1,0 +1,60 @@
+FORGE V0.1 — LOCAL PRODUCTION STUDIO
+First functional development release • 16 October 2026
+
+1. Extract the entire ZIP into a permanent, writable local folder.
+   Example: C:\Users\YOUR_NAME\Apps\FORGE-v0.1
+   Do not run inside the ZIP or put this environment in Program Files.
+
+2. Double-click Setup FORGE.bat. Read the prompt, then type Y to install.
+   Requires an installed 64-bit Python 3.11, 3.12 or 3.13 with Tcl/Tk.
+   Setup downloads core dependencies into this folder's private .venv.
+   It does not change your other Python environments or original BAT files.
+
+3. Open FORGE.bat, or search Windows for FORGE.
+   Setup attempts to compile FORGE.exe locally and create a Start shortcut.
+   Pin the Start shortcut or generated FORGE.exe using Windows' Pin to
+   taskbar option where offered. No automatic taskbar modification is made.
+
+4. In the Studio, open Environment. Confirm the local components.
+   Set the FFmpeg path when it is not found automatically.
+   FFprobe is normally in the same bin folder as ffmpeg.exe.
+
+OPTIONAL ENGINES — STOP FORGE BEFORE INSTALLING
+   Install Transcription.bat: installs faster-whisper, not model weights.
+   Install Downloads.bat: installs yt-dlp with standard extras.
+   Then reopen FORGE. Initial model downloads require separate consent in
+   Transcribe; local processing works offline after needed files are cached.
+   FFmpeg, FFprobe, supported YouTube JS runtimes and CUDA are not bundled.
+
+FIRST CHECK
+   Open QR Codes, enter text, choose an output folder, and Add to queue.
+   In Processing Queue, open Details to see the actual QR and output path.
+   Test media tools on short copies before using important production files.
+
+SOURCE FOLDERS
+   Native browse, Paste paths or Explorer > Send to > FORGE preserve the
+   original source path. These support SAME FOLDER AS ORIGINAL exports.
+   Normal browser drops cannot reliably reveal the original Windows path.
+   They create clearly labeled local staging copies and default to the
+   export folder. Select a custom destination to use a different folder.
+
+QUEUE
+   Closing the browser leaves processing running.
+   Pause dispatch prevents NEW jobs from starting, not active-job execution.
+   Cancel stops active workers. Retry starts a new job from the beginning.
+   Use Stop FORGE.bat or Environment > Stop local service to stop the engine.
+   Interrupted jobs remain visible; the next launch leaves dispatch paused.
+
+LIMITS OF THIS BUILD
+   Backend/media operations and browser UI tests were run on Linux.
+   Windows setup, taskbar integration, native dialogs, real speech-model
+   inference, live website downloads and your GPU have not been run-tested.
+   See docs\TEST_REPORT.md for precise evidence and remaining checks.
+   No speaker diarization, editorial rewriting, arbitrary script import,
+   automatic code upgrades or rollback is advertised as working in V0.1.
+
+DETAILS
+   README.md: features, setup, privacy, troubleshooting and future scope.
+   docs\TEST_REPORT.md: test results and limitations.
+   docs\ARCHITECTURE.md: source structure and security boundaries.
+   original_scripts\: unmodified originals, for reference only.
