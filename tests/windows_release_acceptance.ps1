@@ -52,6 +52,7 @@ $report = [ordered]@{
   archive_name=[IO.Path]::GetFileName($Archive); archive_sha256=''; package_version=''; updater_sha256=''; batch_fixture_sha256=''
   bat_launcher_executed=$false; network_mocked=$true; input_mocked=$true; updater_logic_modified=$false
   checks=$checks; passed=0; cases=$cases; installed_app_smoke=$null; failure=$null
+  failure_detail=$null; failure_location=$null
 }
 New-Item -ItemType Directory -Path $Output | Out-Null
 
@@ -61,7 +62,46 @@ function Assert-Check([bool]$Condition, [string]$Label) {
   Write-Host ('PASS ' + $Label)
 }
 function Hash-File([string]$Path) {
-  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+  $stream = [IO.File]::OpenRead($Path)
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
+function Sanitize-Diagnostic([string]$Message) {
+  $safe=$Message
+  foreach ($replacement in @(
+    @($Output, '<acceptance-output>'), @($Archive, '<archive>'), @($Checksum, '<checksum>'),
+    @($PythonExecutable, '<python>'), @($PSScriptRoot, 'tests'),
+    @($env:RUNNER_TEMP, '<runner-temp>'), @($env:TEMP, '<temp>')
+  )) {
+    if (-not [string]::IsNullOrWhiteSpace($replacement[0])) {
+      $safe=$safe.Replace([string]$replacement[0], [string]$replacement[1])
+    }
+  }
+  return $safe
+}
+function Escape-Annotation([string]$Message) {
+  return $Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+}
+function Assert-PayloadFile([string]$Root, $Entry) {
+  $installed=Join-Path $Root $Entry.relative
+  $exists=[IO.File]::Exists($installed)
+  $detail=[ordered]@{
+    relative_path=$Entry.relative; filesystem_exists=$exists
+    provider_exists=[bool](Test-Path -LiteralPath $installed -PathType Leaf)
+    attributes=$null; expected_sha256=$Entry.hash; actual_sha256=$null; read_error_type=$null
+  }
+  if ($exists) {
+    try {
+      $detail.attributes=[IO.File]::GetAttributes($installed).ToString()
+      $detail.actual_sha256=Hash-File $installed
+    } catch { $detail.read_error_type=$_.Exception.GetType().FullName }
+  }
+  if (-not $exists -or $detail.actual_sha256 -ne $Entry.hash) {
+    $script:report.failure_detail=$detail
+  }
+  Assert-Check $exists ('install: payload file exists '+$Entry.relative)
+  Assert-Check ($detail.actual_sha256 -eq $Entry.hash) ('install: exact payload bytes '+$Entry.relative)
 }
 function Write-Json([string]$Path, $Value) {
   [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 20), (New-Object Text.UTF8Encoding($false)))
@@ -127,8 +167,8 @@ function Read-PackageVersion([string]$Path) {
     try { return $reader.ReadToEnd().Trim() } finally { $reader.Dispose() }
   } finally { $zip.Dispose() }
 }
-function New-Case([string]$Name, [string]$ZipPath, [string]$ShaPath, [string]$Response, [bool]$NoWindowsAsset=$false, [bool]$Junction=$false) {
-  $folder = Join-Path $Output $Name
+function New-Case([string]$ScenarioName, [string]$ZipPath, [string]$ShaPath, [string]$Response, [bool]$NoWindowsAsset=$false, [bool]$Junction=$false) {
+  $folder = Join-Path $Output $ScenarioName
   $root = Join-Path $folder 'installation'
   New-Item -ItemType Directory -Force $root | Out-Null
   $sentinels = @{
@@ -176,7 +216,7 @@ function New-Case([string]$Name, [string]$ZipPath, [string]$ShaPath, [string]$Re
   $configPath=Join-Path $folder 'scenario.json'
   Write-Json $configPath $config
   return [pscustomobject]@{
-    name=$Name;folder=$folder;root=$root;config=$configPath
+    name=$ScenarioName;folder=$folder;root=$root;config=$configPath
     before=(Snapshot-Files $root);preserved=$preserved;oldFiles=$oldFiles;outside=$outside
   }
 }
@@ -254,8 +294,7 @@ try {
   $positive=New-Case 'install' $Archive $Checksum 'UPDATE'
   $null=Run-Case $positive 0 'SUCCESS: Updated FORGE' 2 1
   foreach ($file in $payload) {
-    $installed=Join-Path $positive.root $file.relative
-    Assert-Check ((Test-Path -LiteralPath $installed -PathType Leaf) -and (Hash-File $installed) -eq $file.hash) ('install: exact payload bytes '+$file.relative)
+    Assert-PayloadFile $positive.root $file
   }
   foreach ($name in $positive.preserved.Keys) {
     Assert-Check ((Hash-File (Join-Path $positive.root $name)) -eq $positive.preserved[$name]) ('install: preserved '+$name)
@@ -323,8 +362,17 @@ try {
   }
   $report.status='passed'
 } catch {
-  $report.failure=$_.Exception.Message
+  $report.failure=Sanitize-Diagnostic $_.Exception.Message
+  $report.failure_location=[ordered]@{
+    file='tests/windows_release_acceptance.ps1'; line=$_.InvocationInfo.ScriptLineNumber
+    stack=(Sanitize-Diagnostic $_.ScriptStackTrace)
+  }
   Write-Host ('FAIL '+$report.failure)
+  $annotation=$report.failure+'; '+$report.failure_location.stack
+  if ($null -ne $report.failure_detail) {
+    $annotation+='; '+($report.failure_detail | ConvertTo-Json -Depth 5 -Compress)
+  }
+  Write-Host ('::error file=tests/windows_release_acceptance.ps1,line='+$report.failure_location.line+',title=Windows release acceptance failed::'+(Escape-Annotation $annotation))
 } finally {
   $report.passed=$checks.Count
   Write-Json (Join-Path $Output 'windows-acceptance.json') $report
