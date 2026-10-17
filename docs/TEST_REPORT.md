@@ -1,16 +1,16 @@
-# FORGE V0.5 validation report
+# FORGE V0.5.0 validation report
 
-Validated 16 October 2026 (America/Los_Angeles) in the Linux cloud environment. V0.5 is a release candidate on the development branch; review/merge and a stable V0.5 GitHub release remain pending. V0.4 is the published stable release.
+Validated 16 October 2026 (America/Los_Angeles) in the Linux cloud environment. The owner approved merging and releasing V0.5.0. The release URL is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0); publication status and asset availability are recorded there. This report preserves the validation evidence and target-platform limitations.
 
 ## Results
 
 - **478 Python tests passed**, including all retained V0.4 regressions and 126 added media-privacy/API/pipeline checks. One upstream Starlette/AnyIO deprecation warning; no test failures.
 - **34 watermark tests passed** again after the measured-progress callback integration was finalized; this is part of the 478-test suite, not 34 additional distinct tests.
 - **324 real Chromium checks passed**: Studio 127, Media Privacy 88, Black Scripting 26, generators 83. No JavaScript errors. Desktop, keyboard and 390-pixel mobile layouts exercised; 22 reviewed screenshots are in `screenshots/v0.5/`.
-- Real incremental upgrades and code rollback passed from **V0.1, V0.2, V0.3 and V0.4**. Existing environments, tools, originals, models, settings, preset data and history remain preserved. V0.4 Black Scripting definitions, generator presets and Auto concurrency settings survive. The candidate performs a real privacy export, checks source and pixel preservation, verifies metadata/report output, and retains job history and outputs through rollback.
+- Real incremental upgrades and code rollback passed from **V0.1, V0.2, V0.3 and V0.4**. Existing environments, tools, originals, models, settings, preset data and history remain preserved. V0.4 Black Scripting definitions, generator presets and Auto concurrency settings survive. The tested build performs a real privacy export, checks source and pixel preservation, verifies metadata/report output, and retains job history and outputs through rollback.
 - JavaScript syntax and Python test-harness compilation passed. Source/package manifests are checked with the actual updater.
 
-The recorded source-candidate upgrades are in `UPGRADE_INTEGRATION.json`. Documentation is finalized after those runs; the final ZIP's exact SHA-256 and repeated artifact upgrade results are supplied as `FORGE-v0.5-VALIDATION.json` beside the ZIP. An archive cannot include a checksum of itself.
+The four local upgrade/code-rollback runs are recorded in `UPGRADE_INTEGRATION.json`. The accompanying `VALIDATION.json` records CI test results and source identity; `CHECKSUMS.sha256` records the exact distributed archive and other release-asset hashes. These external records serve different purposes: CI/source information does not substitute for the recorded local upgrade runs, and an archive cannot include a checksum of itself.
 
 ## What was exercised
 

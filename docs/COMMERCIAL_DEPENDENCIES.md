@@ -1,6 +1,6 @@
-# Commercial dependency review — V0.5 release candidate
+# Commercial dependency review — V0.5
 
-The V0.4 core review is retained below. V0.5 additions were checked on 16 October 2026 against the official tagged C2PA Python and Chromaprint source/license files linked below. This candidate review is not a declaration of release publication or legal certification of every possible resolved binary.
+The V0.4 core review is retained below. V0.5 additions were checked on 16 October 2026 against the official tagged C2PA Python and Chromaprint source/license files linked below. The review covers the dependencies and versions identified here; binary distribution terms still require checking against the actual components bundled.
 
 FORGE's existing MIT source license is unchanged. The source package does not bundle Python wheels, FFmpeg binaries, GPU runtimes or model weights; the updater does not install them. The optional Media Privacy installer obtains a pinned C2PA package only after explicit confirmation. A future binary distribution must inventory its exact resolved dependencies and retain applicable notices. Optional version ranges and FFmpeg build choices can resolve to different obligations.
 

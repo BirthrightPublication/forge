@@ -1,6 +1,8 @@
 # Building and publishing FORGE
 
-Use a tagged source checkout for a release. `VERSION.txt`, `forge/__init__.py`, and the tag must agree: version `0.4.0` uses tag `v0.4.0` and produces `FORGE-v0.4.zip`; patch version `0.4.1` produces `FORGE-v0.4.1.zip`.
+Use a tagged source checkout for a release. `VERSION.txt`, `forge/__init__.py`, and the tag must agree: version `0.5.0` uses tag `v0.5.0` and produces `FORGE-v0.5.zip`; patch version `0.5.1` produces `FORGE-v0.5.1.zip`.
+
+The owner approved merging and releasing V0.5.0. Its validation passed 478 Python tests, 324 real Chromium checks and upgrade/code rollback from V0.1, V0.2, V0.3 and V0.4. The release URL is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The following commands document the release procedure; they do not assert that the remote tag or assets have already been published. Distribute CI test/source information as `VALIDATION.json` and exact release-asset hashes as `CHECKSUMS.sha256` beside the ZIP. The four local upgrade runs are documented separately in `UPGRADE_INTEGRATION.json`.
 
 The package builder includes the updater's allowlisted application files and a manifest containing their SHA-256 hashes. It excludes environments, tools, model caches, user data, build folders and backups. It validates the resulting ZIP with the real updater before returning success. ZIP timestamps can differ between builds, so retain and verify the checksum accompanying the exact archive you distribute.
 
@@ -46,13 +48,13 @@ Exercise each supported prior release using a new disposable destination:
 
 ```bash
 .venv/bin/python tests/integration_upgrade.py \
-  --base /absolute/path/to/FORGE-v0.3.zip \
-  --build /absolute/path/to/FORGE-v0.4.zip \
-  --output /tmp/forge-upgrade-v03-to-v04 \
+  --base /absolute/path/to/FORGE-v0.4.zip \
+  --build /absolute/path/to/FORGE-v0.5.zip \
+  --output /tmp/forge-upgrade-v04-to-v05 \
   --allow-test-writes
 ```
 
-This runs a real upgrade and code rollback, starts the candidate application, processes a QR job, and checks retained data and outputs. Use the version-appropriate harness and candidate. Linux tests do not establish native Windows BAT/PowerShell, Explorer, NTFS, antivirus, physical GPU, model-inference, or live-download acceptance; record those checks and remaining limitations in the release validation report.
+This runs a real upgrade and code rollback, starts the tested application, processes a QR job and V0.5 privacy export, and checks retained data and outputs. Repeat with the V0.1, V0.2 and V0.3 base archives and separate disposable destinations. Use the version-appropriate harness and build. Linux tests do not establish native Windows BAT/PowerShell, Explorer, NTFS, antivirus, physical GPU, model-inference, or live-download acceptance; record those checks and remaining limitations in the release validation report.
 
 ## GitHub release automation
 
@@ -71,7 +73,7 @@ git push origin main
 git push origin v0.5.0
 ```
 
-Those commands are an example for a completed V0.5 release, not a declaration that an in-progress V0.5 checkout is release-ready. For the historical target path, commit `.github/release-target` containing the intended existing tag and push `main` after that tag is available on the remote.
+Those commands apply to the approved V0.5.0 release after its final source commit and exact package verification. Verify the resulting remote tag and release assets before reporting publication complete. For the historical target path, commit `.github/release-target` containing the intended existing tag and push `main` after that tag is available on the remote.
 
 The workflow:
 

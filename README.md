@@ -1,20 +1,20 @@
 # FORGE — Local Production Studio
 
-**V0.5 release candidate · Media Privacy & Watermark Studio · Windows 11**
+**V0.5.0 · Media Privacy & Watermark Studio · Windows 11**
 
 A Windows-local production studio opened in your default browser. V0.5 adds seven Media Privacy tools for ownership watermarks, local fingerprint comparisons, metadata/provenance inspection and verified exports. Existing production tools, Queue 3.0, Black Scripting, local generators and updater recovery remain available. Application source is included; your original batch files are kept for reference and are not executed by the web service.
 
-This V0.5 release candidate awaits final artifact validation, merge review and publication. These notes describe the implemented interfaces, not a published V0.5 release or completed Windows/GPU acceptance. Exact V0.4 documentation, test reports and screenshots are preserved in [the V0.4 archive](docs/history/v0.4/README.md), with file hashes in its `ARCHIVE_MANIFEST.json`.
+The owner approved merging and releasing V0.5.0. Validation passed 478 Python tests, 324 real Chromium checks and upgrade/rollback checks from four earlier versions. Native Windows and physical NVIDIA acceptance remain separate checks. Exact V0.4 documentation, test reports and screenshots are preserved in [the V0.4 archive](docs/history/v0.4/README.md), with file hashes in its `ARCHIVE_MANIFEST.json`.
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Download update packages and checksums from [GitHub Releases](https://github.com/BirthrightPublication/forge/releases). Release ZIPs are assets, not Git source files. GitHub names the standalone updater asset `Update.FORGE.bat`; save it as `B:\Forge\Update FORGE.bat`. V0.4 is the latest completed release; V0.5 development is kept on `development/v0.5-media-privacy` until its release checks are complete.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The release URL for this version is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0); use that page to check publication status and obtain its assets. Release ZIPs are assets, not Git source files. The accompanying `VALIDATION.json` records CI test results and source identity; `CHECKSUMS.sha256` records exact release-asset hashes. GitHub names the standalone updater asset `Update.FORGE.bat`; save it as `B:\Forge\Update FORGE.bat`.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
 ## Update the existing installation
 
-When the validated V0.5 package is supplied, save the intact `FORGE-v0.5.zip` in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Do not treat an unvalidated candidate checkout as a finished release archive.
+Save the intact `FORGE-v0.5.zip` release asset in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 
@@ -35,7 +35,7 @@ The compact charcoal/gold Studio, Queue 3.0 controls, four local generators, Met
 
 V0.3's local Smart Update Manager and recovery protections are retained. Environment → Application and package updates → Check local build folder reads local ZIPs, verifies compatibility and shows rollback availability. Update/rollback console actions retain final native confirmation.
 
-Read [the V0.5 candidate and compatibility notes](docs/V05_RELEASE.md), [commercial dependency review](docs/COMMERCIAL_DEPENDENCIES.md), and [update guide](docs/UPDATE_GUIDE.md). Check the version stated in [the validation report](docs/TEST_REPORT.md); archived V0.4 evidence does not validate V0.5.
+Read [the V0.5 release and compatibility notes](docs/V05_RELEASE.md), [commercial dependency review](docs/COMMERCIAL_DEPENDENCIES.md), and [update guide](docs/UPDATE_GUIDE.md). Check the version stated in [the validation report](docs/TEST_REPORT.md); archived V0.4 evidence does not validate V0.5.
 
 ## Use the Media Privacy tools
 
@@ -147,6 +147,6 @@ Release checks contact PyPI for version metadata only. Optional startup checks a
 
 ## Tests and build source
 
-See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json`, checking their stated version. Final artifact validation and release review remain pending while this document identifies a release candidate. The exact V0.4 evidence is archived under `docs/history/v0.4`; its results do not certify V0.5. Automated media tests use local Linux fixtures. Native Windows BAT/PowerShell/Explorer integration, Edge/Brave/Firefox acceptance, actual speech/speaker inference, NVIDIA hardware/performance and live website downloads remain local acceptance checks.
+V0.5 validation passed **478 Python tests**, **324 real Chromium checks**, and incremental upgrade/code rollback from **V0.1, V0.2, V0.3 and V0.4**. See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json` for source and local upgrade evidence. The accompanying `VALIDATION.json` identifies CI tests/source, while `CHECKSUMS.sha256` identifies exact release-asset bytes. The exact V0.4 evidence is archived under `docs/history/v0.4`; its results do not certify V0.5. Automated media tests use local Linux fixtures. Native Windows BAT/PowerShell/Explorer integration, Edge/Brave/Firefox acceptance, actual speech/speaker inference, NVIDIA hardware/performance and live website downloads remain local acceptance checks.
 
 `python -m pytest` runs unit/API/media/updater tests after installing development requirements. The browser and full-upgrade harnesses require explicit disposable directories and test-write consent; never point them at production data. `scripts/package_release.py` creates a manifest-verified source release in a selected output directory and excludes data/environments/tools. Existing Windows users should use the supplied updater, not run the packaging script.

@@ -1,5 +1,10 @@
-FORGE V0.5 (0.5.0) RELEASE CANDIDATE — LOCAL PRODUCTION STUDIO
-Incremental update • 16 October 2026
+FORGE V0.5.0 — LOCAL PRODUCTION STUDIO
+Incremental update
+
+The owner approved the V0.5.0 merge and release. Release URL and publication status:
+   https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0
+Use the named FORGE-v0.5.zip asset, not GitHub's automatic source-code ZIP.
+VALIDATION.json records CI tests/source; CHECKSUMS.sha256 records asset hashes.
 
 UPGRADING YOUR EXISTING B:\Forge INSTALLATION
 
@@ -79,8 +84,12 @@ VALIDATION BOUNDARY
    Automated API, worker, media, updater and browser-interface checks ran on
    Linux. Windows BAT/PowerShell/native integration, actual ASR/GPU/speaker
    inference, and live website downloads were not execution-tested here.
-   Read docs\TEST_REPORT.md for exact evidence. This is a development release,
-   not an independently audited or Windows-certified application.
+   Validation passed 478 Python tests, 324 real Chromium checks and upgrade/code
+   rollback from V0.1, V0.2, V0.3 and V0.4. Read docs\TEST_REPORT.md for the
+   source evidence; docs\UPGRADE_INTEGRATION.json records local upgrade runs.
+   The accompanying VALIDATION.json records CI tests/source, and CHECKSUMS.sha256
+   identifies exact release assets. This release is not independently audited
+   or Windows-certified.
 
 V0.5 QUICK START
    Choose a tool, then use its icon toolbar for one settings section at a time.
@@ -91,7 +100,7 @@ V0.5 QUICK START
    New generators return synthetic aliases/test data or secure strings in memory.
    Copy or export explicitly before leaving; strings clear when navigating away.
    Wi-Fi QR codes use local Preview/Download and are not saved in queue history.
-   No activation or Birthright account is needed for this development release.
+   No activation or Birthright account is needed for this release.
 
 MEDIA PRIVACY
    Open Media Privacy in the sidebar for Watermark Studio, audio/video fingerprint

@@ -1,6 +1,6 @@
-# FORGE V0.5 — Media Privacy & Watermark Studio
+# FORGE V0.5.0 — Media Privacy & Watermark Studio
 
-**Release candidate status:** source validation passed; final artifact checks, merge review and publication are recorded separately. The Python and browser regression work has produced passing suites; final release-package and upgrade/rollback evidence must be recorded before calling V0.5 released. No stable V0.5 GitHub Release, native Windows acceptance or NVIDIA hardware validation is asserted by this document.
+**Release approval:** the owner approved merging and releasing V0.5.0. Validation passed 478 Python tests, 324 real Chromium checks and upgrade/code rollback from V0.1, V0.2, V0.3 and V0.4. The release URL is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0); check that page for publication status and assets. The accompanying `VALIDATION.json` records CI tests/source and `CHECKSUMS.sha256` records exact asset hashes. Native Windows acceptance and physical NVIDIA validation are not claimed.
 
 V0.5 extends the existing local production Studio with seven tools. The aim is to expose measurable identifying characteristics and give the user explicit control over processing and retained evidence. Removing selected metadata, changing pixels, or changing a similarity score does not prove that a file is anonymous or unrecognizable to other systems.
 
@@ -122,13 +122,13 @@ Existing V0.4 tools and saved scripts remain compatible. New tool records and op
 
 ## Windows update layout
 
-The installation layout remains **`B:\Forge`**, with intact release ZIPs in **`B:\Forge\Build`**, backups in **`B:\Forge\Backups`**, and the standalone **`B:\Forge\Update FORGE.bat`**. When a validated `FORGE-v0.5.zip` is supplied, use that existing updater flow. Finish/cancel queued work first; keep one active installation and do not extract a second copy beside it. The updater preserves the active environment and user data, validates package hashes/compatibility and retains rollback recovery. Package hashes detect corruption; they do not constitute a publisher signature.
+The installation layout remains **`B:\Forge`**, with intact release ZIPs in **`B:\Forge\Build`**, backups in **`B:\Forge\Backups`**, and the standalone **`B:\Forge\Update FORGE.bat`**. Use the `FORGE-v0.5.zip` release asset with that existing updater flow. Finish/cancel queued work first; keep one active installation and do not extract a second copy beside it. The updater preserves the active environment and user data, validates package hashes/compatibility and retains rollback recovery. Package hashes detect corruption; they do not constitute a publisher signature.
 
-See [the update guide](UPDATE_GUIDE.md) for the established procedure. Promote the candidate status at the top of this document only when the corresponding validation, review and publication steps are complete.
+See [the update guide](UPDATE_GUIDE.md) for the established procedure. The release's accompanying `VALIDATION.json` records CI tests/source; `CHECKSUMS.sha256` identifies the exact archive and other asset bytes.
 
 ## Validation and remaining acceptance
 
-V0.5 final artifact checks are pending. The focused suite includes real local media processing, decoded pixel/audio checks, fingerprint comparisons, metadata/provenance fixtures, report retention, pipeline handoff and resource-boundary tests. Final results belong in `TEST_REPORT.md`, `PYTHON_TEST_RESULTS.txt`, `BROWSER_CHECKS.json` and `UPGRADE_INTEGRATION.json`, with an explicit V0.5 version. Do not reuse V0.4 result counts as V0.5 evidence.
+V0.5 passed **478 Python tests**, **324 real Chromium checks** and all four prior-version upgrade/code-rollback checks. The focused suite includes real local media processing, decoded pixel/audio checks, fingerprint comparisons, metadata/provenance fixtures, report retention, pipeline handoff and resource-boundary tests. Source and local upgrade results are recorded in `TEST_REPORT.md`, `PYTHON_TEST_RESULTS.txt`, `BROWSER_CHECKS.json` and `UPGRADE_INTEGRATION.json`. The accompanying `VALIDATION.json` records CI tests/source; `CHECKSUMS.sha256` records exact asset hashes. Do not reuse V0.4 result counts as V0.5 evidence.
 
 The exact previous README, changelog, dependency review, V0.4 release notes, root validation reports and V0.4 screenshots are copied under [`history/v0.4`](history/v0.4/README.md). `ARCHIVE_MANIFEST.json` identifies their source commit and SHA-256 hashes. Earlier history remains intact.
 
