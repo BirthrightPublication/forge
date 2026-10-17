@@ -9,6 +9,7 @@ The package builder includes the updater's allowlisted application files and a m
 Use Python 3.12 for the release validation environment. Install FFmpeg/FFprobe and a Chromium browser for real media and browser checks. On Ubuntu 24.04:
 
 ```bash
+set -euo pipefail
 sudo apt-get update
 sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
 python3.12 -m venv .venv
@@ -33,6 +34,7 @@ if (Test-Path scripts\requirements-media-privacy.txt) {
 }
 & .\.venv\Scripts\python.exe -m pip check
 & .\.venv\Scripts\python.exe -m pytest -q
+if ($LASTEXITCODE -ne 0) { throw 'Tests failed; do not build a release.' }
 & .\.venv\Scripts\python.exe scripts\package_release.py --output 'B:\Forge\Build'
 ```
 
@@ -59,6 +61,8 @@ This runs a real upgrade and code rollback, starts the candidate application, pr
 - Push a new `vMAJOR.MINOR.PATCH` tag whose commit contains the workflow. This is the normal path for future releases.
 - Push a change to `.github/release-target` on `main`. The file must contain only an existing tag, such as `v0.4.0`. This supports publishing a completed historical release whose tagged commit predates Actions configuration, including the initial publication when the development environment cannot call the GitHub Releases API directly. The runner checks out that exact tag; it does not package the current `main` files.
 
+The initial public history uses a neutral automation author identity and omits machine-specific Windows shortcut metadata. This preparation happens before the first remote publication; it is not a policy of rewriting already-published history, tags or releases. Existing license terms remain unchanged.
+
 Changing the workflow alone does not trigger publication. The target file is a deliberate publication request for a tested historical tag; it does not authorize moving a tag or replacing existing release assets. Keep it in the infrastructure commit when first publishing an older tag. For normal new releases, finish and commit the source, version files, changelog and validation evidence before creating the tag:
 
 ```bash
@@ -84,3 +88,5 @@ Already-existing releases are never overwritten. A failed upload can leave a dra
 ## Install the released build
 
 Download the named `FORGE-v*.zip` **release asset**, not GitHub's automatic “Source code” ZIP. Put the intact archive in `B:\Forge\Build`, put the matching standalone `Update FORGE.bat` in `B:\Forge`, finish or cancel queued work, then run `B:\Forge\Update FORGE.bat`. Keep `B:\Forge\Backups` intact. See [UPDATE_GUIDE.md](UPDATE_GUIDE.md) for review, recovery and rollback behavior.
+
+GitHub normalizes spaces in asset names. The standalone updater asset is `Update.FORGE.bat`; save it locally as `B:\Forge\Update FORGE.bat`. The initial V0.4 release checksum list records its original `Update FORGE.bat` filename; its bytes are identical. Future workflows checksum the normalized public asset name directly.

@@ -162,7 +162,7 @@ jobs:
               for path in evidence.rglob('*'):
                   if path.is_file() and ((path.suffix == '.png' and path.name.startswith(('FORGE-', 'black-scripting-'))) or path.name in {
                           'BROWSER_V0.4_RESULTS.json', 'BROWSER_GENERATORS_RESULTS.json',
-                          'BROWSER_V0.5_RESULTS.json', 'browser-results.json', 'BROWSER_V05_RESULTS.json',
+                          'BROWSER_V0.5_RESULTS.json', 'BROWSER_V0.5_STUDIO_RESULTS.json', 'browser-results.json', 'BROWSER_V05_RESULTS.json',
                           'BROWSER_V05_REPORT.json'}):
                       target = Path('Build/validation/browser') / path.relative_to(evidence)
                       target.parent.mkdir(parents=True, exist_ok=True)
@@ -176,7 +176,8 @@ jobs:
           from pathlib import Path
           release = Path('Build/release')
           for name in ('Update FORGE.bat', 'CHANGELOG.md'):
-              shutil.copyfile(name, release / name)
+              # GitHub normalizes asset spaces to dots; checksum the public name.
+              shutil.copyfile(name, release / name.replace(' ', '.'))
           for name in ('PYTHON_TEST_RESULTS.txt', 'PYTEST.xml', 'BROWSER_TEST_RESULTS.txt'):
               shutil.copyfile(Path('Build/validation') / name, release / name)
           commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
@@ -195,7 +196,8 @@ jobs:
           short = os.environ['RELEASE_TAG'][:-2] if os.environ['RELEASE_TAG'].endswith('.0') else os.environ['RELEASE_TAG']
           notes = (f'FORGE {short}, built from exact tag `{os.environ["RELEASE_TAG"]}` at `{commit}`.\n\n'
                    f'Download `FORGE-{short}.zip` from the assets below. Leave it intact in `B:\\Forge\\Build` '
-                   'and run `B:\\Forge\\Update FORGE.bat`; the matching standalone updater is attached. '
+                   'and run `B:\\Forge\\Update FORGE.bat`. If downloading the standalone `Update.FORGE.bat` asset, '
+                   'save it as `B:\\Forge\\Update FORGE.bat`. '
                    'GitHub’s automatic Source code archives are not updater packages.\n\n'
                    'The full Python suite, real Linux Chromium checks and release-manifest validation passed before publication. '
                    'Results, screenshots, changelog and SHA-256 checksums are attached. Native Windows and physical GPU '

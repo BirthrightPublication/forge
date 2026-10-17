@@ -6,7 +6,7 @@ A Windows-local production studio opened in your default browser. V0.4 adds comp
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Download update packages and checksums from [GitHub Releases](https://github.com/BirthrightPublication/forge/releases). Release ZIPs are assets, not Git source files. V0.4 is the latest completed release; V0.5 development is kept on `development/v0.5-media-privacy` until its release checks are complete.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Download update packages and checksums from [GitHub Releases](https://github.com/BirthrightPublication/forge/releases). Release ZIPs are assets, not Git source files. GitHub names the standalone updater asset `Update.FORGE.bat`; save it as `B:\Forge\Update FORGE.bat`. V0.4 is the latest completed release; V0.5 development is kept on `development/v0.5-media-privacy` until its release checks are complete.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
