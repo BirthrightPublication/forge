@@ -99,45 +99,81 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 - <<'PY'
-          import os, re
-          if not re.fullmatch(r'development/[A-Za-z0-9][A-Za-z0-9._/-]{0,150}', os.environ['SOURCE_BRANCH']):
-              raise SystemExit('Invalid development branch identity.')
-          if not re.fullmatch(r'[a-f0-9]{40}', os.environ['TESTED_SHA']):
-              raise SystemExit('Invalid tested commit identity.')
-          PY
-          current_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$SOURCE_BRANCH" --jq .object.sha)"
-          if [[ "$current_sha" != "$TESTED_SHA" ]]; then
-            echo 'The development branch advanced; its newer validation run will handle review creation.'
-            exit 0
-          fi
-          existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head "$SOURCE_BRANCH" \
-            --state all --json url --jq '.[0].url // empty')"
-          if [[ -n "$existing" ]]; then
-            echo "A PR already exists for this branch: $existing"
-            exit 0
-          fi
-          export PR_BODY_FILE="$RUNNER_TEMP/forge-review-body.md"
-          python3 - <<'PY'
-          import os
+          python3 - <<'PYCODE'
+          import os, re, subprocess
           from pathlib import Path
           from urllib.parse import quote
-          repository = os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['GITHUB_REPOSITORY']
-          branch = os.environ['SOURCE_BRANCH']
+
+          def redact(value):
+              if isinstance(value, bytes):
+                  value = value.decode('utf-8', errors='replace')
+              for name in ('GH_TOKEN', 'GITHUB_TOKEN'):
+                  token = os.environ.get(name)
+                  if token:
+                      value = value.replace(token, '[redacted]')
+              return value
+
+          def fail(operation, details):
+              message = redact(operation + ': ' + redact(details))
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print('::error title=Draft PR automation failed::' + message, flush=True)
+              raise SystemExit(1)
+
+          def gh(operation, *arguments):
+              try:
+                  result = subprocess.run(['gh', *arguments], capture_output=True, timeout=90)
+              except subprocess.TimeoutExpired as error:
+                  fail(operation, 'GitHub CLI timed out after 90 seconds.\n' + redact(error.stderr or b''))
+              except OSError as error:
+                  fail(operation, str(error))
+              if result.returncode:
+                  # Preserve the exact non-secret stderr, including CR/newlines;
+                  # stdout is only a fallback when gh supplies no stderr.
+                  details = result.stderr or result.stdout or b'GitHub CLI returned no error details.'
+                  fail(operation, f'GitHub CLI exited {result.returncode}.\n' + redact(details))
+              return redact(result.stdout).strip()
+
+          branch = os.environ.get('SOURCE_BRANCH', '')
+          tested_sha = os.environ.get('TESTED_SHA', '')
+          if not re.fullmatch(r'development/[A-Za-z0-9][A-Za-z0-9._/-]{0,150}', branch):
+              fail('Validate development branch', 'Invalid development branch identity.')
+          if not re.fullmatch(r'[a-f0-9]{40}', tested_sha):
+              fail('Validate tested commit', 'Invalid tested commit identity.')
+          repository_name = os.environ['GITHUB_REPOSITORY']
+          current_sha = gh('Read development branch', 'api',
+                           f'repos/{repository_name}/git/ref/heads/{branch}', '--jq', '.object.sha')
+          if not re.fullmatch(r'[a-f0-9]{40}', current_sha):
+              fail('Read development branch', 'GitHub returned an invalid branch commit identity.')
+          if current_sha != tested_sha:
+              print('The development branch advanced; its newer validation run will handle review creation.')
+              raise SystemExit(0)
+          existing = gh('List existing pull requests', 'pr', 'list', '--repo', repository_name,
+                        '--base', 'main', '--head', branch, '--state', 'all', '--json', 'url',
+                        '--jq', '.[0].url // empty')
+          if existing:
+              print('A PR already exists for this branch: ' + existing)
+              raise SystemExit(0)
+
+          repository = os.environ['GITHUB_SERVER_URL'] + '/' + repository_name
           branch_url = repository + '/tree/' + quote(branch, safe='/')
           report_url = repository + '/blob/' + quote(branch, safe='/') + '/docs/TEST_REPORT.md'
           run_url = repository + '/actions/runs/' + os.environ['GITHUB_RUN_ID']
           summary = ('Adds seven local Media Privacy tools: encoded text/logo/audio watermarking, audio and video fingerprint comparison, tracking audit, privacy export, C2PA inspection, and before/after verification. They share the queue and linear Black Scripting while preserving original media. ' if branch == 'development/v0.5-media-privacy' else 'Development changes are ready for review. ')
           title = ('FORGE V0.5: Media Privacy and Watermark Studio' if branch == 'development/v0.5-media-privacy' else 'Review ' + branch)
-          Path(os.environ['RUNNER_TEMP'], 'forge-review-title.txt').write_text(title, encoding='utf-8')
           body = (summary + f'Source: [`{branch}`]({branch_url}). '
                   'This PR remains a draft; review and explicit approval are required before merging.\n\n'
-                  f'The full Python suite passed for triggering commit `{os.environ["TESTED_SHA"]}` '
+                  f'The full Python suite passed for triggering commit `{tested_sha}` '
                   f'in [this validation run]({run_url}). Check the latest PR checks when the branch changes.\n\n'
                   f'See the branch [validation report]({report_url}) for scope, evidence, and remaining '
                   'browser, native Windows, and physical GPU acceptance. This automation does not merge '
                   'the PR or certify those separate acceptance checks.\n')
-          Path(os.environ['PR_BODY_FILE']).write_text(body, encoding='utf-8')
-          PY
-          gh pr create --repo "$GITHUB_REPOSITORY" --draft --base main --head "$SOURCE_BRANCH" \
-            --title "$(cat "$RUNNER_TEMP/forge-review-title.txt")" --body-file "$PR_BODY_FILE"
+          body_file = Path(os.environ['RUNNER_TEMP'], 'forge-review-body.md')
+          try:
+              body_file.write_text(body, encoding='utf-8')
+          except OSError as error:
+              fail('Write draft description', str(error))
+          created = gh('Create draft pull request', 'pr', 'create', '--repo', repository_name,
+                       '--draft', '--base', 'main', '--head', branch,
+                       '--title', title, '--body-file', str(body_file))
+          print('Created draft PR: ' + created)
+          PYCODE
