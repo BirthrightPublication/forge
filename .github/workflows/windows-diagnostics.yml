@@ -1,0 +1,53 @@
+name: Read Windows acceptance diagnostics
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Run containing windows-acceptance-v0.5.0
+        type: string
+        required: true
+  push:
+    branches: [development/fix-windows-release-assets]
+    paths: [.github/windows-diagnostics-run, .github/workflows/windows-diagnostics.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - id: run
+        env:
+          REQUESTED_RUN: ${{ inputs.run_id }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          run = os.environ.get('REQUESTED_RUN') or Path('.github/windows-diagnostics-run').read_text().strip()
+          if not re.fullmatch(r'\d+', run): raise SystemExit('Expected a numeric Actions run ID.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('id=' + run + '\n')
+          PY
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: windows-acceptance-v0.5.0
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+          path: evidence
+      - name: Report only the acceptance failure and selected fixture logs
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          def note(message):
+              text = str(message).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print('::warning title=Windows acceptance diagnostics::' + text)
+          report = json.loads(Path('evidence/windows-acceptance.json').read_text(encoding='utf-8-sig'))
+          note({'status': report['status'], 'failure': report['failure'], 'checks': report['checks'][-4:]})
+          for filename in ('stdout.log', 'stderr.log'):
+              for path in Path('evidence').glob('*/' + filename):
+                  note(path.parent.name + '/' + filename + ': ' + path.read_text(encoding='utf-8', errors='replace')[-2500:])
+          PY
