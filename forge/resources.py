@@ -21,6 +21,9 @@ from .core import no_window
 
 MODEL_MEMORY_MB = {'tiny': 700, 'base': 900, 'small': 1800, 'medium': 3500,
                    'large-v3': 6500, 'large-v3-turbo': 4500}
+ENCODER_MEMORY_MB = 768  # Planning allowance for NVENC; not a measured allocation.
+MEDIA_ANALYSIS = {'audio_fingerprint', 'video_fingerprint', 'tracking_audit',
+                  'provenance', 'privacy_verify'}
 
 
 def bounded(value, default=1, maximum=5):
@@ -39,6 +42,9 @@ def primary_resource(job):
         # If CUDA is unavailable the worker may fall back to CPU. Keep one
         # conservative inference lane rather than assume GPU memory is known.
         return 'gpu'
+    if (tool == 'watermark' and options.get('mode', 'video') in {'video', 'both'}
+            and options.get('encoder', 'auto') in {'auto', 'nvenc'}):
+        return 'gpu'
     if tool == 'metadata':
         return 'disk'
     return 'cpu'
@@ -47,12 +53,18 @@ def primary_resource(job):
 def required_resources(job):
     resource = primary_resource(job)
     result = {resource}
-    if job['tool'] in {'retune', 'download_audio', 'download_video', 'model_download'}:
+    if job['tool'] in {'retune', 'download_audio', 'download_video', 'model_download',
+                       'watermark', 'privacy_export'} | MEDIA_ANALYSIS:
         result.add('disk')
+    if job['tool'] == 'watermark':
+        # Overlay/audio filters and CPU fallback still consume a CPU lane.
+        result.add('cpu')
     return result
 
 
 def model_budget_mb(job):
+    if job['tool'] == 'watermark':
+        return ENCODER_MEMORY_MB
     options = job.get('payload', {}).get('options', {})
     budget = MODEL_MEMORY_MB.get(options.get('model', 'large-v3'), 6500)
     return budget + (2048 if options.get('diarization') else 0)
@@ -150,9 +162,10 @@ def admission_state(settings, active_jobs, metrics):
             'limits': limits, 'usage': usage, 'memory_pressure': memory_pressure,
             'cpu_pressure': cpu_pressure, 'metrics': metrics,
             'gpu_budget': {'kind': 'conservative_estimate', 'model_memory_mb': MODEL_MEMORY_MB,
+                           'encoder_memory_mb': ENCODER_MEMORY_MB,
                            'reserve_mb': max(256, min(16384, int(settings.get('gpu_memory_reserve_mb', 1024)))),
                            'reserved_for_active_mb': sum(model_budget_mb(job) for job in active_jobs if primary_resource(job) == 'gpu'),
-                           'note': 'Estimated model budgets are subtracted from measured free memory as an additional safety margin. Matching GPU models run one at a time; pressure delays new starts without stopping active jobs.'}}
+                           'note': 'Model and encoder budgets are separate planning estimates, subtracted from measured free memory as an additional safety margin. Matching GPU models and video encoders run one at a time; pressure delays new starts without stopping active jobs.'}}
 
 
 def admission_reason(job, active_jobs, state):
@@ -183,7 +196,9 @@ def admission_reason(job, active_jobs, state):
     if primary_resource(job) == 'gpu':
         options = job.get('payload', {}).get('options', {})
         gpu_jobs = [j for j in active_jobs if primary_resource(j) == 'gpu']
-        if any(j.get('payload', {}).get('options', {}).get('model', 'large-v3') == options.get('model', 'large-v3') for j in gpu_jobs):
+        if job['tool'] == 'watermark' and any(j['tool'] == 'watermark' for j in gpu_jobs):
+            return 'Waiting for the GPU video encoder lane.'
+        if job['tool'] == 'transcribe' and any(j['tool'] == 'transcribe' and j.get('payload', {}).get('options', {}).get('model', 'large-v3') == options.get('model', 'large-v3') for j in gpu_jobs):
             return 'Waiting to reuse the GPU lane; duplicate model loads are serialized.'
         gpu = state['metrics']['gpu']
         if gpu['available']:
@@ -191,5 +206,5 @@ def admission_reason(job, active_jobs, state):
             budget = state['gpu_budget']
             required = model_budget_mb(job) + budget['reserve_mb'] + budget['reserved_for_active_mb']
             if device is None or device['free_mb'] < required:
-                return 'Waiting for GPU memory; admission uses measured free VRAM and conservative model estimates.'
+                return 'Waiting for GPU memory; admission uses measured free VRAM and conservative model or encoder estimates.'
     return ''

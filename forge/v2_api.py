@@ -256,7 +256,7 @@ def mount(app,store,manager,sessions,destination,token):
     @app.post('/api/environment/install')
     def install(body: dict):
         engine=body.get('engine')
-        if engine not in {'transcription','downloads','speakers'}:raise ValueError('Unknown optional engine.')
+        if engine not in {'transcription','downloads','speakers','media-privacy'}:raise ValueError('Unknown optional engine.')
         if os.name!='nt':return {'started':False,'message':'The guided installer is Windows-only. Installer scripts are in the application folder.'}
         with manager.lock:
             if any(j['status'] in {'running','queued','cancelling','finalizing'} for j in store.jobs(limit=100000)):

@@ -1,0 +1,179 @@
+name: Development review
+
+on:
+  push:
+    branches:
+      - 'development/**'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: forge-review-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate the development commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      branch: ${{ steps.source.outputs.branch }}
+      sha: ${{ steps.source.outputs.sha }}
+    env:
+      TEST_OUTPUT: /tmp/forge-review-${{ github.run_id }}
+      PYTHONUNBUFFERED: '1'
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - id: source
+        name: Validate the development branch identity
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          branch = os.environ['GITHUB_REF_NAME']
+          sha = os.environ['GITHUB_SHA']
+          if (not re.fullmatch(r'development/[A-Za-z0-9][A-Za-z0-9._/-]{0,150}', branch)
+                  or os.environ['GITHUB_REF'] != 'refs/heads/' + branch
+                  or not re.fullmatch(r'[a-f0-9]{40}', sha)):
+              raise SystemExit('Review automation accepts only a development branch push with a valid commit identity.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'branch={branch}\nsha={sha}\n')
+          Path(os.environ['TEST_OUTPUT']).mkdir(parents=True)
+          PY
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6; Node 24
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements-core.txt
+            requirements-dev.txt
+            scripts/requirements-media-privacy.txt
+      - name: Install Python and local media validation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          if [[ -f scripts/requirements-media-privacy.txt ]]; then
+            python -m pip install --disable-pip-version-check -r scripts/requirements-media-privacy.txt
+          fi
+          python -m pip check
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Run the complete Python suite
+        run: python -m pytest -q --junitxml="$TEST_OUTPUT/PYTEST.xml" | tee "$TEST_OUTPUT/PYTHON_TEST_RESULTS.txt"
+      - name: Retain Python validation results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
+        with:
+          name: review-validation-${{ github.run_id }}
+          path: /tmp/forge-review-${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 14
+
+  draft:
+    name: Open a draft for human review
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      SOURCE_BRANCH: ${{ needs.validate.outputs.branch }}
+      TESTED_SHA: ${{ needs.validate.outputs.sha }}
+    steps:
+      # This job never checks out or executes application source. The default
+      # repository token is used only for repository reads and draft creation.
+      - name: Create a draft only if the tested branch has no existing PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYCODE'
+          import os, re, subprocess
+          from pathlib import Path
+          from urllib.parse import quote
+
+          def redact(value):
+              if isinstance(value, bytes):
+                  value = value.decode('utf-8', errors='replace')
+              for name in ('GH_TOKEN', 'GITHUB_TOKEN'):
+                  token = os.environ.get(name)
+                  if token:
+                      value = value.replace(token, '[redacted]')
+              return value
+
+          def fail(operation, details):
+              message = redact(operation + ': ' + redact(details))
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print('::error title=Draft PR automation failed::' + message, flush=True)
+              raise SystemExit(1)
+
+          def gh(operation, *arguments):
+              try:
+                  result = subprocess.run(['gh', *arguments], capture_output=True, timeout=90)
+              except subprocess.TimeoutExpired as error:
+                  fail(operation, 'GitHub CLI timed out after 90 seconds.\n' + redact(error.stderr or b''))
+              except OSError as error:
+                  fail(operation, str(error))
+              if result.returncode:
+                  # Preserve the exact non-secret stderr, including CR/newlines;
+                  # stdout is only a fallback when gh supplies no stderr.
+                  details = result.stderr or result.stdout or b'GitHub CLI returned no error details.'
+                  fail(operation, f'GitHub CLI exited {result.returncode}.\n' + redact(details))
+              return redact(result.stdout).strip()
+
+          branch = os.environ.get('SOURCE_BRANCH', '')
+          tested_sha = os.environ.get('TESTED_SHA', '')
+          if not re.fullmatch(r'development/[A-Za-z0-9][A-Za-z0-9._/-]{0,150}', branch):
+              fail('Validate development branch', 'Invalid development branch identity.')
+          if not re.fullmatch(r'[a-f0-9]{40}', tested_sha):
+              fail('Validate tested commit', 'Invalid tested commit identity.')
+          repository_name = os.environ['GITHUB_REPOSITORY']
+          current_sha = gh('Read development branch', 'api',
+                           f'repos/{repository_name}/git/ref/heads/{branch}', '--jq', '.object.sha')
+          if not re.fullmatch(r'[a-f0-9]{40}', current_sha):
+              fail('Read development branch', 'GitHub returned an invalid branch commit identity.')
+          if current_sha != tested_sha:
+              print('The development branch advanced; its newer validation run will handle review creation.')
+              raise SystemExit(0)
+          existing = gh('List existing pull requests', 'pr', 'list', '--repo', repository_name,
+                        '--base', 'main', '--head', branch, '--state', 'all', '--json', 'url',
+                        '--jq', '.[0].url // empty')
+          if existing:
+              print('A PR already exists for this branch: ' + existing)
+              raise SystemExit(0)
+
+          repository = os.environ['GITHUB_SERVER_URL'] + '/' + repository_name
+          branch_url = repository + '/tree/' + quote(branch, safe='/')
+          report_url = repository + '/blob/' + quote(branch, safe='/') + '/docs/TEST_REPORT.md'
+          run_url = repository + '/actions/runs/' + os.environ['GITHUB_RUN_ID']
+          summary = ('Adds seven local Media Privacy tools: encoded text/logo/audio watermarking, audio and video fingerprint comparison, tracking audit, privacy export, C2PA inspection, and before/after verification. They share the queue and linear Black Scripting while preserving original media. ' if branch == 'development/v0.5-media-privacy' else 'Development changes are ready for review. ')
+          title = ('FORGE V0.5: Media Privacy and Watermark Studio' if branch == 'development/v0.5-media-privacy' else 'Review ' + branch)
+          body = (summary + f'Source: [`{branch}`]({branch_url}). '
+                  'This PR remains a draft; review and explicit approval are required before merging.\n\n'
+                  f'The full Python suite passed for triggering commit `{tested_sha}` '
+                  f'in [this validation run]({run_url}). Check the latest PR checks when the branch changes.\n\n'
+                  f'See the branch [validation report]({report_url}) for scope, evidence, and remaining '
+                  'browser, native Windows, and physical GPU acceptance. This automation does not merge '
+                  'the PR or certify those separate acceptance checks.\n')
+          body_file = Path(os.environ['RUNNER_TEMP'], 'forge-review-body.md')
+          try:
+              body_file.write_text(body, encoding='utf-8')
+          except OSError as error:
+              fail('Write draft description', str(error))
+          created = gh('Create draft pull request', 'pr', 'create', '--repo', repository_name,
+                       '--draft', '--base', 'main', '--head', branch,
+                       '--title', title, '--body-file', str(body_file))
+          print('Created draft PR: ' + created)
+          PYCODE

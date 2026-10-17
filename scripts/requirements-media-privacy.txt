@@ -1,0 +1,2 @@
+# Optional local Content Credentials inspection. Core V0.5 remains usable without it.
+c2pa-python==0.38.0

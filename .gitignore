@@ -1,5 +1,6 @@
 # Local Python/JavaScript environments and dependency caches.
 /.venv*/
+/.diarization-venv/
 /venv/
 /venv-*/
 /env/
@@ -48,8 +49,15 @@ __pycache__/
 /tools/
 /logs/
 /runtime.json
+/Config/
+/settings.json
+/config.json
+/config.local.*
 /service.log
 /*.sqlite3*
+/*.sqlite*
+/*.db
+/*.db-*
 /*.forge-fingerprint.json
 /.forge-*
 /update-last.json
@@ -65,7 +73,25 @@ __pycache__/
 /*.egg-info/
 /*.whl
 /*.zip
+/*.bundle
 /FORGE-*.tar.gz
 
 # Machine-specific Windows shortcut metadata is never source material.
 *.[lL][nN][kK]
+
+# Loose local media inputs belong outside the source tree. Test fixtures remain visible.
+/*.mp4
+/*.mkv
+/*.mov
+/*.webm
+/*.avi
+/*.m4v
+/*.wav
+/*.mp3
+/*.flac
+/*.m4a
+/*.ogg
+/*.aac
+/*.wma
+/*.aiff
+/*.aif

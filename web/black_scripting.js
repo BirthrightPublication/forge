@@ -9,7 +9,7 @@ Object.assign(paths,{
 // The old view key remains available to bookmarks and existing navigation hooks.
 let blackScript = null, blackEditor = null, blackChoosing = false;
 let blackSaved = [], blackLoaded = false, blackLoading = false;
-const blackTools = ['retune', 'metadata', 'transcribe'];
+const blackTools = ['retune', 'metadata', 'watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance', 'privacy_verify', 'transcribe'];
 const blackId = () => 'n-' + crypto.randomUUID().replaceAll('-', '');
 
 function blackEmpty() {
@@ -25,6 +25,9 @@ function blackButton(id,label,symbol,extra='') {
 function blackCaptureOptions() {
  const root=$('#black-node-options');if(!root||!blackEditor)return;
  const options=blackEditor.node.options;
+ if(window.ForgePrivacy?.captureOptions&&blackTools.slice(2,-1).includes(blackEditor.node.tool)){
+  window.ForgePrivacy.captureOptions(root,blackEditor.node.tool,options);return;
+ }
  Object.entries(options).forEach(([key,old])=>{
   if(['formats','remove_tags'].includes(key)){options[key]=$$(`input[name="${key}"]:checked`,root).map(el=>el.value);return;}
   if(key==='tags'){options.tags=Object.fromEntries($$('[data-meta-tag]',root).filter(el=>el.value).map(el=>[el.dataset.metaTag,el.value]));return;}
@@ -59,7 +62,7 @@ function blackSourceHTML() {
 }
 function blackOutputHTML() {
  const output=draft('workflows').output;
- return `<section class="black-output" aria-label="Output destination"><div class="black-output-title">${icon('folder')}<strong>Output destination</strong></div><div class="black-output-fields"><label class="field">Save results to<select id="out-mode">${[['source','Beside each original'],['custom','Custom folder'],['last','Last custom folder'],['default','FORGE export folder']].map(([value,label])=>`<option value="${value}" ${output.mode===value?'selected':''}>${label}</option>`).join('')}</select></label><div class="field ${output.mode==='custom'?'':'hidden'}" id="out-path-wrap"><label for="out-path">Directory</label><div class="path-input"><input id="out-path" value="${escape(output.directory)}" placeholder="Choose a local folder"><button class="secondary" id="choose-output" title="Choose output folder" aria-label="Choose output folder">${icon('folder')}</button></div></div><label class="field">Subfolder<input id="out-subfolder" maxlength="80" value="${escape(output.subfolder)}" placeholder="Optional"></label></div><div id="output-preview" class="note"></div><p class="note">Every operation saves a separate output. Existing names receive a numbered suffix.</p></section>`;
+ return `<section class="black-output" aria-label="Output destination"><div class="black-output-title">${icon('folder')}<strong>Output destination</strong></div><div class="black-output-fields"><label class="field">Save results to<select id="out-mode">${[['source','Beside each original'],['custom','Custom folder'],['last','Last custom folder'],['default','FORGE export folder']].map(([value,label])=>`<option value="${value}" ${output.mode===value?'selected':''}>${label}</option>`).join('')}</select></label><div class="field ${output.mode==='custom'?'':'hidden'}" id="out-path-wrap"><label for="out-path">Directory</label><div class="path-input"><input id="out-path" value="${escape(output.directory)}" placeholder="Choose a local folder"><button class="secondary" id="choose-output" title="Choose output folder" aria-label="Choose output folder">${icon('folder')}</button></div></div><label class="field">Subfolder<input id="out-subfolder" maxlength="80" value="${escape(output.subfolder)}" placeholder="Optional"></label></div><div id="output-preview" class="note"></div><p class="note">Transformations save separate media. Inspections pass media unchanged and save private reports only when enabled. Existing names receive a numbered suffix.</p></section>`;
 }
 function blackNodeHTML(node,index) {
  const selected=blackEditor?.node.id===node.id;
@@ -105,6 +108,7 @@ renderWorkflow=function() {
 function blackBindEditor() {
  if(!blackEditor)return;
  if(window.ForgeUI?.compactOptions)window.ForgeUI.compactOptions($('#black-node-options'),blackEditor.node.tool,{key:'black-'+blackEditor.node.id});
+ if(window.ForgePrivacy?.bindOptions)window.ForgePrivacy.bindOptions($('#black-node-options'),blackEditor.node.tool,blackEditor.node.options,{onChange:()=>blackCaptureOptions()});
  $('#black-tool-preset').onchange=event=>{blackCaptureOptions();const value=event.target.value;const preset=state.presets.find(item=>item.tool===blackEditor.node.tool&&item.name===value);if(value==='__defaults__'){blackEditor.node.options=structuredClone(defaults[blackEditor.node.tool]);blackEditor.node.preset_name='';}else if(preset){blackEditor.node.options={...structuredClone(defaults[blackEditor.node.tool]),...structuredClone(preset.options)};blackEditor.node.preset_name=preset.name;}renderWorkflow();};
  $('#black-cancel-node').onclick=()=>{blackEditor=null;renderWorkflow();};
  $('#black-confirm-node').onclick=async()=>{
@@ -138,7 +142,7 @@ async function blackPreview() {
  const request=blackRequest();
  try{
   const result=await api('/black-scripting/preview',request);
-  $('#dialog-content').innerHTML=`<h2>Black Scripting execution plan</h2><p>${escape(result.name)} · ${result.sources.length} source${result.sources.length===1?'':'s'} · ${result.jobs} queued operation${result.jobs===1?'':'s'}</p><div class="black-plan">${result.sources.map(source=>`<section><h3>${escape(source.name)}</h3><ol>${source.steps.map(step=>`<li><strong>${escape(step.title)}</strong><span>${escape(step.input_format)} → ${escape(step.output_formats.join(', '))}</span><small>Input: ${step.depends_on==='source'?'original source':'published output of operation '+(step.step-1)}</small></li>`).join('')}</ol><p>Destination: ${escape(source.destination)}</p></section>`).join('')}</div>${result.disabled.length?`<p>${result.disabled.length} disabled operation${result.disabled.length===1?' is':'s are'} skipped.</p>`:''}<p class="note">${escape(result.note)}</p><div class="black-plan-actions"><button class="secondary" id="black-plan-back">Back to workbench</button><button class="primary" id="black-plan-queue">${icon('queue')}Add to queue</button><button class="primary" id="black-plan-start">${icon('play')}Start</button></div>${state.settings.queue_paused?'<p class="note">Dispatch is paused. Start resumes dispatch for the universal queue.</p>':''}`;
+  $('#dialog-content').innerHTML=`<h2>Black Scripting execution plan</h2><p>${escape(result.name)} · ${result.sources.length} source${result.sources.length===1?'':'s'} · ${result.jobs} queued operation${result.jobs===1?'':'s'}</p><div class="black-plan">${result.sources.map(source=>`<section><h3>${escape(source.name)}</h3><ol>${source.steps.map(step=>`<li><strong>${escape(step.title)}</strong><span>${escape(step.input_format)} → ${escape(step.output_formats.join(', '))}</span><small>Input: ${step.depends_on==='source'?'original source':'media from operation '+(step.step-1)}</small>${step.passthrough?'<small>Inspection: media passes through unchanged.</small>':''}${(step.disclosures||[]).map(note=>'<small>'+escape(note)+'</small>').join('')}</li>`).join('')}</ol><p>Destination: ${escape(source.destination)}</p></section>`).join('')}</div>${result.disabled.length?`<p>${result.disabled.length} disabled operation${result.disabled.length===1?' is':'s are'} skipped.</p>`:''}<p class="note">${escape(result.note)}</p><div class="black-plan-actions"><button class="secondary" id="black-plan-back">Back to workbench</button><button class="primary" id="black-plan-queue">${icon('queue')}Add to queue</button><button class="primary" id="black-plan-start">${icon('play')}Start</button></div>${state.settings.queue_paused?'<p class="note">Dispatch is paused. Start resumes dispatch for the universal queue.</p>':''}`;
   $('#dialog').showModal();$('#black-plan-back').onclick=()=>$('#dialog').close();
   const submit=async start=>{const queueButton=$('#black-plan-queue'),startButton=$('#black-plan-start');queueButton.disabled=startButton.disabled=true;try{const response=await api('/black-scripting/run',{...request,preview_token:result.preview_token});if(start&&state.settings.queue_paused)await api('/queue',{paused:false});$('#dialog').close();await refresh(false);navigate('queue');notify(`${response.jobs.length} Black Scripting operations queued.`);}catch(error){notify(error.message,true);queueButton.disabled=startButton.disabled=false;}};
   $('#black-plan-queue').onclick=()=>submit(false);$('#black-plan-start').onclick=()=>submit(true);

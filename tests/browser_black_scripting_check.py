@@ -133,7 +133,14 @@ try:
         page.screenshot(path=str(OUT/'black-scripting-mobile.png'),full_page=True)
         page.set_viewport_size({'width':1600,'height':1000})
         page.locator('#black-preview').click();page.locator('#black-plan-queue').wait_for()
-        check('Preview shows dependencies and formats','2 queued operations' in page.locator('#dialog-content').inner_text() and 'published output' in page.locator('.black-plan').inner_text())
+        planned_steps = page.locator('.black-plan ol > li')
+        check('Preview shows dependencies and formats',
+              '2 queued operations' in page.locator('#dialog-content > p').first.inner_text()
+              and planned_steps.count() == 2
+              and planned_steps.nth(0).locator('span').inner_text() == '.wav → .flac'
+              and planned_steps.nth(0).locator('small').first.inner_text() == 'Input: original source'
+              and planned_steps.nth(1).locator('span').inner_text() == '.flac → .flac'
+              and planned_steps.nth(1).locator('small').first.inner_text() == 'Input: media from operation 1')
         check('Preview creates no jobs',not api('/state')['jobs'])
         page.screenshot(path=str(OUT/'black-scripting-plan.png'))
         page.locator('#black-plan-queue').click();page.wait_for_selector('#queue-list')

@@ -1,8 +1,7 @@
-FORGE V0.4 direct Chromium browser acceptance
-Studio: 98 passed
-Black Scripting: 26 passed
-Generators: 83 passed
-Total: 207 passed. No uncaught JavaScript errors.
-Real loopback service, served assets, launcher-ticket and remembered-cookie authentication.
-Explicit fixture simulations: large terminal history, denied grants/origins, hidden-tab event, virtual-clock timeout.
-Real FFmpeg/QR workers and real export downloads also executed. Native Windows execution and supplied-reference comparison were not performed.
+FORGE V0.5 — real Linux Chromium validation
+media: 88 passed
+studio: 127 passed
+black: 26 passed
+generators: 83 passed
+Total: 324 passed; zero JavaScript errors.
+Native Windows and physical GPU acceptance remain untested.

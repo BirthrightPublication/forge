@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 import psutil
 from .core import ROOT, Store, no_window
-from .resources import ResourceMonitor, admission_reason, admission_state, primary_resource, required_resources
+from .resources import MEDIA_ANALYSIS, ResourceMonitor, admission_reason, admission_state, primary_resource, required_resources
 
 TERMINAL = {'failed', 'cancelled', 'interrupted', 'completed', 'blocked'}
 
@@ -21,9 +21,12 @@ def public_job(job):
     """Expose useful processing choices without QR contents, cookies or prompts."""
     result = {key: value for key, value in job.items() if key != 'payload'}
     options = job.get('payload', {}).get('options', {})
-    fields = {'model', 'format', 'quality', 'max_height', 'device', 'language', 'timestamps', 'formats'}
+    fields = {'model', 'format', 'quality', 'max_height', 'device', 'language', 'timestamps',
+              'formats', 'mode', 'encoder', 'reports', 'preset', 'reencode',
+              'report_json', 'report_html', 'retain_reference', 'sample_frames',
+              'max_seconds', 'placement'}
     summary = {key: value for key, value in options.items() if key in fields
-               and (isinstance(value, (str, int, bool)) or (key == 'formats' and isinstance(value, list)))}
+               and (isinstance(value, (str, int, float, bool)) or (key == 'formats' and isinstance(value, list)))}
     if job['tool'].startswith('download'):
         summary['method'] = 'yt-dlp'
     result.update(options_summary=summary, resources=sorted(required_resources(job)),
@@ -116,17 +119,42 @@ class QueueManager:
         if parent['status']!='completed':
             return False
         from .core import TOOLS
-        candidates=[Path(o['path']) for o in parent['outputs'] if Path(o['path']).suffix.lower() in TOOLS[job['tool']]['accept']]
-        if not candidates or not candidates[0].is_file():
+        parent_payload = parent['payload']
+        if parent['tool'] in MEDIA_ANALYSIS:
+            # Inspection produces optional private reports, never replacement
+            # media. Preserve the inspected input without copying large files.
+            source = parent_payload.get('source') or {}
+            candidates = [(Path(source['path']), parent_payload.get('source_stat'))] if source.get('path') else []
+        else:
+            candidates = [(Path(output['path']), output.get('source_stat'))
+                          for output in parent['outputs']
+                          if Path(output['path']).suffix.lower() in TOOLS[job['tool']]['accept']]
+        if not candidates or not candidates[0][0].is_file():
             self.store.update_job(job['id'],status='blocked',message='The previous step has no available, compatible media output.')
             return False
-        path=candidates[0]
+        path, expected = candidates[0]
+        if path.suffix.lower() not in TOOLS[job['tool']]['accept']:
+            self.store.update_job(job['id'], status='blocked', message='The inspected media is incompatible with the next Black Scripting operation.')
+            return False
         payload=job['payload']
         stat=path.stat()
         snapshot = {'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
-        if (payload.get('source') or {}).get('path') != str(path) or payload.get('source_stat') != snapshot:
+        if expected and snapshot != expected:
+            self.store.update_job(job['id'], status='blocked', message='The previous step’s media changed after inspection or publication. Review the source and retry the script group.')
+            return False
+        already_resolved = payload.get('resolved_parent') == parent_id
+        if already_resolved and payload.get('source_stat') != snapshot:
+            self.store.update_job(job['id'], status='blocked', message='The dependency media changed while waiting for a worker. Review and retry the script group.')
+            return False
+        origin = parent_payload.get('original_source') or parent_payload.get('source')
+        origin_stat = parent_payload.get('original_source_stat') or parent_payload.get('source_stat')
+        if not already_resolved or (payload.get('source') or {}).get('path') != str(path):
             payload['source']=self.store.register(path)
             payload['source_stat']=snapshot
+            payload['resolved_parent'] = parent_id
+            if origin:
+                payload['original_source'] = copy.deepcopy(origin)
+                payload['original_source_stat'] = copy.deepcopy(origin_stat)
             self.store.update_payload(job['id'],payload)
         return True
 
@@ -317,6 +345,9 @@ class QueueManager:
                         raise ValueError('Source file no longer exists. Select it again.')
                     stat = path.stat()
                     payload['source_stat'] = {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}
+                    if payload.get('original_source') and payload['original_source'].get('path') == str(path):
+                        payload['original_source_stat'] = copy.deepcopy(payload['source_stat'])
+                payload.pop('resolved_parent', None)
                 planned.append((job, payload))
                 seen.add(job['id'])
                 pending.remove(job)

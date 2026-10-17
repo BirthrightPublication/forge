@@ -1,0 +1,94 @@
+FORGE V0.4 (0.4.0) — LOCAL PRODUCTION STUDIO
+Incremental update • 16 October 2026
+
+UPGRADING YOUR EXISTING B:\Forge INSTALLATION
+
+1. Save FORGE-v0.4.zip in:
+      B:\Forge\Build
+   Leave the ZIP intact. Do not extract a second installation beside the active version.
+
+2. Replace the external updater with the V0.4 standalone file:
+      B:\Forge\Update FORGE.bat
+   This updates the recovery command in the main folder too. Both V0.1 and
+   V0.2 and V0.3 can upgrade directly; no fresh installation is needed.
+
+3. Finish or cancel queued/running jobs. Do not submit work during the update.
+   Double-click Update FORGE.bat. It finds the active installation at B:\Forge
+   or inside ONE extracted FORGE folder beneath it. Multiple installations
+   are rejected rather than guessed. Press Enter to install the selected build.
+
+4. The updater checks the package, stops an idle service, creates code and
+   database backups in B:\Forge\Backups, and changes application files only.
+   Your .venv, optional environments, tools, model cache, existing original
+   scripts, settings, presets, history, inputs and completed outputs are kept.
+   It does NOT download or upgrade Python dependencies automatically.
+
+5. FORGE opens through its launcher after the update. Close or reload old
+   tabs. The displayed version should be V0.4. Authorize this browser once
+   through Open FORGE.bat / the existing shortcut if it was not opened for you.
+
+SMART UPDATE MANAGER
+   In Environment -> Application updates, choose Check local build folder.
+   The check reads local packages only and displays actual paths, compatibility,
+   file counts, SHA-256 and verified rollback status. Review update/rollback in
+   console requires confirmation there before FORGE stops or files change.
+   SHA-256 is integrity checking, not a publisher signature. Use trusted builds.
+
+BOOKMARK / NEW TAB FIX
+   Bookmark the plain address: http://127.0.0.1:8765
+   After launcher authorization, new normal tabs in that browser profile use
+   remembered authorization for up to 90 days. The same authorization survives
+   service restarts. Cookies/site-data clearing, a private window or another
+   browser profile requires launcher authorization again.
+   A bookmark cannot START a stopped Windows process. Use the taskbar/Start
+   launcher after restarting Windows or stopping FORGE; bookmarks then work.
+   Environment includes a control to forget this browser's authorization.
+
+FIRST CHECK AFTER UPDATING
+   Open the bookmark in a second tab. Confirm the Studio loads, not the old
+   authorization warning. Run a QR job and reveal its result. In Black Scripting (gold header button),
+   test a short disposable audio file through retune -> metadata. Review both
+   outputs before using long production media.
+
+OPTIONAL ENGINES
+   Environment offers guided setup for Transcription, Downloads and Speaker
+   labels. The queue must be idle. The selected Windows installer asks before
+   contacting PyPI and stops the service first. Reopen FORGE after it finishes.
+   Transcription models require separate download consent; cached processing
+   remains local. Speaker labels require the separate optional environment
+   AND a complete local Community-1 model obtained from its publisher.
+   FFmpeg, FFprobe, CUDA/driver runtimes and model weights are not bundled.
+
+ROLLBACK / RECOVERY
+   The updater offers R for code rollback when a prior backup is available.
+   Copy/hash/import-check failures trigger code rollback. An interrupted
+   update journal prompts recovery on the next updater run. Do not delete
+   update markers or backup folders to bypass these checks.
+   Code rollback does NOT replace your current user database. A database
+   snapshot is retained separately for deliberate recovery. Newer saved tool
+   options may need adjustment when opening an older release. Keep Backups
+   private: its database snapshots include job paths/settings/history.
+   See docs\UPDATE_GUIDE.md for details and safety limits.
+
+NEW INSTALLATION ONLY
+   Extract the complete ZIP to a permanent writable local folder and run
+   Setup FORGE.bat. Requires installed 64-bit Python 3.11, 3.12 or 3.13 with
+   Tcl/Tk. Existing users should use the updater instead of reinstalling.
+
+VALIDATION BOUNDARY
+   Automated API, worker, media, updater and browser-interface checks ran on
+   Linux. Windows BAT/PowerShell/native integration, actual ASR/GPU/speaker
+   inference, and live website downloads were not execution-tested here.
+   Read docs\TEST_REPORT.md for exact evidence. This is a development release,
+   not an independently audited or Windows-certified application.
+
+V0.4 QUICK START
+   Choose a tool, then use its icon toolbar for one settings section at a time.
+   Start submits and resumes dispatch; Add to Queue preserves the pause state.
+   Queue defaults to Active & Queued; completed work is under History.
+   Open Black Scripting using the gold header button. Add operation nodes,
+   configure them, select source files/output, then preview before execution.
+   New generators return synthetic aliases/test data or secure strings in memory.
+   Copy or export explicitly before leaving; strings clear when navigating away.
+   Wi-Fi QR codes use local Preview/Download and are not saved in queue history.
+   No activation or Birthright account is needed for this development release.

@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "checks": [
+    "Initial workbench empty",
+    "Black Scripting absent from sidebar",
+    "Dedicated full width",
+    "Original path source selected",
+    "Tool preset copied",
+    "Two operation chain confirmed",
+    "Duplicate node",
+    "Disable node",
+    "Enable node",
+    "Remove node",
+    "Reorder left",
+    "Reorder right",
+    "Preset snapshot stable after preset edit",
+    "Edit node settings",
+    "Save and rename script",
+    "Duplicate script",
+    "Reload saved script",
+    "Export safe JSON",
+    "Import creates additional preset",
+    "Mobile no document overflow",
+    "Preview shows dependencies and formats",
+    "Preview creates no jobs",
+    "Actual media chain completed through UI",
+    "Original bytes preserved",
+    "No JavaScript runtime errors",
+    "All app assets served"
+  ],
+  "errors": [],
+  "failed_assets": [],
+  "screenshots": [
+    "black-scripting-empty.png",
+    "black-scripting-plan.png",
+    "black-scripting-mobile.png",
+    "black-scripting-chain.png",
+    "black-scripting-settings.png"
+  ]
+}

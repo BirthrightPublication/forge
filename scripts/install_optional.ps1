@@ -1,4 +1,4 @@
-param([ValidateSet('transcription','downloads')][string]$Engine,[int]$WaitForStop=0)
+param([ValidateSet('transcription','downloads','media-privacy')][string]$Engine,[int]$WaitForStop=0)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root '.venv\Scripts\python.exe'
@@ -18,9 +18,13 @@ Write-Host 'This contacts PyPI and downloads executable Python packages. No medi
 if ($Engine -eq 'downloads') {
     Write-Host 'Resolves the latest stable 2026 yt-dlp version on this explicit installer run.'
     Write-Host 'FFmpeg, FFprobe, and Deno or Node must be supplied separately.'
+} elseif ($Engine -eq 'media-privacy') {
+    Write-Host 'Installs the optional local C2PA inspection library. No media is uploaded.'
+    Write-Host 'Core watermarking, metadata and fingerprint tools use your existing FFmpeg/Pillow.'
 } else { Write-Host 'Models download only after consent in the Studio. NVIDIA runtimes are separate.' }
 if ((Read-Host 'Continue? [y/N]') -notmatch '^[yY]$') { exit 0 }
 $req = Join-Path $root ("requirements-$Engine.txt")
+if ($Engine -eq 'media-privacy') { $req = Join-Path $PSScriptRoot 'requirements-media-privacy.txt' }
 # Core pins remain constraints; optional engine versions are captured after install.
 & $python -m pip --isolated --disable-pip-version-check install --index-url https://pypi.org/simple --only-binary=:all: --upgrade --upgrade-strategy only-if-needed -c (Join-Path $root 'requirements-core.txt') -r $req
 if ($LASTEXITCODE -ne 0) { throw 'Installation failed. Review the error. The core UI can be used without this engine.' }
