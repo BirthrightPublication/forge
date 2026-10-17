@@ -1,16 +1,16 @@
-FORGE V0.4 (0.4.0) — LOCAL PRODUCTION STUDIO
+FORGE V0.5 (0.5.0) RELEASE CANDIDATE — LOCAL PRODUCTION STUDIO
 Incremental update • 16 October 2026
 
 UPGRADING YOUR EXISTING B:\Forge INSTALLATION
 
-1. Save FORGE-v0.4.zip in:
+1. Save FORGE-v0.5.zip in:
       B:\Forge\Build
    Leave the ZIP intact. Do not extract a second installation beside the active version.
 
-2. Replace the external updater with the V0.4 standalone file:
+2. Use the compatible external updater at:
       B:\Forge\Update FORGE.bat
-   This updates the recovery command in the main folder too. Both V0.1 and
-   V0.2 and V0.3 can upgrade directly; no fresh installation is needed.
+   If downloading Update.FORGE.bat from GitHub, save it with the spaced name
+   above. V0.1, V0.2, V0.3 and V0.4 can upgrade directly; no reinstall is needed.
 
 3. Finish or cancel queued/running jobs. Do not submit work during the update.
    Double-click Update FORGE.bat. It finds the active installation at B:\Forge
@@ -24,7 +24,7 @@ UPGRADING YOUR EXISTING B:\Forge INSTALLATION
    It does NOT download or upgrade Python dependencies automatically.
 
 5. FORGE opens through its launcher after the update. Close or reload old
-   tabs. The displayed version should be V0.4. Authorize this browser once
+   tabs. The displayed version should be V0.5. Authorize this browser once
    through Open FORGE.bat / the existing shortcut if it was not opened for you.
 
 SMART UPDATE MANAGER
@@ -82,7 +82,7 @@ VALIDATION BOUNDARY
    Read docs\TEST_REPORT.md for exact evidence. This is a development release,
    not an independently audited or Windows-certified application.
 
-V0.4 QUICK START
+V0.5 QUICK START
    Choose a tool, then use its icon toolbar for one settings section at a time.
    Start submits and resumes dispatch; Add to Queue preserves the pause state.
    Queue defaults to Active & Queued; completed work is under History.
@@ -92,3 +92,12 @@ V0.4 QUICK START
    Copy or export explicitly before leaving; strings clear when navigating away.
    Wi-Fi QR codes use local Preview/Download and are not saved in queue history.
    No activation or Birthright account is needed for this development release.
+
+MEDIA PRIVACY
+   Open Media Privacy in the sidebar for Watermark Studio, audio/video fingerprint
+   comparison, tracking audit, privacy export, Content Credentials and verification.
+   Preview encodes a real short excerpt; Queue exports the full new copy. Originals
+   are preserved. Review stream/quality changes and private report preferences.
+   Optional local C2PA inspection uses scripts\Install Media Privacy.bat or the
+   guided Environment installer. The code update does not install it automatically.
+   Read docs\V05_RELEASE.md for supported methods and limitations.
