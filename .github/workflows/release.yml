@@ -195,13 +195,19 @@ jobs:
           (release / 'CHECKSUMS.sha256').write_text(checksums, encoding='utf-8')
           short = os.environ['RELEASE_TAG'][:-2] if os.environ['RELEASE_TAG'].endswith('.0') else os.environ['RELEASE_TAG']
           notes = (f'FORGE {short}, built from exact tag `{os.environ["RELEASE_TAG"]}` at `{commit}`.\n\n'
-                   f'Download `FORGE-{short}.zip` from the assets below. Leave it intact in `B:\\Forge\\Build` '
+                   f'Windows GitHub updater: use `FORGE-{os.environ["RELEASE_TAG"]}-windows-x64.zip` '
+                   'and its matching `.zip.sha256` asset. Keep your installed `Update-Application.ps1` and '
+                   '`Update FORGE.bat`; finish queued work and close FORGE before running the updater. '
+                   'The complete application payload is under `app/`; installed updater files and user data are excluded.\n\n'
+                   'To avoid the supplied updater\'s shortened TEMP-path bug, start its existing wrapper from PowerShell:\n\n'
+                   "```powershell\n$env:TEMP = 'B:\\Forge\\Build'\n& 'B:\\Forge\\Update FORGE.bat'\n```\n\n"
+                   f'Legacy offline updater: download `FORGE-{short}.zip` from the assets below. Leave it intact in `B:\\Forge\\Build` '
                    'and run `B:\\Forge\\Update FORGE.bat`. If downloading the standalone `Update.FORGE.bat` asset, '
                    'save it as `B:\\Forge\\Update FORGE.bat`. '
                    'GitHub’s automatic Source code archives are not updater packages.\n\n'
                    'The full Python suite, real Linux Chromium checks and release-manifest validation passed before publication. '
-                   'Results, screenshots, changelog and SHA-256 checksums are attached. Native Windows and physical GPU '
-                   'acceptance are separate checks; Linux CI does not certify them.\n\n'
+                   'Results, screenshots, changelog and SHA-256 checksums are attached. The separate Windows validation receipt '
+                   'records native updater and installed-app checks with canonical temporary paths. Physical GPU acceptance remains separate.\n\n'
                    f'Validation run: {validation["actions_run"]}\n')
           Path('Build/RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
           PY
@@ -223,9 +229,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  windows:
+    name: Validate the Windows installation package
+    needs: resolve
+    # Permission ceiling for the reusable workflow's optional publisher; build_only
+    # disables that job, and its build/acceptance jobs explicitly use contents: read.
+    permissions:
+      contents: write
+    uses: ./.github/workflows/windows-release.yml
+    with:
+      tag: ${{ needs.resolve.outputs.tag }}
+      build_only: true
+
   publish:
     name: Publish only the tested assets
-    needs: [resolve, build]
+    needs: [resolve, build, windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -240,13 +258,61 @@ jobs:
         with:
           name: release-${{ needs.resolve.outputs.tag }}
           path: tested
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tested-windows-${{ needs.resolve.outputs.tag }}
+          path: tested/release
       - name: Verify transferred files
         working-directory: tested/release
-        run: sha256sum --check CHECKSUMS.sha256
+        run: |
+          sha256sum --check CHECKSUMS.sha256
+          sha256sum --check "FORGE-${RELEASE_TAG}-windows-x64.zip.sha256"
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          legacy = json.loads(Path('VALIDATION.json').read_text())
+          windows = json.loads(Path(f'FORGE-{tag}-windows-x64.validation.json').read_text())
+          if (legacy['tag'] != tag or windows['tag'] != tag
+                  or not re.fullmatch(r'[a-f0-9]{40}', legacy['source_commit'])
+                  or legacy['source_commit'] != windows['source_commit']
+                  or windows.get('native_windows_updater') != 'passed'
+                  or windows.get('native_windows_execution') is not True):
+              raise SystemExit('Legacy and Windows assets must identify the same tested source commit and tag.')
+          archive = Path(f'FORGE-{tag}-windows-x64.zip')
+          if hashlib.sha256(archive.read_bytes()).hexdigest() != windows['archive_sha256']:
+              raise SystemExit('Windows acceptance evidence does not describe the transferred ZIP.')
+          assets = sorted(path for path in Path('.').iterdir()
+                          if path.is_file() and path.name != 'CHECKSUMS.sha256')
+          Path('CHECKSUMS.sha256').write_text(''.join(
+              hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + path.name + '\n'
+              for path in assets), encoding='utf-8')
+          PY
       - name: Create the release and publish after all assets upload
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > tested/verify-release-source.py <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          repository, tag = os.environ['GITHUB_REPOSITORY'], os.environ['RELEASE_TAG']
+          expected = json.loads(Path('tested/release/VALIDATION.json').read_text())['source_commit']
+          def request(path):
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repository}/{path}'], text=True))
+          value = request(f'git/ref/tags/{tag}')['object']
+          for _ in range(8):
+              if value.get('type') == 'commit':
+                  if value['sha'] != expected:
+                      raise SystemExit('Release tag moved away from the tested source; publication stopped.')
+                  break
+              if value.get('type') != 'tag':
+                  raise SystemExit('Release tag does not resolve to a commit.')
+              value = request('git/tags/' + value['sha'])['object']
+          else:
+              raise SystemExit('Too many annotated-tag indirections.')
+          print('Remote tag matches both tested application packages:', expected)
+          PY
+          python3 tested/verify-release-source.py
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo 'This release already exists. Existing tags and release assets are never replaced by this workflow.' >&2
             exit 1
@@ -254,4 +320,70 @@ jobs:
           assets=(tested/release/*)
           gh release create "$RELEASE_TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" \
             --verify-tag --draft --title "FORGE $RELEASE_TAG" --notes-file tested/RELEASE_NOTES.md
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess, tempfile
+          from pathlib import Path
+          repository, tag = os.environ['GITHUB_REPOSITORY'], os.environ['RELEASE_TAG']
+          archive = f'FORGE-{tag}-windows-x64.zip'
+          required = (archive, archive + '.sha256', f'FORGE-{tag}-windows-x64.validation.json')
+          def request(path, destination=None):
+              command = ['gh', 'api', '--method', 'GET', f'repos/{repository}/{path}']
+              if destination is not None:
+                  command += ['--header', 'Accept: application/octet-stream']
+              result = subprocess.run(command, stdout=destination or subprocess.PIPE, stderr=subprocess.PIPE)
+              if result.returncode:
+                  raise SystemExit('Authenticated draft-release verification request failed; publication stopped.')
+              if destination is None:
+                  return json.loads(result.stdout)
+          def collection(path):
+              items = []
+              for page in range(1, 101):
+                  batch = request(f'{path}?per_page=100&page={page}')
+                  if not isinstance(batch, list):
+                      raise SystemExit('Invalid draft-release API inventory.')
+                  items.extend(batch)
+                  if len(batch) < 100:
+                      return items
+              raise SystemExit('Draft-release API inventory exceeded the verification limit.')
+          # The REST tag endpoint only finds published releases; authenticated
+          # release listings also include the draft that was just created.
+          releases = [release for release in collection('releases') if release.get('tag_name') == tag]
+          if len(releases) != 1:
+              raise SystemExit('Expected exactly one draft release for the tested tag.')
+          release_id = releases[0]['id']
+          def inventory():
+              current = request(f'releases/{release_id}')
+              if current.get('draft') is not True or current.get('tag_name') != tag:
+                  raise SystemExit('Release must remain a draft for the expected tag during asset verification.')
+              assets = collection(f'releases/{release_id}/assets')
+              names = [asset['name'] for asset in assets]
+              if len(names) != len(set(names)):
+                  raise SystemExit('Duplicate release asset names; publication stopped.')
+              windows = [name for name in names if re.search(r'(win(dows)?|x64|amd64)', name, re.I)
+                         and name.lower().endswith('.zip')]
+              if windows != [archive] or not set(required).issubset(names):
+                  raise SystemExit('Release must contain exactly the expected Windows ZIP and its checksum and validation receipt.')
+              return {asset['name']: asset for asset in assets}
+          assets = inventory()
+          verified = {}
+          with tempfile.TemporaryDirectory(prefix='forge-release-download-', dir=os.environ['RUNNER_TEMP']) as temporary:
+              for name in required:
+                  local = Path('tested/release') / name
+                  asset = assets[name]
+                  if asset['size'] != local.stat().st_size:
+                      raise SystemExit('Uploaded Windows asset size differs from the tested file; publication stopped.')
+                  downloaded = Path(temporary) / name
+                  with downloaded.open('wb') as output:
+                      request(f"releases/assets/{asset['id']}", output)
+                  if (downloaded.stat().st_size != local.stat().st_size
+                          or hashlib.sha256(downloaded.read_bytes()).digest() != hashlib.sha256(local.read_bytes()).digest()):
+                      raise SystemExit('Downloaded Windows asset differs from the tested file; publication stopped.')
+                  verified[name] = (asset['id'], asset['size'], asset.get('updated_at'))
+          final = inventory()
+          if any((final[name]['id'], final[name]['size'], final[name].get('updated_at')) != identity
+                 for name, identity in verified.items()):
+              raise SystemExit('Windows release assets changed during verification; publication stopped.')
+          print('Authenticated draft downloads match all three tested Windows assets; exactly one Windows ZIP is present.')
+          PY
+          python3 tested/verify-release-source.py
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false

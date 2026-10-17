@@ -8,11 +8,15 @@ The owner approved merging and releasing V0.5.0. Validation passed 478 Python te
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The release URL for this version is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0); use that page to check publication status and obtain its assets. Release ZIPs are assets, not Git source files. The accompanying `VALIDATION.json` records CI test results and source identity; `CHECKSUMS.sha256` records exact release-asset hashes. GitHub names the standalone updater asset `Update.FORGE.bat`; save it as `B:\Forge\Update FORGE.bat`.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The release URL for this version is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
 ## Update the existing installation
+
+**If `B:\Forge\Update-Application.ps1` is installed:** finish queued work, close FORGE, and run your existing `B:\Forge\Update FORGE.bat` using the [temporary-path instructions](docs/WINDOWS_RELEASES.md) to avoid the supplied updater's shortened-path bug. The script downloads the single Windows ZIP from the latest release, verifies its SHA-256 and stages `app/`; type `UPDATE` only after reviewing its plan. Keep both installed updater files. This package excludes them, settings, presets, history, user media, models, environments and original scripts. Backups and logs use `Update-Backups` and `Update-Logs`.
+
+**For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 
 Save the intact `FORGE-v0.5.zip` release asset in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
 

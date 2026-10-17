@@ -1,5 +1,12 @@
 # Changelog
 
+## V0.5.0 Windows release packaging correction
+
+- Added `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` contract, with the complete tagged application payload beneath `app/`.
+- Excluded protected updater files, user state, original scripts, test fixtures and historical documentation from this installation payload. The existing V0.5.0 tag, application code and legacy release assets are preserved.
+- Added test-gated Windows packaging automation for new tags, published releases and explicit backfills. Validation exercises the supplied PowerShell updater in disposable Windows installations, checks installed application startup and verifies state preservation before uploads.
+- Native validation exposed the supplied updater's incorrect relative-path calculation when TEMP uses an 8.3 alias. Documented invoking the unchanged updater with this process's TEMP set to `B:\Forge\Build`; acceptance verifies that staging there preserves existing build ZIPs and user state.
+
 ## 0.5.0
 
 - Added a Media Privacy workspace with internal navigation for Watermark Studio, Audio Fingerprint Lab, Video Fingerprint Lab, Media Tracking Auditor, Media Privacy Exporter, Content Credentials Inspector and Privacy Verification Lab.
