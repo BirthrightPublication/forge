@@ -52,7 +52,7 @@ $report = [ordered]@{
   archive_name=[IO.Path]::GetFileName($Archive); archive_sha256=''; package_version=''; updater_sha256=''; batch_fixture_sha256=''
   bat_launcher_executed=$false; network_mocked=$true; input_mocked=$true; updater_logic_modified=$false
   checks=$checks; passed=0; cases=$cases; installed_app_smoke=$null; failure=$null
-  failure_detail=$null; failure_location=$null
+  failure_detail=$null; failure_location=$null; installation_evidence=$null
 }
 New-Item -ItemType Directory -Path $Output | Out-Null
 
@@ -88,6 +88,8 @@ function Assert-PayloadFile([string]$Root, $Entry) {
   $exists=[IO.File]::Exists($installed)
   $detail=[ordered]@{
     relative_path=$Entry.relative; filesystem_exists=$exists
+    installation_root=(Sanitize-Diagnostic $Root); installation_root_type=$Root.GetType().FullName
+    checked_path=(Sanitize-Diagnostic $installed)
     provider_exists=[bool](Test-Path -LiteralPath $installed -PathType Leaf)
     attributes=$null; expected_sha256=$Entry.hash; actual_sha256=$null; read_error_type=$null
   }
@@ -105,6 +107,54 @@ function Assert-PayloadFile([string]$Root, $Entry) {
 }
 function Write-Json([string]$Path, $Value) {
   [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 20), (New-Object Text.UTF8Encoding($false)))
+}
+function Read-InstallationEvidence($Case) {
+  $caseRoot=[string]$Case.root
+  $caseFolder=[string]$Case.folder
+  $evidence=[ordered]@{
+    case_type=$Case.GetType().FullName; root_type=$Case.root.GetType().FullName
+    installation_root=(Sanitize-Diagnostic $caseRoot)
+    scenario_folder=(Sanitize-Diagnostic $caseFolder)
+    root_exists=[IO.Directory]::Exists($caseRoot); root_entries=@(); files=@()
+    rollback_manifests=@(); updater_stdout=''; updater_stderr=''; diagnostic_error=$null
+  }
+  $prefix=[IO.Path]::GetFullPath($Output).TrimEnd([char]92,[char]47)+[IO.Path]::DirectorySeparatorChar
+  if (-not [IO.Path]::GetFullPath($caseRoot).StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase) -or
+      -not [IO.Path]::GetFullPath($caseFolder).StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)) {
+    $evidence.diagnostic_error='Refused inventory outside the disposable acceptance output.'
+    return $evidence
+  }
+  try {
+    foreach ($channel in @('stdout','stderr')) {
+      $logPath=Join-Path $caseFolder ($channel+'.log')
+      if ([IO.File]::Exists($logPath)) {
+        $evidence['updater_'+$channel]=Sanitize-Diagnostic ([IO.File]::ReadAllText($logPath))
+      }
+    }
+    if ($evidence.root_exists) {
+      $evidence.root_entries=@(Get-ChildItem -LiteralPath $caseRoot -Force | ForEach-Object {
+        [ordered]@{name=$_.Name; attributes=$_.Attributes.ToString(); directory=$_.PSIsContainer}
+      })
+      $evidence.files=@(Get-ChildItem -LiteralPath $caseRoot -Recurse -File -Force | ForEach-Object {
+        [ordered]@{
+          relative_path=$_.FullName.Substring($caseRoot.Length).TrimStart([char]92,[char]47)
+          attributes=$_.Attributes.ToString(); size_bytes=$_.Length
+        }
+      })
+      $backupRoot=Join-Path $caseRoot 'Update-Backups'
+      if ([IO.Directory]::Exists($backupRoot)) {
+        $evidence.rollback_manifests=@(Get-ChildItem -LiteralPath $backupRoot -Recurse -File -Force -Filter 'rollback-manifest.json' | ForEach-Object {
+          [ordered]@{
+            relative_path=$_.FullName.Substring($caseRoot.Length).TrimStart([char]92,[char]47)
+            entries=@(Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json | ForEach-Object {
+              [ordered]@{path=(Sanitize-Diagnostic ([string]$_.path)); existed=$_.existed}
+            })
+          }
+        })
+      }
+    }
+  } catch { $evidence.diagnostic_error=Sanitize-Diagnostic $_.Exception.Message }
+  return $evidence
 }
 function Write-Fixture([string]$Path, [string]$Value) {
   New-Item -ItemType Directory -Force (Split-Path -Parent $Path) | Out-Null
@@ -293,6 +343,7 @@ try {
 
   $positive=New-Case 'install' $Archive $Checksum 'UPDATE'
   $null=Run-Case $positive 0 'SUCCESS: Updated FORGE' 2 1
+  $report.installation_evidence=Read-InstallationEvidence $positive
   foreach ($file in $payload) {
     Assert-PayloadFile $positive.root $file
   }
@@ -373,6 +424,12 @@ try {
     $annotation+='; '+($report.failure_detail | ConvertTo-Json -Depth 5 -Compress)
   }
   Write-Host ('::error file=tests/windows_release_acceptance.ps1,line='+$report.failure_location.line+',title=Windows release acceptance failed::'+(Escape-Annotation $annotation))
+  if ($null -ne $report.installation_evidence) {
+    foreach ($field in @('installation_root','root_type','root_exists','root_entries','files','rollback_manifests','updater_stdout','updater_stderr','diagnostic_error')) {
+      $value=$report.installation_evidence[$field] | ConvertTo-Json -Depth 8 -Compress
+      Write-Host ('::error title=Disposable installation evidence::'+(Escape-Annotation ($field+'='+$value)))
+    }
+  }
 } finally {
   $report.passed=$checks.Count
   Write-Json (Join-Path $Output 'windows-acceptance.json') $report
