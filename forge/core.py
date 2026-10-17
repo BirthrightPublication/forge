@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 MEDIA = {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.opus', '.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v', '.wma', '.aiff', '.aif', '.m4b'}
 IMAGES = {'.jpg', '.jpeg', '.png', '.webp'}
 CLEAN_MEDIA = {'.mp3', '.wav', '.flac', '.m4a', '.mp4', '.mkv', '.mov', '.webm', '.ogg', '.opus'}
+VIDEO = {'.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v'}
+PRIVACY_TOOLS = {'watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance', 'privacy_verify'}
 TOOLS = {
     'transcribe': {'title': 'Transcribe', 'group': 'Media', 'description': 'Local speech recognition with segment and word timing.', 'accept': sorted(MEDIA)},
     'retune': {'title': '432Hz Conversion', 'group': 'Media', 'description': 'Retune audio or video without replacing the original.', 'accept': sorted(MEDIA)},
@@ -32,6 +34,13 @@ TOOLS = {
     'obfuscation': {'title':'Obfuscation Studio', 'group':'FORGE OS', 'description':'Fictional plate-like patterns, identifiers and usernames.', 'accept':[]},
     'addresses': {'title':'Random Address Generator', 'group':'FORGE OS', 'description':'Clearly synthetic addresses for fictional and test-data use.', 'accept':[]},
     'strings': {'title':'Random String Generator', 'group':'FORGE OS', 'description':'Secure passwords, tokens, identifiers and reserved-domain email examples.', 'accept':[]},
+    'watermark': {'title':'Watermark Studio', 'group':'Media Privacy', 'description':'Encode configurable visual overlays and audible ownership clips.', 'accept':sorted(MEDIA)},
+    'audio_fingerprint': {'title':'Audio Fingerprint Lab', 'group':'Media Privacy', 'description':'Measure local acoustic fingerprints and recording similarity.', 'accept':sorted(MEDIA)},
+    'video_fingerprint': {'title':'Video Fingerprint Lab', 'group':'Media Privacy', 'description':'Compare sampled frames, visual signatures and matching sections.', 'accept':sorted(VIDEO)},
+    'tracking_audit': {'title':'Media Tracking Auditor', 'group':'Media Privacy', 'description':'Inspect metadata, streams, signatures and supported provenance.', 'accept':sorted(MEDIA | IMAGES)},
+    'privacy_export': {'title':'Media Privacy Exporter', 'group':'Media Privacy', 'description':'Choose metadata and streams to retain, then verify a new export.', 'accept':sorted(CLEAN_MEDIA | IMAGES)},
+    'provenance': {'title':'Content Credentials Inspector', 'group':'Media Privacy', 'description':'Inspect local C2PA manifests and supported signature validation.', 'accept':sorted(MEDIA | IMAGES)},
+    'privacy_verify': {'title':'Privacy Verification Lab', 'group':'Media Privacy', 'description':'Compare originals and processed files with evidence-based reports.', 'accept':sorted(MEDIA | IMAGES)},
 }
 DEFAULTS = {'workers': 5, 'concurrency_mode':'auto', 'ffmpeg': '', 'ffprobe': '', 'last_output': '', 'default_output': '',
             'daily_update_check': False, 'queue_paused': False, 'cpu_workers':2, 'gpu_workers':1, 'download_workers':2,
@@ -109,13 +118,16 @@ def executable(name: str, settings: dict) -> str | None:
 def dependency_state(settings: dict) -> list[dict]:
     result = []
     for package, module, label in [('qrcode', 'qrcode', 'QR engine'), ('pillow', 'PIL', 'Image engine'),
-                                  ('yt-dlp', 'yt_dlp', 'Download engine'), ('faster-whisper', 'faster_whisper', 'Transcription engine')]:
+                                  ('yt-dlp', 'yt_dlp', 'Download engine'), ('faster-whisper', 'faster_whisper', 'Transcription engine'),
+                                  ('c2pa-python', 'c2pa', 'Content Credentials inspection')]:
         installed = importlib.util.find_spec(module) is not None
         try:
             version = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             version = ''
-        result.append({'id': package, 'label': label, 'ready': installed, 'detail': version or 'Not installed'})
+        compatible = installed and (package != 'c2pa-python' or version == '0.38.0')
+        result.append({'id': package, 'label': label, 'ready': compatible,
+                       'detail': (version + ' · install tested 0.38.0 for this adapter') if installed and not compatible else version or 'Not installed'})
     for name in ('ffmpeg', 'ffprobe'):
         path = executable(name, settings)
         result.append({'id': name, 'label': name.upper() if name == 'ffmpeg' else 'FFprobe', 'ready': bool(path), 'detail': path or 'Set the executable path below'})

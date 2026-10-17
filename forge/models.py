@@ -127,8 +127,11 @@ class Password(Strict):
     exclude_ambiguous: bool = True
 
 class JobRequest(Strict):
-    tool: Literal['transcribe','retune','metadata','qr','download_audio','download_video']
+    tool: Literal['transcribe','retune','metadata','qr','download_audio','download_video',
+                  'watermark','audio_fingerprint','video_fingerprint','tracking_audit',
+                  'privacy_export','provenance','privacy_verify']
     sources: list[str] = Field(default_factory=list, max_length=500)
+    reference_sources: list[str] = Field(default_factory=list, max_length=20)
     urls: list[str] = Field(default_factory=list, max_length=100)
     options: dict = Field(default_factory=dict)
     output: Output = Field(default_factory=Output)
@@ -166,6 +169,18 @@ class Preset(Strict):
 
 OPTION_MODELS = {'transcribe': Transcribe, 'retune': Retune, 'metadata': Metadata,
                  'qr': QR, 'download_audio': Download, 'download_video': Download}
+
+# New options live beside their processors; legacy model/API names stay stable.
+from .watermark import WatermarkOptions
+from .fingerprints import AudioFingerprintOptions, VideoFingerprintOptions
+from .media_inspection import TrackingAuditOptions, ProvenanceOptions
+from .privacy_export import PrivacyExportOptions
+from .privacy_verification import VerificationOptions
+
+OPTION_MODELS.update(watermark=WatermarkOptions, audio_fingerprint=AudioFingerprintOptions,
+                     video_fingerprint=VideoFingerprintOptions, tracking_audit=TrackingAuditOptions,
+                     privacy_export=PrivacyExportOptions, provenance=ProvenanceOptions,
+                     privacy_verify=VerificationOptions)
 
 
 class JobOrder(Strict):

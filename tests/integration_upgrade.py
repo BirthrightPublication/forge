@@ -49,8 +49,9 @@ def extract_base(archive, destination):
         z.extractall(destination)
 
 
-SEED = r"""import json, os
+SEED = r"""import hashlib, json, os
 from pathlib import Path
+from PIL import Image, PngImagePlugin
 from forge.core import Store
 import forge.models as models
 
@@ -60,6 +61,7 @@ s = Store(data)
 settings = {'workers': 3, 'queue_paused': False,
             'default_output': str(data / 'exports'), 'daily_update_check': False}
 s.set('settings', {**s.settings(), **settings})
+concurrency_mode = s.settings().get('concurrency_mode', 'manual')
 preset = {'tool': 'transcribe', 'name': 'Keep my preset', 'options': {'model': 'base'},
           'output': {'mode': 'source', 'directory': '', 'subfolder': ''}}
 s.set('presets', [preset])
@@ -72,6 +74,24 @@ if hasattr(models, 'Workflow'):
     favorites = ['retune', 'qr']
     s.set('workflows', [workflow])
     s.set('favorites', favorites)
+seed_script = None
+seed_generator_preset = None
+if tuple(map(int, os.environ['FORGE_BASE_VERSION'].split('.'))) >= (0, 4, 0):
+    from forge.black_scripting import Script
+    from forge.generators import validate_options
+    seed_script = Script(name='Keep my V0.4 Black Scripting definition',
+        nodes=[{'id': 'preserved-metadata', 'tool': 'metadata',
+                'options': {'cleaning_level': 'standard', 'audit_report': False}}],
+        output={'mode': 'default'}).model_dump()
+    seed_generator_preset = {'id': 'preserved-generator-policy', 'schema_version': 1,
+        'tool': 'strings', 'name': 'Keep my V0.4 generator policy',
+        'options': validate_options('strings', {'kind': 'token', 'alphabet': 'hex', 'count': 3}).model_dump()}
+    s.set('black_scripting', [seed_script])
+    s.set('generator_presets', [seed_generator_preset])
+privacy_source = data / 'preserved-original.png'
+image_metadata = PngImagePlugin.PngInfo()
+image_metadata.add_text('Author', 'Private upgrade fixture author')
+Image.new('RGB', (24, 16), (32, 65, 99)).save(privacy_source, pnginfo=image_metadata)
 output = data / 'exports' / 'preserved-completed-output.txt'
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_bytes(b'Completed before upgrading; never replace this output.\n')
@@ -81,7 +101,10 @@ job = s.add_job('qr', 'Preserved baseline history', {
 s.update_job(job['id'], status='completed', progress=1,
              outputs=[{'name': output.name, 'path': str(output)}])
 fixture = {'settings': settings, 'preset': preset, 'workflow': workflow,
-           'favorites': favorites, 'old_job_id': job['id'], 'old_output': str(output)}
+           'favorites': favorites, 'old_job_id': job['id'], 'old_output': str(output),
+           'concurrency_mode': concurrency_mode, 'seed_script': seed_script,
+           'seed_generator_preset': seed_generator_preset, 'privacy_source': str(privacy_source),
+           'privacy_source_sha256': hashlib.sha256(privacy_source.read_bytes()).hexdigest()}
 fixture_path.write_text(json.dumps(fixture), encoding='utf-8')
 s.close()
 print('Created baseline settings, preset and completed history' +
@@ -99,11 +122,19 @@ CHECK_STATE = r"""def check_state(store):
     if fixture['workflow'] is not None:
         assert store.get('workflows') == [fixture['workflow']]
         assert store.get('favorites') == fixture['favorites']
+    for key, baseline_key, upgraded_key in [('black_scripting', 'seed_script', 'v4_script'),
+                                            ('generator_presets', 'seed_generator_preset', 'v4_generator_preset')]:
+        expected = [fixture[name] for name in (baseline_key, upgraded_key) if fixture.get(name) is not None]
+        if expected:
+            assert store.get(key) == expected, (key, store.get(key), expected)
+    source = Path(fixture['privacy_source'])
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == fixture['privacy_source_sha256']
 """
 
 
 UPGRADED = r"""import hashlib, json, os, time
 from pathlib import Path
+from PIL import Image
 from fastapi.testclient import TestClient
 from forge.app import create_app
 
@@ -126,12 +157,20 @@ try:
             assert state['workflows'] == [fixture['workflow']]
             assert state['favorites'] == fixture['favorites']
         if tuple(map(int, state['version'].split('.'))) >= (0, 4, 0):
-            assert len(state['tools']) == 11
-            assert state['settings']['concurrency_mode'] == 'manual'
+            expected_tools = {'transcribe', 'retune', 'download_audio', 'download_video', 'metadata', 'qr', 'password',
+                              'identity', 'obfuscation', 'addresses', 'strings'}
+            if tuple(map(int, state['version'].split('.'))) >= (0, 5, 0):
+                expected_tools |= {'watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit',
+                                   'privacy_export', 'provenance', 'privacy_verify'}
+            assert set(state['tools']) == expected_tools, (set(state['tools']), expected_tools)
+            assert state['settings']['concurrency_mode'] == fixture['concurrency_mode']
             assert all(item['enabled'] for item in state['entitlements']['modules'])
             scripts = c.get('/api/black-scripting/scripts').json()['scripts']
             if fixture['workflow'] is not None:
                 assert any(item['name'] == fixture['workflow']['name'] for item in scripts)
+            if fixture['seed_script'] is not None:
+                assert fixture['seed_script'] in scripts
+                assert c.get('/api/generators/presets').json()['presets'] == [fixture['seed_generator_preset']]
             response = c.post('/api/black-scripting/save', json={
                 'name': 'Post-upgrade empty workbench', 'nodes': [], 'connections': [],
                 'output': {'mode': 'default'}})
@@ -169,10 +208,44 @@ try:
         fixture['new_job_id'] = job_id
         fixture['new_output'] = str(output)
         fixture['new_output_sha256'] = hashlib.sha256(output.read_bytes()).hexdigest()
+        if tuple(map(int, state['version'].split('.'))) >= (0, 5, 0):
+            response = c.post('/api/register', json={'paths': [fixture['privacy_source']]})
+            assert response.status_code == 200, response.text
+            source_id = response.json()['sources'][0]['id']
+            response = c.post('/api/jobs', json={'tool': 'privacy_export', 'sources': [source_id],
+                'options': {'preset': 'advanced', 'reports': True}, 'output': {'mode': 'default'}})
+            assert response.status_code == 200, response.text
+            media_id = response.json()['jobs'][0]['id']
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
+                response = c.get('/api/state')
+                assert response.status_code == 200, response.text
+                media_job = next(j for j in response.json()['jobs'] if j['id'] == media_id)
+                if media_job['status'] == 'completed':
+                    break
+                assert media_job['status'] not in {'failed', 'cancelled', 'interrupted'}, media_job
+                time.sleep(.1)
+            assert media_job['status'] == 'completed', media_job
+            outputs = [Path(item['path']) for item in media_job['outputs']]
+            cleaned = next(path for path in outputs if path.suffix == '.png')
+            report_path = next(path for path in outputs if path.suffix == '.json')
+            report = json.loads(report_path.read_text(encoding='utf-8'))
+            with Image.open(cleaned) as image, Image.open(fixture['privacy_source']) as original:
+                assert image.size == original.size and image.tobytes() == original.tobytes()
+                assert 'Author' not in image.info
+            assert report['report_type'] == 'privacy_verification'
+            assert report['final_output_location'] == str(cleaned)
+            assert report['output']['filename'] == cleaned.name
+            assert any(item['value'] == 'Private upgrade fixture author'
+                       for item in report['metadata_changes']['removed_from_selected_inspection'])
+            fixture['v5_job_id'] = media_id
+            fixture['v5_outputs'] = [{'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()} for path in outputs]
+            check_state(app.state.store)
         fixture_path.write_text(json.dumps(fixture), encoding='utf-8')
 finally:
     app.state.store.close()
-print('Preserved baseline data, loaded candidate API, completed real QR worker')
+print('Preserved baseline data, loaded candidate API, completed real QR worker' +
+      (' and V0.5 privacy export/verification' if fixture.get('v5_job_id') else ''))
 """
 
 
@@ -187,18 +260,22 @@ assert __version__ == os.environ['FORGE_BASE_VERSION']
 s = Store(Path(os.environ['FORGE_DATA_DIR']))
 try:
     check_state(s)
-    assert len(s.jobs()) == 2
+    assert len(s.jobs()) == 2 + int('v5_job_id' in fixture)
     new = s.job(fixture['new_job_id'])
     assert new['status'] == 'completed'
     assert new['outputs'][0]['path'] == fixture['new_output']
     output = Path(fixture['new_output'])
     assert hashlib.sha256(output.read_bytes()).hexdigest() == fixture['new_output_sha256']
     if 'v4_script' in fixture:
-        assert s.get('black_scripting') == [fixture['v4_script']]
-        assert s.get('generator_presets') == [fixture['v4_generator_preset']]
+        assert fixture['v4_script'] in s.get('black_scripting')
+        assert fixture['v4_generator_preset'] in s.get('generator_presets')
+    if 'v5_job_id' in fixture:
+        assert s.job(fixture['v5_job_id'])['status'] == 'completed'
+        for item in fixture['v5_outputs']:
+            assert hashlib.sha256(Path(item['path']).read_bytes()).hexdigest() == item['sha256']
 finally:
     s.close()
-print('Baseline code reopened current data; both history entries and new output remain')
+print('Baseline code reopened current data; all old/new history and output files remain')
 """
 
 
@@ -257,7 +334,7 @@ def main():
 
     def python(code):
         result = subprocess.run([sys.executable, '-c', code], cwd=root, env=env,
-                                text=True, capture_output=True, timeout=60)
+                                text=True, capture_output=True, timeout=120)
         if result.returncode:
             raise RuntimeError(result.stdout + '\n' + result.stderr)
         print(result.stdout.strip())
@@ -272,6 +349,7 @@ def main():
     fixture = json.loads(fixture_path.read_text(encoding='utf-8'))
     old_output = Path(fixture['old_output'])
     markers[old_output] = digest(old_output)
+    markers[Path(fixture['privacy_source'])] = fixture['privacy_source_sha256']
     shutil.copyfile(candidate, builds / ('FORGE-v' + target_version + '.zip'))
     previous = os.environ.get('FORGE_DATA_DIR')
     os.environ['FORGE_DATA_DIR'] = str(data)
@@ -285,6 +363,8 @@ def main():
         python(UPGRADED)
         fixture = json.loads(fixture_path.read_text(encoding='utf-8'))
         markers[Path(fixture['new_output'])] = fixture['new_output_sha256']
+        for item in fixture.get('v5_outputs', []):
+            markers[Path(item['path'])] = item['sha256']
         check_preserved()
         assert up.main(['--root', str(home), '--rollback', '--yes', '--no-launch']) == 0
         assert up.installed_version(root) == base_version
@@ -306,8 +386,13 @@ def main():
         if fixture['workflow'] is not None:
             checks.append('Baseline workflow and favorites preserved through upgrade and rollback')
         if 'v4_script' in fixture:
-            checks.append('V0.4 registry, offline grants, legacy projection and memory-only generator execute after upgrade')
+            checks.append('Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade')
             checks.append('New Black Scripting and generator configuration records survive code rollback unchanged')
+        if fixture['seed_script'] is not None:
+            checks.append('Existing V0.4 Black Scripting definitions and generator presets preserved unchanged in stored JSON')
+        if 'v5_job_id' in fixture:
+            checks.append('Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location')
+            checks.append('V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline')
         report = {
             'result': 'passed', 'host': sys.platform,
             'base_version': base_version, 'candidate_version': target_version,

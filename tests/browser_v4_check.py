@@ -1,4 +1,4 @@
-"""Direct Chromium acceptance checks for FORGE V0.4.
+"""Direct Chromium regression checks for the V0.4 Studio in the current release.
 
 Uses a real, already-running disposable service, browser authorization, served
 assets and real worker jobs. Never point this harness at an owner's data folder.
@@ -24,6 +24,16 @@ from pathlib import Path
 from PIL import Image, PngImagePlugin
 from playwright.sync_api import sync_playwright
 
+ROOT = Path(__file__).resolve().parents[1]
+expected_version = (ROOT / 'VERSION.txt').read_text(encoding='utf-8').strip()
+version_tuple = tuple(map(int, expected_version.split('.')))
+display_version = 'V' + (expected_version[:-2] if expected_version.endswith('.0') else expected_version)
+expected_tools = {'transcribe', 'retune', 'download_audio', 'download_video', 'metadata', 'qr', 'password',
+                  'identity', 'obfuscation', 'addresses', 'strings'}
+privacy_tools = ['watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit',
+                 'privacy_export', 'provenance', 'privacy_verify'] if version_tuple >= (0, 5, 0) else []
+expected_tools.update(privacy_tools)
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--runtime', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
@@ -36,11 +46,12 @@ runtime = json.loads(args.runtime.read_text(encoding='utf-8'))
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 origin = f'http://127.0.0.1:{int(runtime["port"])}'
-marker = 'V04 Browser ' + str(time.time_ns())
+marker = display_version + ' Studio Regression ' + str(time.time_ns())
 checks: list[str] = []
 errors: list[str] = []
 requests: list[str] = []
-report = {'kind': 'direct-loopback-browser-acceptance', 'platform': sys.platform,
+report = {'kind': 'direct-loopback-studio-browser-regression', 'platform': sys.platform,
+          'expected_version': expected_version, 'expected_tools': sorted(expected_tools),
           'reference_image_comparison': 'Not performed: reference asset was not supplied.',
           'checks': checks, 'browser_errors': errors, 'screenshots': []}
 launch_ticket = ''
@@ -54,6 +65,7 @@ def check(name: str, condition=True):
 
 
 def screenshot(page, name):
+    name = name.replace('V0.4', display_version)
     page.evaluate('()=>document.querySelector("#toast")?.classList.add("hidden")')
     page.screenshot(path=str(output / name), full_page=True)
     report['screenshots'].append(name)
@@ -100,24 +112,29 @@ with sync_playwright() as playwright:
         except Exception as error:
             raise RuntimeError('Cannot open the disposable FORGE service; verify the runtime port.') from None
         page.wait_for_selector('.tool-card')
-        check('Authorized browser loads the served V0.4 application', page.locator('.version').inner_text().startswith('V0.4'))
+        check('Authorized browser loads the served ' + display_version + ' application',
+              page.locator('.version').inner_text() == display_version and api('/state')['version'] == expected_version)
         check('Launcher authorization clears temporary ticket and token from the page',
               page.evaluate('()=>token===""&&launchTicket===""&&location.hash===""'))
-        check('Overview contains eleven available tools', page.locator('.tool-card').count() == 11)
+        check(f'Overview and API expose the expected {len(expected_tools)} tools',
+              page.locator('.tool-card').count() == len(expected_tools) and set(api('/state')['tools']) == expected_tools)
         check('Black Scripting global launcher remains outside sidebar',
               page.locator('#black-scripting-launcher').is_visible() and page.locator('#sidebar [data-view="workflows"],#sidebar [data-favorite-nav="workflows"]').count() == 0)
         check('FORGE OS has its own seven-tool sidebar group', page.locator('#forge-os-nav [data-view]').count() == 7)
+        if privacy_tools:
+            check('Media Privacy uses one compact sidebar entry for seven tools',
+                  page.locator('#media-privacy-nav button').count() == 1 and page.locator('#media-privacy-open').is_visible())
         check('Ordinary startup does not scan release ZIPs', '/api/application-updates' not in requests)
         screenshot(page, 'FORGE-V0.4-overview.png')
 
         second = context.new_page()
         second.goto(origin)
         second.wait_for_selector('.tool-card')
-        check('A second browser tab uses remembered authorization', second.locator('.tool-card').count() == 11)
+        check('A second browser tab uses remembered authorization', second.locator('.tool-card').count() == len(expected_tools))
         second.close()
 
         tools = ['transcribe', 'retune', 'download_audio', 'download_video', 'metadata', 'qr', 'password',
-                 'identity', 'obfuscation', 'addresses', 'strings', 'queue', 'settings']
+                 'identity', 'obfuscation', 'addresses', 'strings', *privacy_tools, 'queue', 'settings']
         for tool in tools:
             nav(tool)
             check('Desktop navigation: ' + tool, page.locator('h1').count() == 1)
@@ -157,7 +174,7 @@ with sync_playwright() as playwright:
         api('/queue', {'paused': True})
         page.evaluate('()=>refresh(false)')
         nav('qr')
-        page.fill('[name="text"]', 'https://example.com/forge-v04-browser-check')
+        page.fill('[name="text"]', 'https://example.com/forge-studio-regression')
         page.locator('#qr-local-preview').click()
         page.wait_for_selector('#qr-local-preview-area img')
         check('Plain-text QR produces a local image and explicit download link', page.locator('#qr-save-preview').is_visible())
@@ -180,7 +197,7 @@ with sync_playwright() as playwright:
         check('Contact QR captures fields in the centered primary input', page.evaluate('()=>draft().options.contact.name==="Fictional Browser Test"'))
         page.locator('#qr-clear-preview').click()
         page.select_option('[name="kind"]', 'text')
-        page.fill('[name="text"]', 'V0.4 browser queue test')
+        page.fill('[name="text"]', display_version + ' browser queue test')
         page.get_by_role('tab', name='Output format', exact=True).click()
         page.fill('[name="name"]', marker + ' QR')
         page.locator('#enqueue').click()
@@ -216,6 +233,10 @@ with sync_playwright() as playwright:
         page.locator(f'[data-select-job="{qr_id}"]').check()
         page.locator('#cancel-selected').click()
         wait_job(qr_id, 'cancelled')
+        # A polling refresh can observe the terminal record before the action's
+        # own response handler clears the old selection. Wait for both states
+        # before selecting the next record, as a user would after completion.
+        page.wait_for_function('()=>selectedJobs.size===0')
         check('Bulk cancellation moves cancelled records out of the active view', page.locator(f'[data-row-job="{qr_id}"]').count() == 0)
         page.locator('[data-filter="history"]').click()
         check('History shows cancelled records', page.locator(f'[data-row-job="{qr_id}"]').is_visible())
@@ -224,6 +245,7 @@ with sync_playwright() as playwright:
         with page.expect_response(lambda response: '/api/queue/actions' in response.url):
             page.locator('#retry-selected').click()
         page.wait_for_function('(old)=>state.jobs.some(j=>j.status==="queued"&&!old.includes(j.id))', arg=list(before_retry))
+        page.wait_for_function('()=>selectedJobs.size===0')
         retry_id = next(job for job in active_job_ids() if job not in before_retry)
         check('Circular-arrow Retry creates a fresh queued job', retry_id != qr_id)
         page.locator(f'[data-select-job="{qr_id}"]').check()
@@ -343,5 +365,5 @@ with sync_playwright() as playwright:
         screenshot(page, 'FORGE-V0.4-browser-failure.png')
         raise
     finally:
-        (output / 'BROWSER_V0.4_RESULTS.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+        (output / ('BROWSER_' + display_version + '_STUDIO_RESULTS.json')).write_text(json.dumps(report, indent=2), encoding='utf-8')
         browser.close()

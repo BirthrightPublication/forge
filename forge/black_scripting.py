@@ -27,7 +27,9 @@ class OperationNode(Strict):
     id: str = Field(min_length=1, max_length=80, pattern=ID_PATTERN)
     type: Literal['operation'] = 'operation'
     node_version: Literal[1] = 1
-    tool: Literal['retune', 'metadata', 'transcribe']
+    tool: Literal['retune', 'metadata', 'transcribe', 'watermark', 'audio_fingerprint',
+                  'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance',
+                  'privacy_verify']
     enabled: bool = True
     options: dict = Field(default_factory=dict)
     preset_name: str = Field('', max_length=80)
@@ -67,7 +69,7 @@ class Script(Strict):
         expected = list(zip(ids, ids[1:]))
         actual = [(edge.source, edge.target) for edge in self.connections]
         if len(actual) != len(expected) or set(actual) != set(expected):
-            raise ValueError('V0.4 supports one linear chain in node order. Branches, cycles, missing links and unknown identifiers are not supported.')
+            raise ValueError('Black Scripting supports one linear chain in node order. Branches, cycles, missing links and unknown identifiers are not supported.')
         active = self.active_nodes()
         if any(node.tool == 'transcribe' for node in active[:-1]):
             raise ValueError('Transcribe must be the last enabled operation because its outputs are text.')
@@ -142,6 +144,8 @@ def mount(app, store, manager, destination):
         return {'script': script.model_dump(), **scripts_for_store(store)}
 
     def prepare(body):
+        from .media_api import validate_media_options
+        from .resources import MEDIA_ANALYSIS
         require_feature(app, 'black_scripting')
         active = body.script.active_nodes()
         if not active:
@@ -155,6 +159,7 @@ def mount(app, store, manager, destination):
             path = absolute_path(source['path'])
             ext = path.suffix.lower()
             steps = []
+            assets = {}
             previous = 'source'
             for index, node in enumerate(active, 1):
                 if ext not in TOOLS[node.tool]['accept']:
@@ -162,16 +167,31 @@ def mount(app, store, manager, destination):
                 if node.tool == 'metadata' and ext in IMAGES and node.options['mode'] != 'wipe':
                     raise ValueError(f'{path.name}: image metadata supports privacy cleaning; selective editing requires supported audio or video.')
                 input_format = ext
+                disclosures = []
+                if node.tool in MEDIA_ANALYSIS | {'watermark', 'privacy_export'}:
+                    # Validate local assets and the source contract up front.
+                    # Downstream media does not exist yet; pass its planned
+                    # suffix separately and let workers verify actual streams.
+                    if index == 1 or all(step['passthrough'] for step in steps):
+                        operation_plan = validate_media_options(node.tool, path, node.options, settings)
+                    else:
+                        operation_plan = validate_media_options(node.tool, path, node.options, settings,
+                                                                input_suffix=ext, inspect_source=False)
+                    ext = operation_plan.get('output_suffix', ext)
+                    disclosures = operation_plan.get('disclosures', [])
+                    assets[node.id] = operation_plan.get('asset_snapshots', [])
                 if node.tool == 'retune':
                     ext = '.' + node.options['format']
                 output_formats = ['.' + fmt for fmt in node.options['formats']] if node.tool == 'transcribe' else [ext]
                 steps.append({'node_id': node.id, 'step': index, 'tool': node.tool,
                               'title': TOOLS[node.tool]['title'], 'depends_on': previous,
                               'input_format': input_format, 'output_formats': output_formats,
-                              'preset_name': node.preset_name})
+                              'preset_name': node.preset_name,
+                              'passthrough': node.tool in MEDIA_ANALYSIS,
+                              'disclosures': disclosures})
                 previous = node.id
             stat = path.stat()
-            plans.append({'source': source, 'steps': steps,
+            plans.append({'source': source, 'steps': steps, 'assets': assets,
                           'snapshot': {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}})
         # Every file and media transition passes before resolving writable destinations.
         for plan in plans:
@@ -207,7 +227,7 @@ def mount(app, store, manager, destination):
                 'disabled': [node.id for node in body.script.nodes if not node.enabled],
                 'sources': [{'source_id': item['source']['id'], 'name': item['source']['name'],
                              'destination': item['destination'], 'steps': item['steps']} for item in plans],
-                'note': 'Each operation receives the previous operation’s published output. Independent source chains may run concurrently. Existing files receive new, collision-safe names.'}
+                'note': 'Transformations pass their published media to the next operation. Inspections pass the inspected media unchanged, including when private reports are disabled. Independent source chains may run concurrently. Existing files receive new, collision-safe names.'}
 
     @app.post('/api/black-scripting/run')
     def run(body: RunRequest):
@@ -224,6 +244,9 @@ def mount(app, store, manager, destination):
                     payload = {'tool': node.tool, 'options': node.options, 'settings': settings,
                                'destination': plan['destination'], 'source': plan['source'],
                                'source_stat': plan['snapshot'], 'url': None, 'depends_on': previous,
+                               'original_source': plan['source'], 'original_source_stat': plan['snapshot'],
+                               'asset_snapshots': plan['assets'].get(node.id, []),
+                               'chain_operations': [operation.tool for operation in active[:index - 1]],
                                'batch_id': batch, 'workflow_name': body.script.name, 'step': index,
                                'steps': len(active), 'script_id': body.script.id, 'node_id': node.id,
                                'script_schema_version': body.script.schema_version}

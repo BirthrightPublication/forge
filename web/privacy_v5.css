@@ -1,0 +1,26 @@
+/* Media Privacy uses the V0.4 surfaces, spacing, colors and controls. */
+.v5-tool-nav{display:flex;gap:6px;flex-wrap:wrap;margin:-3px 0 20px;padding:6px;border:1px solid var(--line);border-radius:var(--radius,10px);background:var(--panel)}
+.v5-tool-nav button{display:flex;align-items:center;justify-content:center;gap:8px;flex:1 1 88px;min-width:0;border:1px solid transparent;background:transparent;color:var(--muted);padding:9px 10px;border-radius:6px;font-size:12px}
+.v5-tool-nav button:hover,.v5-tool-nav button:focus-visible{color:var(--text);background:var(--panel2)}
+.v5-tool-nav button.active{color:var(--gold);border-color:var(--gold-border,rgba(196,164,94,.35));background:rgba(196,164,94,.08)}
+.v5-tool-nav svg,.v5-nav-icon svg{width:18px;height:18px;flex:none}.v5-nav-icon{display:flex}
+.v5-privacy .v4-source{min-width:0}.v5-privacy .v4-source .panel-body{padding-bottom:16px}
+.v5-privacy .v4-source .callout{margin-bottom:12px}.v5-privacy .v4-output .v5-plan-button{width:100%;margin-top:10px}
+.v5-privacy .v5-output-note{margin-top:10px}.v5-results{margin-top:20px}
+.v5-references,.v5-capabilities{border-top:1px solid var(--line);padding-top:12px;margin-top:14px}
+.v5-references summary,.v5-capabilities summary,.v5-report summary{cursor:pointer;color:var(--muted);font-size:12px}
+.v5-capabilities pre,.v5-report pre,.v5-plan-list pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;max-height:460px;overflow:auto}
+.v5-source-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.v5-source-players figure,.v5-frame-strip figure{min-width:0;margin:0}.v5-source-players figcaption{font-size:11px;color:var(--muted);overflow-wrap:anywhere;margin-bottom:7px}
+.v5-source-players video,.v5-source-players img{display:block;width:100%;max-height:240px;object-fit:contain;background:#0a0a0a;border-radius:5px}
+.v5-source-players audio{width:100%;height:36px}.v5-preview{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+.v5-encoded-preview{display:block;max-width:100%;max-height:380px;margin:12px auto 0}.v5-encoded-preview:is(video,audio){width:100%}
+.v5-result-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.v5-result-row:last-child{border-bottom:0}.v5-result-row>span:first-child{min-width:0;flex:1}.v5-result-row strong{display:block;overflow-wrap:anywhere}.v5-result-row small{display:block;color:var(--muted);margin-top:3px}
+.v5-plan-list{max-height:55vh;overflow:auto;margin:15px 0}.v5-plan-list section{border-top:1px solid var(--line);padding:12px 0}.v5-plan-list h3{font-size:13px;overflow-wrap:anywhere}.v5-plan-section{font-size:12px;margin:10px 0}.v5-plan-section ul{margin:6px 0;padding-left:20px}.v5-plan-section li{padding:3px 0;overflow-wrap:anywhere}
+.v5-table-wrap{max-width:100%;overflow:auto;margin:12px 0}.v5-table-wrap table{width:100%;border-collapse:collapse;font-size:12px}.v5-table-wrap th,.v5-table-wrap td{text-align:left;border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:top;overflow-wrap:anywhere;min-width:90px}.v5-table-wrap th{color:var(--muted);font-weight:500}
+.v5-report h3{font-size:14px;margin-top:24px}.v5-report>ul{font-size:12px;color:var(--muted);padding-left:20px}.v5-analysis{margin-top:20px;padding-top:8px;border-top:1px solid var(--line)}
+.v5-analysis-images{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v5-analysis-images img{width:100%;height:auto;max-height:220px;object-fit:contain}
+.v5-frame-strip{display:flex;gap:10px;overflow:auto;padding:10px 0}.v5-frame-strip figure{width:160px;flex:none}.v5-frame-strip img{display:block;width:100%;height:100px;object-fit:contain;background:#0a0a0a}.v5-frame-strip figcaption{text-align:center;color:var(--muted);font-size:11px;padding:5px}
+.v5-timeline{display:grid;gap:8px;margin:12px 0}.v5-timeline>div{display:grid;grid-template-columns:135px minmax(60px,1fr) 52px;align-items:center;gap:9px;font-size:11px}.v5-timeline meter{width:100%;height:14px;accent-color:var(--gold)}
+.v5-privacy .path-input input{min-width:0}.v5-privacy .path-input button{flex:none}
+@media(max-width:700px){.v5-tool-nav{gap:3px;padding:5px}.v5-tool-nav button{flex:1 1 36px;min-width:36px;padding:9px 5px}.v5-tool-nav button span{display:none}.v5-source-players,.v5-analysis-images{grid-template-columns:1fr}.v5-result-row{flex-wrap:wrap}.v5-result-row>span:first-child{flex-basis:100%}.v5-timeline>div{grid-template-columns:100px minmax(30px,1fr) 42px}}

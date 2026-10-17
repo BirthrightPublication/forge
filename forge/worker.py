@@ -28,7 +28,7 @@ def probe(path: Path, settings: dict) -> dict:
     binary = executable('ffprobe', settings)
     if not binary:
         raise RuntimeError('FFprobe was not found. Set its path in Environment, normally beside ffmpeg.exe.')
-    p = subprocess.run([binary, '-v', 'error', '-show_format', '-show_streams', '-show_chapters', '-of', 'json', str(path)],
+    p = subprocess.run([binary, '-v', 'error', '-protocol_whitelist', 'file,pipe', '-show_format', '-show_streams', '-show_chapters', '-of', 'json', str(path)],
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='replace', timeout=120, **no_window())
     if p.returncode:
         raise RuntimeError('Could not inspect the media: ' + p.stderr[-1200:])
@@ -46,7 +46,12 @@ def run_ffmpeg(args: list[str], settings: dict, total: float = 0):
     binary = executable('ffmpeg', settings)
     if not binary:
         raise RuntimeError('FFmpeg was not found. Configure ffmpeg.exe in Environment.')
-    command = [binary, '-nostdin', '-hide_banner', '-loglevel', 'error', '-n', '-progress', 'pipe:1', *args]
+    local_args = []
+    for arg in args:
+        if arg == '-i':
+            local_args.extend(['-protocol_whitelist', 'file,pipe'])
+        local_args.append(arg)
+    command = [binary, '-nostdin', '-hide_banner', '-loglevel', 'error', '-n', '-progress', 'pipe:1', *local_args]
     errors = []
     speed=0.0
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
@@ -399,6 +404,17 @@ def run(payload: dict):
             expected = payload.get('source_stat', {})
             if expected and (stat.st_size != expected['size'] or stat.st_mtime_ns != expected['mtime_ns']):
                 raise RuntimeError('The source changed after being queued. Select the file again before retrying.')
+        # Assets and comparison inputs are immutable selections too. Never let
+        # a changed logo, reference signature or comparison silently alter a job.
+        for selected in [*payload.get('asset_snapshots', []),
+                         *payload.get('comparison_sources', []),
+                         *payload.get('reference_sources', [])]:
+            if not isinstance(selected, dict) or not selected.get('path'):
+                continue
+            stat = Path(selected['path']).stat()
+            expected = selected.get('source_stat')
+            if expected and {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns} != expected:
+                raise RuntimeError('An asset or comparison file changed after being queued. Select the inputs again.')
         if tool=='model_download':
             if not options.get('consent'):raise RuntimeError('Model download consent is required.')
             os.environ['HF_HUB_OFFLINE']='0';os.environ['HF_HUB_DISABLE_TELEMETRY']='1'
@@ -443,16 +459,48 @@ def run(payload: dict):
             files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
         elif tool in {'download_audio','download_video'}:
             files, warnings = download(payload['url'], stage_dir, options, settings, tool)
+        elif tool == 'watermark':
+            from .watermark import process
+            files, warnings = process(source, stage_dir, options, settings, context=payload)
+        elif tool in {'audio_fingerprint', 'video_fingerprint'}:
+            from .fingerprints import process_audio, process_video
+            process = process_audio if tool == 'audio_fingerprint' else process_video
+            files, warnings = process(source, stage_dir, options, settings, context=payload)
+        elif tool in {'tracking_audit', 'provenance'}:
+            from .media_inspection import process_audit, process_provenance
+            process = process_audit if tool == 'tracking_audit' else process_provenance
+            files, warnings = process(source, stage_dir, options, settings, context=payload)
+        elif tool == 'privacy_export':
+            from .privacy_export import process
+            files, warnings = process(source, stage_dir, options, settings, context=payload)
+        elif tool == 'privacy_verify':
+            from .privacy_verification import process
+            files, warnings = process(source, stage_dir, options, settings, context=payload)
         else:
             raise RuntimeError('Tool is not registered.')
         # Signal finalization before atomically committing finished outputs.
         emit('finalizing', message='Verifying and publishing outputs')
+        # Publish actual media first. Collision resolution can change its name;
+        # private verification reports must describe that real final filename.
+        files = [Path(path) for path in files]
+        if tool in {'privacy_export', 'privacy_verify'}:
+            files.sort(key=lambda path: path.suffix.lower() in {'.json', '.html'})
+        published_paths = {}
+        reports_finalized = False
         for path in files:
+            if (tool in {'privacy_export', 'privacy_verify'} and not reports_finalized
+                    and path.suffix.lower() in {'.json', '.html'}):
+                from .privacy_verification import finalize_reports
+                finalize_reports(files, published_paths)
+                reports_finalized = True
             # Empty text is useful when no speech is detected, but make it explicit.
             if path.stat().st_size == 0 and path.suffix == '.txt':
                 path.write_text('[No speech detected]\n', encoding='utf-8')
             final = publish(path, dest / path.name, allow_empty=(tool == 'transcribe' and path.suffix == '.srt'))
-            published.append({'name': final.name, 'path': str(final), 'size': final.stat().st_size})
+            published_paths[str(path)] = str(final)
+            stat = final.stat()
+            published.append({'name': final.name, 'path': str(final), 'size': stat.st_size,
+                              'source_stat': {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}})
             json_write(manifest, {'outputs': published, 'warnings': warnings, 'complete': False})
         result = {'outputs': published, 'warnings': warnings, 'complete': True}
         json_write(manifest, result)

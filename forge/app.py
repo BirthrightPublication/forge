@@ -19,7 +19,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import ValidationError
 from . import __version__
-from .core import ROOT, TOOLS, Store, absolute_path, dependency_state, no_window, passwords, safe_name
+from .core import ROOT, TOOLS, PRIVACY_TOOLS, Store, absolute_path, dependency_state, no_window, passwords, safe_name
 from .models import JobRequest, OPTION_MODELS, Password, Pick, Preset, QueueAction, Register, Settings
 from .queue import QueueManager, public_job
 from .auth import BrowserSessions
@@ -136,7 +136,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     @app.get('/assets/{name}')
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
-                        'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js'}:
+                        'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
+                        'privacy_v5.js','privacy_v5.css'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -250,6 +251,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     @app.post('/api/jobs')
     def enqueue(body: JobRequest):
         require_feature(app, body.tool)
+        if body.reference_sources and body.tool not in {'audio_fingerprint','video_fingerprint'}:
+            raise ValueError('Saved fingerprint references apply to the fingerprint labs only.')
         try:
             options = OPTION_MODELS[body.tool].model_validate(body.options).model_dump()
         except ValidationError as exc:
@@ -260,7 +263,9 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
             raise ValueError('Wi-Fi QR contents stay in memory. Use QR Studio Preview or Download instead of the persistent queue.')
         settings = store.settings()
         entries = []
-        if body.tool in {'transcribe','retune','metadata'}:
+        comparison_sources = []
+        references = []
+        if body.tool in {'transcribe','retune','metadata'} | PRIVACY_TOOLS:
             if not body.sources:
                 raise ValueError('Add at least one source file.')
             for id in dict.fromkeys(body.sources):
@@ -269,6 +274,14 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
                 if p.suffix.lower() not in TOOLS[body.tool]['accept']:
                     raise ValueError(f'{p.name}: this format is not supported by {TOOLS[body.tool]["title"]}.')
                 entries.append((source['name'], source, None))
+            if body.tool in {'audio_fingerprint','video_fingerprint','privacy_verify'}:
+                from .media_api import registered_sources
+                selected = registered_sources(store, body.sources)
+                if body.tool == 'privacy_verify' and len(selected) < 2:
+                    raise ValueError('Select the original first and at least one processed copy to compare.')
+                comparison_sources = selected[1:]
+                entries = [(selected[0]['name'] + (f' + {len(comparison_sources)} comparisons' if comparison_sources else ''), selected[0], None)]
+                references = registered_sources(store, body.reference_sources, references=True)
         elif body.tool.startswith('download_'):
             if not body.urls:
                 raise ValueError('Paste at least one HTTP or HTTPS media URL.')
@@ -289,11 +302,20 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
         planned = []
         batch_id=uuid.uuid4().hex
         for label, source, url in entries:
+            plan = None
+            if body.tool in PRIVACY_TOOLS:
+                from .media_api import validate_media_options
+                plan = validate_media_options(body.tool, Path(source['path']), options, settings)
             folder = destination(body.output, source, settings)
             payload = {'tool':body.tool,'options':options,'settings':settings, 'destination':str(folder), 'source':source, 'url':url, 'batch_id':batch_id}
             if source:
                 stat = Path(source['path']).stat()
                 payload['source_stat'] = {'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
+            if body.tool in PRIVACY_TOOLS:
+                payload.update(original_source=source, original_source_stat=payload['source_stat'],
+                               comparison_sources=comparison_sources, reference_sources=references,
+                               asset_snapshots=plan.get('asset_snapshots', []),
+                               processing_plan=plan)
             planned.append((label, payload))
         with manager.lock:
             manager.check_accepting()
@@ -416,4 +438,6 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount_media(app,store)
     from .entitlements import mount as mount_entitlements
     mount_entitlements(app)
+    from .media_api import mount as mount_media_privacy
+    mount_media_privacy(app,store,manager)
     return app
