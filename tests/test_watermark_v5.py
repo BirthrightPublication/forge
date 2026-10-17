@@ -244,8 +244,9 @@ def test_network_protocols_are_restricted(monkeypatch):
     assert captured[1].count('-protocol_whitelist') == 2
 
 
-def test_progress_is_based_on_actual_encoded_time(media, tmp_path):
+def test_progress_is_based_on_actual_encoded_time(media, tmp_path, monkeypatch):
     updates = []
-    watermark.process(media[0], tmp_path, {}, {}, {'progress': lambda *args, **kwargs: updates.append((args, kwargs))})
+    monkeypatch.setattr('forge.worker.progress', lambda *args, **kwargs: updates.append((args, kwargs)))
+    watermark.process(media[0], tmp_path, {}, {}, {'tool': 'watermark', 'source': str(media[0])})
     assert updates[0][1]['progress_measured'] is False
     assert any(item[1]['progress_measured'] and item[0][0] > 0 for item in updates)

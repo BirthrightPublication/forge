@@ -1,56 +1,41 @@
-# FORGE V0.4 validation report
+# FORGE V0.5 validation report
 
-Target: Windows 11 local browser application. Validation host: Linux x86-64, Python 3.12.14, system Chromium and FFmpeg. Prior V0.3 reports and its superseded browser harness are archived under `docs/history/v0.3`; their counts are not included below.
+Validated 16 October 2026 (America/Los_Angeles) in the Linux cloud environment. V0.5 is a release candidate on the development branch; review/merge and a stable V0.5 GitHub release remain pending. V0.4 is the published stable release.
 
-## Executed results
+## Results
 
-| Check | Result |
-|---|---|
-| Final Python unit/API/worker/media/updater suite | **352 passed**, no skips, 24.68 seconds |
-| Direct Chromium browser checks | **207 passed**: Studio 98, Black Scripting 26, generators 83; zero uncaught JavaScript errors |
-| Real worker behavior | Concurrent QR/FFmpeg work, retune→metadata chain, dependency routing, cancellation/retry, source/output preservation passed |
-| Metadata integration | JPEG/PNG/WebP pixel preservation, orientation handling, embedded EXIF thumbnail removal, real FFmpeg subtitle/attached-cover removal and audio preservation passed |
-| Independent QR decoding | PNG and rasterized SVG decoded with ZXing for text, URL, contact and Wi-Fi, including Unicode, escaping, colors and quiet zones |
-| Upgrade and code rollback | V0.1→V0.4, V0.2→V0.4, V0.3→V0.4 passed with real candidate API and queued QR execution |
-| Preservation per upgrade path | All 8 original scripts, 10 private file markers, prior settings/presets/history and outputs preserved; original code bytes restored on rollback |
-| V0.4 compatibility after upgrade | Eleven-tool registry, offline grants, legacy-script projection and memory-only generators worked; new script/config-preset records survived rollback |
-| Source/dependencies | Python compilation, all seven JS syntax checks, Git whitespace and pip consistency passed |
-| Cloud startup | V0.4 authenticated API, eleven-tool registry and real QR output passed in the prepared environment |
+- **478 Python tests passed**, including all retained V0.4 regressions and 126 added media-privacy/API/pipeline checks. One upstream Starlette/AnyIO deprecation warning; no test failures.
+- **34 watermark tests passed** again after the measured-progress callback integration was finalized; this is part of the 478-test suite, not 34 additional distinct tests.
+- **324 real Chromium checks passed**: Studio 127, Media Privacy 88, Black Scripting 26, generators 83. No JavaScript errors. Desktop, keyboard and 390-pixel mobile layouts exercised; 22 reviewed screenshots are in `screenshots/v0.5/`.
+- Real incremental upgrades and code rollback passed from **V0.1, V0.2, V0.3 and V0.4**. Existing environments, tools, originals, models, settings, preset data and history remain preserved. V0.4 Black Scripting definitions, generator presets and Auto concurrency settings survive. The candidate performs a real privacy export, checks source and pixel preservation, verifies metadata/report output, and retains job history and outputs through rollback.
+- JavaScript syntax and Python test-harness compilation passed. Source/package manifests are checked with the actual updater.
 
-One upstream Starlette/AnyIO deprecation warning remains. Core runtime dependency pins are unchanged. `zxing-cpp` is a development-only independent test decoder; it is not a production QR dependency.
+The recorded source-candidate upgrades are in `UPGRADE_INTEGRATION.json`. Documentation is finalized after those runs; the final ZIP's exact SHA-256 and repeated artifact upgrade results are supplied as `FORGE-v0.5-VALIDATION.json` beside the ZIP. An archive cannot include a checksum of itself.
 
-## Behavioral coverage
+## What was exercised
 
-Queue checks cover manual/Auto ceilings, CPU/GPU/network/disk constraints, unknown telemetry, measured VRAM with conservative budgets, ambiguous device mapping, destination-volume space, dependency order, concurrent real workers, restart persistence, failure/cancellation/retry and bulk record removal without physical deletion. Old active and failed records remain visible beyond the 500-record terminal history window. Windows association opening is tested with mocks for media/plain transcripts and rejects executable/active-document/symlink escapes. These are simulated Windows/GPU cases, not evidence of native execution or inference performance.
+Watermark tests encode and decode real video/audio: text and logo marks, repeated placements, timing/fades/motion, actual five-second previews, audible inserted clips, source preservation, audio-only video-packet copying, and CPU fallback. The NVIDIA path is capability/fallback tested; physical NVIDIA encoding is not claimed. Progress uses FFmpeg output rather than invented percentages.
 
-Black Scripting tests cover initially empty workspaces, versioned nodes/connections, all editing actions, immutable preset snapshots, save/rename/duplicate/import/export, legacy non-mutating projection, malformed/branched/cyclic definitions, preview fingerprints, disabled nodes and real retune→metadata processing. Existing legacy workflow tests still pass.
+Fingerprint tests calculate actual Chromaprint where available, local spectral profiles, video hashes, frame/spectrogram previews, portable references, batch comparisons and changed/silent inputs. Similarity is descriptor agreement, not a probability or proprietary-service recognition prediction. The tests exercise bounded local decoding and deny external media protocols.
 
-Generator tests cover bounded policies, required alphabets/exclusions, secure choices, synthetic country formats, reserved-domain emails, formula-safe exports, presets, private value non-persistence and entitlement denial. Browser tests use actual downloads and generated batches. Timer behavior uses Chromium's virtual clock; hidden-tab behavior is an explicitly simulated event. Navigation/search clearing and all four real tool APIs are independently exercised.
+Tracking and privacy tests inspect and remove real metadata, preserve or remove selected streams/subtitles/attachments/artwork/chapters, compare actual before/after fields, verify collision-safe report paths, and retain source bytes. Reports are optional, HTML is escaped, disabled reports are not silently retained, and inspection-only script nodes pass unchanged media forward while retaining the immutable original identity.
 
-Media checks verify actual pixels, audio hashes, metadata structures and independently decoded QR payloads. ASR-duration and downloader-progress regressions use mocked adapters: unknown duration, estimated byte totals and playlist scope do not claim measured whole-job progress. Full ASR, speaker or website execution is not implied.
+C2PA uses the optional pinned `c2pa-python==0.38.0` reader on actual plain, signed and tampered media. Tests distinguish signature validity, media binding and issuer trust, and verify that a remote-manifest fixture makes no HTTP request. Missing credentials and unsupported formats are separate outcomes.
 
-Direct browser tests load served assets through a real loopback service and consume one-use launcher tickets, then test remembered normal tabs. They cover accessible icon tabs, retained draft values, visible output controls, all tool/navigation views, queue actions/details, real QR/metadata jobs, generator exports/presets, the Black Scripting workbench and responsive widths down to 390 px. Large-history records are explicitly labeled database fixtures in disposable data; those fixtures do not substitute for real worker tests. Screenshots show the implemented interface.
+Queue and Black Scripting checks exercise all seven new operations, immutable source/asset snapshots, dependencies, cancellation/retry, reportless chains, original-source verification and existing resource admission. CPU/disk work and GPU encoder estimates remain distinct; concurrency never exceeds five.
 
-## Reproduction and artifact verification
+## Public-source review
 
-```text
-.venv/bin/python -m pytest -q
-.venv/bin/python tests/browser_v4_check.py --runtime <disposable-runtime.json> --output <evidence-directory> --allow-test-writes
-.venv/bin/python tests/browser_black_scripting_check.py --output <evidence-directory> --allow-test-writes
-.venv/bin/python tests/browser_generators_check.py --output <evidence-directory>
-.venv/bin/python tests/integration_upgrade.py --base <prior-zip> --build <candidate-zip> --output <new-disposable-directory> --allow-test-writes
-```
+Historical and current source plus documentation images were scanned and inspected for credentials, identifying metadata and private files. An unused machine-identifying Windows shortcut was removed from unpublished history and rebuilt release packages. Personal historical Git contact metadata was replaced with a neutral development identity; exact originals are privately archived. The existing MIT terms were retained with owner approval. No model weights, media libraries, private inputs, databases or runtime tokens are distributed.
 
-The two domain browser harnesses start and clean up their own temporary runtimes. The Studio harness requires an explicitly selected disposable runtime and changes its settings/jobs; never use production data. On Windows substitute the appropriate Python executable. System FFmpeg/FFprobe and Chromium are needed for these development checks.
+## Limits and outstanding acceptance
 
-`BROWSER_CHECKS.json`, `BROWSER_TEST_RESULTS.txt`, `PYTHON_TEST_RESULTS.txt`, `UPGRADE_INTEGRATION.json` and screenshots contain current evidence. The packaged report describes the pre-evidence candidate; the exact final ZIP is independently installed and rolled back again from all three baselines. Final hash/results accompany the ZIP. Final application/test source hashes are compared against the validated source/candidate when assembling delivery. The manifest covers all packaged application files and excludes user data/environments/models/tools.
+- No native Windows 11 BAT/PowerShell/Explorer/NTFS/antivirus acceptance was run in this Linux environment. The updater's Python path and preservation/rollback behavior were exercised.
+- No physical NVIDIA/CUDA encode or actual optional speech/speaker model inference was run. No performance promise follows from hardware detection.
+- Browser playback depends on installed browser codecs. Edge, Brave and Firefox are not separately certified.
+- No external recognition database, inaudible watermarking, arbitrary steganography detection, watermark-removal guarantee or anonymity guarantee is implemented.
+- Offline provenance inspection does not fetch manifests, issuer trust lists or revocation status. Missing/untrusted/unsupported states require interpretation.
+- Metadata deletion can leave required technical tags; re-encoding can change quality, color and provenance. Standard stream-copy exports reject incompatible retained streams instead of silently losing them.
+- Windows shortcut omission affects only new source packages; installed user-owned original scripts and shortcuts remain preserved.
 
-## Remaining acceptance checks
-
-- Native Windows BAT/PowerShell/bootstrap, Explorer/Tk, shortcuts/Send-to, NTFS locks/ACLs, antivirus and power-loss behavior.
-- Windows 11 Edge/Brave/Firefox acceptance; direct browser execution here used Linux Chromium.
-- Physical CUDA memory/inference behavior, optional transcription/speaker models, live downloads and target-phone QR scanning.
-- Exact visual comparison/custom icon integration: the screenshot, icon and video/transcript referenced in the brief were not attached. Existing branding and a local SVG icon are used provisionally.
-- Production billing, account/device activation, signed-license cryptography and signed release distribution are intentionally absent. V0.4 supplies offline development grants and adapter boundaries only.
-
-For Windows acceptance, put the intact V0.4 ZIP in `B:\Forge\Build`, finish/cancel queued work and run `B:\Forge\Update FORGE.bat`. Confirm V0.4, open a second normal browser tab, run a short disposable media chain and QR job, inspect all outputs and check existing presets/history. Keep `Backups` intact for the verified code-rollback path.
+See `V05_RELEASE.md` for exact feature boundaries, `COMMERCIAL_DEPENDENCIES.md` for dependency terms, `BUILD.md` for reproducible commands and `UPDATE_GUIDE.md` for installation/recovery.

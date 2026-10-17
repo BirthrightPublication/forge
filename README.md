@@ -1,8 +1,10 @@
 # FORGE — Local Production Studio
 
-**V0.4.0 · Studio, Queue 3.0 and Black Scripting · Windows 11 · 16 October 2026**
+**V0.5 release candidate · Media Privacy & Watermark Studio · Windows 11**
 
-A Windows-local production studio opened in your default browser. V0.4 adds compact tool workspaces, a resource-aware queue, the Black Scripting visual workbench and four local generators while retaining V0.3 authorization, processing and update recovery. Application source is included; your original batch files are kept for reference and are not executed by the web service.
+A Windows-local production studio opened in your default browser. V0.5 adds seven Media Privacy tools for ownership watermarks, local fingerprint comparisons, metadata/provenance inspection and verified exports. Existing production tools, Queue 3.0, Black Scripting, local generators and updater recovery remain available. Application source is included; your original batch files are kept for reference and are not executed by the web service.
+
+This V0.5 release candidate awaits final artifact validation, merge review and publication. These notes describe the implemented interfaces, not a published V0.5 release or completed Windows/GPU acceptance. Exact V0.4 documentation, test reports and screenshots are preserved in [the V0.4 archive](docs/history/v0.4/README.md), with file hashes in its `ARCHIVE_MANIFEST.json`.
 
 ## Source and releases
 
@@ -12,7 +14,7 @@ Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules,
 
 ## Update the existing installation
 
-Save `FORGE-v0.4.zip` in **`B:\Forge\Build`**, without extracting it. Replace the standalone **`Update FORGE.bat`** in **`B:\Forge`** with the V0.4 copy supplied alongside this release. This also brings the external recovery updater up to date. Finish or cancel active/queued work, then double-click the BAT and press Enter to update.
+When the validated V0.5 package is supplied, save the intact `FORGE-v0.5.zip` in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Do not treat an unvalidated candidate checkout as a finished release archive.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 
@@ -20,18 +22,46 @@ The update is local: no dependency or model installation is performed. Backups a
 
 For a new installation only, extract the ZIP, run `Setup FORGE.bat`, then `Open FORGE.bat`. Setup uses installed 64-bit Python 3.11–3.13 with Tcl/Tk and creates a private `.venv`. It asks before downloading core dependencies. Start-menu/taskbar/Send-to integration uses the existing Windows launcher setup.
 
-## What changes in V0.4
+## What changes in V0.5
 
-- Compact charcoal/gold tool pages with centered inputs, accessible icon tabs, retained per-tool settings, presets and visible Start/Add to Queue controls.
-- Queue 3.0 has Active & Queued, Failed and History tabs; selection, dispatch pause/resume, cancellation, retry, order changes, output details and record removal that retains physical files. Auto or manual limits admit at most five workers, constrained by CPU, GPU, network and disk budgets.
-- **Black Scripting** opens from the global gold header control, outside the normal sidebar. Start with an empty horizontal chain, add known media operations, edit their settings or preset snapshots, disable/reorder/duplicate nodes, choose an output and preview dependencies before submitting. Linear versioned JSON scripts support save, duplicate, rename, import and export.
-- **Identity Studio**, **Obfuscation Studio**, **Random Address Generator** and **Random String Generator** share bounded generation, configuration presets and explicit TXT/CSV/JSON export. Names/addresses are fictional or synthetic. Generated values stay out of job history and presets; secure strings use OS entropy. Supported region vocabularies and country formats are listed in each tool.
-- **Metadata Hyper Cleaner** adds Standard/Maximum privacy reduction, actual embedded-preview inspection where supported and opt-in before/after or remaining-data reports. **QR Studio** supports text/URL/contact/Wi-Fi, color/size/quiet zone, PNG/SVG previews, bulk ZIP export and local content presets. Wi-Fi credentials are memory-only and cannot be queued or saved in presets.
-- Stable Birthright module IDs, entitlement/provider interfaces, offline policies and signed-license adapter boundaries are present. The default development provider grants every feature offline. No billing, activation, identity collection or remote license transport is implemented.
+- **Media Privacy** groups seven workspaces behind one sidebar entry, with internal tool navigation, existing compact settings tabs, source-specific processing plans and local evidence views.
+- **Watermark Studio** encodes text/logo marks and audible ownership clips; it supports placements, repeat patterns, configurable movement/timing/fades, presets, batches and actual encoded previews. NVIDIA encoding is attempted when available, with CPU fallback.
+- **Audio Fingerprint Lab** and **Video Fingerprint Lab** measure local descriptor agreement, provide spectral/frame evidence, and compare selected media with explicitly retained local references. Scores describe the selected method; they are not anonymity scores or recognition probabilities.
+- **Media Tracking Auditor** and **Content Credentials Inspector** report parser-visible metadata, stream characteristics and available C2PA evidence. Signature integrity, issuer trust and media binding remain distinct findings.
+- **Media Privacy Exporter** provides Standard, Advanced and Custom policies. **Privacy Verification Lab** compares the actual original/output files, remaining metadata and optional signal/frame similarity. Reports have explicit retention controls.
+- **Black Scripting** accepts the seven new operations. Inspection nodes pass the same media to the next operation; verification can compare the chain's original with the actual transformed output. Existing saved V0.4 scripts remain usable.
+
+The compact charcoal/gold Studio, Queue 3.0 controls, four local generators, Metadata Hyper Cleaner, QR Studio and offline entitlement foundation from V0.4 are retained. The default development provider grants features offline; no new billing, activation, media upload, or remote fingerprint index is introduced.
 
 V0.3's local Smart Update Manager and recovery protections are retained. Environment → Application and package updates → Check local build folder reads local ZIPs, verifies compatibility and shows rollback availability. Update/rollback console actions retain final native confirmation.
 
-Read [the V0.4 feature and compatibility notes](docs/V04_RELEASE.md), [commercial dependency review](docs/COMMERCIAL_DEPENDENCIES.md), [update guide](docs/UPDATE_GUIDE.md), and [validation report](docs/TEST_REPORT.md).
+Read [the V0.5 candidate and compatibility notes](docs/V05_RELEASE.md), [commercial dependency review](docs/COMMERCIAL_DEPENDENCIES.md), and [update guide](docs/UPDATE_GUIDE.md). Check the version stated in [the validation report](docs/TEST_REPORT.md); archived V0.4 evidence does not validate V0.5.
+
+## Use the Media Privacy tools
+
+Open **Media Privacy**, choose its internal tool tab, and add local sources using Native browse or pasted absolute paths. Browser staging remains available with its existing copy/destination disclosure. Configure the compact settings sections, choose an output directory and review **Processing plan** before **Start** or **Add to Queue**. The source files are preserved. Completed jobs expose saved outputs and, when JSON reporting is enabled, **View evidence**.
+
+| Tool | Practical starting point |
+|---|---|
+| Watermark Studio | Choose Video, Audio or Both. Enter text or select a local PNG/JPEG/WebP logo; choose a font preset or local TTF/OTF. For audible identifiers, select a recorded announcement or owned audio clip. Set placement, timing and output, then use **Encode preview** before queuing. |
+| Audio Fingerprint Lab | Add the baseline recording first, followed by comparison recordings. Choose the analyzed initial window and report formats. The lab compares each subsequent input with the first and shows spectral evidence; Chromaprint is used only when the installed FFmpeg supports it. |
+| Video Fingerprint Lab | Add the baseline video first and other versions next. Choose sample count, initial time window or explicit frame times. Inspect sampled frames, descriptor agreement and the sampled comparison timeline. |
+| Media Tracking Auditor | Select media and choose whether to include provenance or fingerprints. Review categorized metadata, streams, attachments/previews and method-specific findings. Inspection leaves the source unchanged. |
+| Media Privacy Exporter | Choose Standard to remove supported descriptive metadata while retaining compatible extras, Advanced to remove subtitles/artwork/attachments/chapters as well, or Custom to choose individual policies. Keep re-encoding off for compatible stream copy; review the actual source-specific plan. |
+| Content Credentials Inspector | Install the optional local C2PA reader if needed, then inspect embedded manifests, assertions, signature integrity, issuer trust and media binding. Unsupported and unknown results remain explicit. |
+| Privacy Verification Lab | Add the original first and its processed copy second. Enable optional audio/video comparisons and report saving as needed. Inspect actual remaining fields, stream/codec differences and supported comparison evidence. |
+
+The watermark preview is a real encoded excerpt of the first five seconds, not a player-only overlay. Later scheduled marks appear in the full export. Preview playback is temporary and clears on navigation or after five minutes; queue the full job to retain an output. Visible overlays require a new 8-bit H.264 encode, which can alter HDR/color fidelity. Audio-only watermarking can copy the original primary video while encoding the audio mix. Audible insertions must not overlap; up to 100 insertions and clips up to five minutes are supported. There is no automatic speech synthesis or claim of robust inaudible watermarking.
+
+Fingerprint reports default to JSON and HTML; reusable raw references are **off** until **Retain reference** is selected. To compare a saved reference later, use **Compare retained local references** and browse/paste its `.forge-fingerprint.json` path. FORGE does not build a hidden media index or contact an acoustic lookup service. Imported references are user-supplied descriptors, not authenticated proof of a recording's origin. A comparison accepts at most 20 media/reference records.
+
+Audit and provenance reports default to enabled. Privacy Exporter and Privacy Verification Lab default to **not saving** private reports; verification still runs. Disabling reports does not erase the normal queue record, source paths, selected options or brief completion findings. Reports and frame previews may expose original metadata, filenames and recognizable content. Select retention deliberately and review files before sharing; see [the detailed retention table](docs/V05_RELEASE.md#report-and-reference-retention).
+
+### Optional Content Credentials setup
+
+FFmpeg/FFprobe and the existing Pillow dependency provide the core watermark, metadata and fingerprint operations. The optional reader is `c2pa-python==0.38.0`. Stop FORGE, run **`scripts\Install Media Privacy.bat`**, review the package-download prompt, approve it if desired, then reopen FORGE and check **Local inspection capabilities**. The installer contacts PyPI to obtain packages; media inspection itself stays local. It does not download a separate GPU runtime or change model caches.
+
+C2PA inspection disables remote manifest retrieval, online revocation checks, remote identity resolution and trust-list refresh. It reads the explicitly selected media, not automatically discovered sibling sidecars. A valid signature or signed assertion is not independent proof of every asserted fact; an untrusted issuer and invalid signature are different results. Missing or unsupported credentials do not prove anonymity. FORGE does not create, sign or forge Content Credentials.
 
 ## Bookmark and browser authorization
 
@@ -55,7 +85,7 @@ This remains a trusted, single-user local application. It binds to IPv4 loopback
 | Downloads | One job per URL; audio/video format and quality controls, bounded playlist ranges, available human/automatic subtitle sidecars, three safe filename layouts, optional explicitly supplied cookies file |
 | QR / generators | Local QR PNG/SVG/contact/Wi-Fi/bulk preview; passwords/tokens/aliases/fictional addresses with explicit export and no generated-value history |
 | Queue | Total and resource-specific limits, persistent order, selected-job actions, dependency blocking, workflow group cancellation/retry, stage/speed/ETA when measurable |
-| Black Scripting | Empty visual workbench, up to 24 versioned linear nodes, preset snapshots, previewed dependency plan, retune/metadata followed by optional transcription |
+| Black Scripting | Empty visual workbench, up to 24 versioned linear nodes, preset snapshots, previewed dependency plan, retune/metadata plus all seven Media Privacy operations, followed by optional final transcription |
 | Environment | Guided optional installers, isolated read-only GPU diagnostics, model cache inventory, consented model-download jobs, release metadata checks and export settings |
 | Navigation | Optional pinned tools and a scrollable navigation region that keeps Environment accessible in shorter windows |
 
@@ -83,9 +113,11 @@ Select that directory, enable speaker labels, and set plausible minimum/maximum 
 
 Auto adjusts the configured ceiling (up to five workers) to measured CPU/system-memory pressure. Manual uses the configured ceiling. CPU, GPU/Auto-transcription, network and disk caps further constrain dispatch. NVIDIA free VRAM is measured through nvidia-smi where available and compared with explicitly estimated model budgets plus a reserve. Missing GPU telemetry serializes GPU work; it does not display invented memory values. Matching GPU models are serialized rather than loaded concurrently. Auto transcription conservatively reserves a GPU slot even if it later falls back to CPU. Model downloads do not run alongside speech inference using the shared cache. Limits take effect for new dispatch; changing them does not forcibly terminate current work.
 
+Visible watermark jobs using Auto/NVIDIA also reserve a GPU lane with a labeled encoder-memory estimate, plus CPU and disk capacity for filtering and fallback. Audio-only watermarking and inspection jobs use their CPU/disk limits. Detection of an NVIDIA device and encoder does not guarantee a particular encode will succeed; CPU fallback is reported in the completed job.
+
 Move queued jobs up/down. Priority does not break dependencies or preempt a running task. **Pause dispatch** stops new starts, not an in-progress encoder. **Retry** starts new work from the beginning and never claims checkpoint-level continuation. Failed, cancelled or interrupted parents block their dependent steps.
 
-Black Scripting creates an independent chain for each source. They pass the parent's actual published media output, including any collision-safe filename, to the next step. Each step uses the selected export destination and keeps completed intermediate files. Transcription must be last because its outputs are text. Current Black Scripting nodes accept Standard/Maximum wipe and supported media selective/edit options. The legacy workflow API retains its old restriction for compatibility. Download-to-workflow chaining, visual branches and arbitrary shell/script steps are not included.
+Black Scripting creates an independent chain for each source. Transform steps pass their actual published media output, including any collision-safe filename, to the next step. Inspection/fingerprint/provenance nodes leave the media unchanged and pass it onward, even when reports are disabled. Verification nodes compare the chain's original with the current actual media; a JSON report is never substituted for the next step's media input. Each step uses the selected export destination and keeps completed intermediate files. Transcription must be last because its outputs are text. Current nodes accept Standard/Maximum wipe and supported media selective/edit options. The legacy workflow API retains its old restriction for compatibility. Download-to-workflow chaining, visual branches and arbitrary shell/script steps are not included.
 
 Saved scripts retain their own option snapshots, even if an underlying tool preset changes later. Retrying an entire group creates new linked jobs and new non-overwriting outputs. Retry a group rather than separately retrying a child whose parent did not complete.
 
@@ -95,7 +127,7 @@ The UI lists every active or failed job plus the latest 500 records; older finis
 
 Native browse, pasted absolute paths and Explorer Send to preserve the real source path. Browser drops do not reliably expose that path; FORGE creates a clearly labeled local staging copy and changes output selection to a default/custom export location. Use native-path input for reliable same-folder export and to avoid copying large media unnecessarily.
 
-Output modes are source folder, custom directory, last custom directory and default export folder, with an optional simple subfolder. File names receive descriptive suffixes and collision-safe numbered alternatives. There is no replace-original mode. Processing happens in job-owned staging directories; outputs are verified before publication. If a source changes after queuing, the job requires review/retry rather than silently processing a different input.
+Output modes are source folder, custom directory, last custom directory and default export folder, with an optional simple subfolder. File names receive descriptive suffixes and collision-safe numbered alternatives. There is no replace-original mode. Processing happens in job-owned staging directories; outputs are verified before publication. If a source changes after queuing, the job requires review/retry rather than silently processing a different input. V0.5 also snapshots selected comparison sources, retained references and watermark assets, and rechecks them before use.
 
 Media metadata editing remuxes compatible streams without intentionally re-encoding. Images support wipe only; JPEG/PNG/WebP compressed image data is retained where supported and no orientation transform is required. Orientation correction can re-encode. Standard preserves compatible color profiles/subtitles; Maximum removes them, which can affect color appearance. Capability reports disclose each format boundary. Metadata reduction is not an anonymity guarantee: visible content, steganography, watermarks, filenames, filesystem history and necessary container/codec tags can remain. Orientation is applied before image metadata removal; stripping a color profile may change appearance. PDF, Office and animated-image sanitization remain unsupported.
 
@@ -115,6 +147,6 @@ Release checks contact PyPI for version metadata only. Optional startup checks a
 
 ## Tests and build source
 
-See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json`. Automated checks ran on Linux. Native Windows BAT/PowerShell/Explorer integration, Edge/Brave/Firefox acceptance, actual speech/speaker inference, GPU performance and live website downloads remain local acceptance checks.
+See `docs/TEST_REPORT.md`, `docs/PYTHON_TEST_RESULTS.txt`, `docs/BROWSER_CHECKS.json` and `docs/UPGRADE_INTEGRATION.json`, checking their stated version. Final artifact validation and release review remain pending while this document identifies a release candidate. The exact V0.4 evidence is archived under `docs/history/v0.4`; its results do not certify V0.5. Automated media tests use local Linux fixtures. Native Windows BAT/PowerShell/Explorer integration, Edge/Brave/Firefox acceptance, actual speech/speaker inference, NVIDIA hardware/performance and live website downloads remain local acceptance checks.
 
 `python -m pytest` runs unit/API/media/updater tests after installing development requirements. The browser and full-upgrade harnesses require explicit disposable directories and test-write consent; never point them at production data. `scripts/package_release.py` creates a manifest-verified source release in a selected output directory and excludes data/environments/tools. Existing Windows users should use the supplied updater, not run the packaging script.

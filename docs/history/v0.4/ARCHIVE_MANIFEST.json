@@ -1,0 +1,32 @@
+{
+  "scope": "Exact current V0.4 documentation and validation evidence archived before V0.5 documentation edits",
+  "source_commit": "1692af220bbe82035c6227f2bf81fd526d9dcde9",
+  "files": {
+    "README.md": "f677ac52314613f41f2e83d348a417bfa87f9a83ba35ddd13244018b1bf1baa3",
+    "CHANGELOG.md": "87bb433fdb326cfa73df168aa3ec2aa89c41133a913221ab0d0f6221cadebe5f",
+    "docs/COMMERCIAL_DEPENDENCIES.md": "536ef7e86e5cb9a0438876f437f60f71309f9fd467b9fdab76cb490576baf7e8",
+    "docs/V04_RELEASE.md": "3dae3cb8f511527d1e61129ff71f8d248ead3bc378e0d9980a75dbca1349d705",
+    "docs/TEST_REPORT.md": "9bffb8f0d7c848c8530ce70ebddd3bbce2d4f2bf7f66da6b90209251322fa650",
+    "docs/PYTHON_TEST_RESULTS.txt": "7582a07f9fa07718655f5436c68ba9317f46b9efebad81d67294ae8ae9b7f69e",
+    "docs/BROWSER_CHECKS.json": "87e0aa3c2d893a6e6d78bda46f883ece11fdd6626e2a20f4e471599750b38adb",
+    "docs/BROWSER_TEST_RESULTS.txt": "07cf979737acf2a8e42619beaea874a6cc15e3461dd421a29c608b81f004c23d",
+    "docs/UPGRADE_INTEGRATION.json": "94566f77b6068dc2dfaaf35e9b266953d56c98989a630ae557cfa192382deaa9",
+    "docs/UPGRADE_INTEGRATION_LOG.txt": "bf6dd6de974aeeed1ee15e11ed5c5f9e88e5c968a3731154464f3abcbdce791d",
+    "docs/previews/FORGE-V0.4-black-scripting-empty.png": "8507a844d19a4ca57bea549695f3b3907b3691401736af9500cfb6545eccce35",
+    "docs/previews/FORGE-V0.4-environment-updates.png": "0ab46912f3bee78014de9e2840f2843082608daefb121f057ff9e182233271ef",
+    "docs/previews/FORGE-V0.4-generators-390px.png": "de383baa0cc1835f79353d324af03777106f57b002ca93736025b71ae397244e",
+    "docs/previews/FORGE-V0.4-generators-768px.png": "bc411fdc09b1f5e4ab77824fe3f21f00345d341e4b5be3c146ef412639ba8b05",
+    "docs/previews/FORGE-V0.4-generators-desktop.png": "24d148ee6bf51cc4072b284c12507c1fed3a11375f3c88061ee17801a41509d1",
+    "docs/previews/FORGE-V0.4-overview.png": "36eb41f20f8053fadd40af281987c8dba728bc25136e6d983e8f3b66fc9e61f6",
+    "docs/previews/FORGE-V0.4-queue-active.png": "2172016d5eeb6bda8719c15f0087c7af2db4350787c14aeea033f3a8a16b07ef",
+    "docs/previews/FORGE-V0.4-queue-history.png": "20a21f0c25e156532fb715d0c6dcbf687d26f6ca17070229fd380de3bf226ad4",
+    "docs/previews/FORGE-V0.4-transcribe-390px.png": "605d3c2dda7554e559863fb80622ce04fabc9d159fbf2c827c1543c05c8880e0",
+    "docs/previews/FORGE-V0.4-transcribe-900px.png": "fd0fb91c96d06fb71660f9f142f4e4c79257ad7c76673687117f5b813fff5a32",
+    "docs/previews/FORGE-V0.4-transcribe.png": "62252d1d71f0caed8521a8b6d3c7a4ebfc3fe85c259a4eaedf2bcf203a308ff7",
+    "docs/previews/FORGE-v0.4-workbench-chain.png": "13245a654e2110b577a3ffc41f496448c67227aa575db004aa5ebe208bc91573",
+    "docs/previews/FORGE-v0.4-workbench-empty.png": "7540780fb10d5d6eb26f046ec210befa2a79dbf32606f5fdff04dc70ae7753f2",
+    "docs/previews/FORGE-v0.4-workbench-mobile.png": "f768934dcd6a7d66122d0e99ca2ddde4e870f1202cc964ace14eaeb6634908c4",
+    "docs/previews/FORGE-v0.4-workbench-plan.png": "782878f7726d2654814d9a8ccadd7d3d2afb2264929c4078027217bc9ead6733",
+    "docs/previews/FORGE-v0.4-workbench-settings.png": "e8525ba2d33d39b2bbb78293235f64e82c4713d1e9fe40a4f4854254b45b65de"
+  }
+}

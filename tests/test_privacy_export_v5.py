@@ -256,4 +256,3 @@ def test_existing_stage_media_not_overwritten(rich_media, tmp_path):
     with pytest.raises(ValueError, match='new staged'):
         process(rich_media, stage, {}, {}, {})
     assert existing.read_text() == 'keep'
-

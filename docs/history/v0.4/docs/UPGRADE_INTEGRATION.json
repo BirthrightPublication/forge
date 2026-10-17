@@ -1,0 +1,82 @@
+{
+  "candidate_reports": [
+    {
+      "result": "passed",
+      "host": "linux",
+      "base_version": "0.1.0",
+      "candidate_version": "0.4.0",
+      "base_sha256": "63489858aa087944b0aa7097e24b072ff6ee019267de2e92e83b6ef5e6855f1e",
+      "candidate_sha256": "e9ca7d31ee40c342bf49c48624a23befcfe182868f15f819b8885fb4f10dc80f",
+      "original_files_preserved": 8,
+      "protected_files_verified": 10,
+      "baseline_workflow_favorites_tested": false,
+      "checks": [
+        "Candidate manifest and source hashes verified",
+        "Baseline installation detected at version 0.1.0",
+        "Full release installed through updater main at version 0.4.0",
+        "Code backup and separate SQLite snapshot created",
+        "Baseline settings, preset and completed history preserved",
+        "Candidate API and real QR worker executed",
+        "Code-only rollback restored original baseline file bytes",
+        "Baseline code reopened current database and retained new history/output",
+        "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+        "V0.4 registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+        "New Black Scripting and generator configuration records survive code rollback unchanged"
+      ],
+      "native_windows_execution": false
+    },
+    {
+      "result": "passed",
+      "host": "linux",
+      "base_version": "0.2.0",
+      "candidate_version": "0.4.0",
+      "base_sha256": "89856a26546eb4541eda5159e4eb3dcf31c08cd7ba54896e13011bc07f539b84",
+      "candidate_sha256": "e9ca7d31ee40c342bf49c48624a23befcfe182868f15f819b8885fb4f10dc80f",
+      "original_files_preserved": 8,
+      "protected_files_verified": 10,
+      "baseline_workflow_favorites_tested": true,
+      "checks": [
+        "Candidate manifest and source hashes verified",
+        "Baseline installation detected at version 0.2.0",
+        "Full release installed through updater main at version 0.4.0",
+        "Code backup and separate SQLite snapshot created",
+        "Baseline settings, preset and completed history preserved",
+        "Candidate API and real QR worker executed",
+        "Code-only rollback restored original baseline file bytes",
+        "Baseline code reopened current database and retained new history/output",
+        "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+        "Baseline workflow and favorites preserved through upgrade and rollback",
+        "V0.4 registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+        "New Black Scripting and generator configuration records survive code rollback unchanged"
+      ],
+      "native_windows_execution": false
+    },
+    {
+      "result": "passed",
+      "host": "linux",
+      "base_version": "0.3.0",
+      "candidate_version": "0.4.0",
+      "base_sha256": "335542cce788332177b7e0985f8c8abb3f3b86e952cc887e9daf24691a3ca5e8",
+      "candidate_sha256": "e9ca7d31ee40c342bf49c48624a23befcfe182868f15f819b8885fb4f10dc80f",
+      "original_files_preserved": 8,
+      "protected_files_verified": 10,
+      "baseline_workflow_favorites_tested": true,
+      "checks": [
+        "Candidate manifest and source hashes verified",
+        "Baseline installation detected at version 0.3.0",
+        "Full release installed through updater main at version 0.4.0",
+        "Code backup and separate SQLite snapshot created",
+        "Baseline settings, preset and completed history preserved",
+        "Candidate API and real QR worker executed",
+        "Code-only rollback restored original baseline file bytes",
+        "Baseline code reopened current database and retained new history/output",
+        "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+        "Baseline workflow and favorites preserved through upgrade and rollback",
+        "V0.4 registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+        "New Black Scripting and generator configuration records survive code rollback unchanged"
+      ],
+      "native_windows_execution": false
+    }
+  ],
+  "note": "Pre-evidence candidate. Exact final artifact is independently installed/rolled back; final hash reports accompany the delivered ZIP."
+}

@@ -1,0 +1,2 @@
+# Windows launchers intentionally retain CRLF line endings.
+*.bat whitespace=cr-at-eol

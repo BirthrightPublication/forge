@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — Release candidate
+
+- Added a Media Privacy workspace with internal navigation for Watermark Studio, Audio Fingerprint Lab, Video Fingerprint Lab, Media Tracking Auditor, Media Privacy Exporter, Content Credentials Inspector and Privacy Verification Lab.
+- Added encoded text/logo and audible-clip watermarks, placement presets, repeated patterns, bounded movement, timing/fades, local asset validation, real encoded previews and NVIDIA H.264 attempts with CPU fallback. Visible marks require a new 8-bit H.264 encode; audio-only marks can retain the original primary video packets.
+- Added local audio descriptors, spectral visualizations and optional installed-FFmpeg Chromaprint support; added sampled video perceptual hashes, color profiles, selected-frame previews and sampled comparison timelines. Results measure the selected methods and do not establish anonymity or defeat proprietary recognition.
+- Added explicit reusable local fingerprint JSON references and bounded first-input comparisons without automatic reference indexing or external media lookup.
+- Added shared parser-visible metadata/stream inspection and optional pinned C2PA inspection. Remote manifests, online revocation, remote identity resolution and trust-list refresh are disabled; signature integrity, issuer trust and media binding are reported separately.
+- Added Standard/Advanced/Custom privacy exports with source-specific stream/encoding plans, safe remux or explicit re-encode, actual output inspection and optional private JSON/HTML verification reports.
+- Extended Black Scripting with all seven operations, media-preserving inspection steps, original-to-current verification and actual collision-safe media handoffs. Saved V0.4 scripts and legacy workflow identifiers remain compatible.
+- Added comparison/reference/asset snapshots, resource-aware media dispatch, bounded local decoder protocols, report controls and optional `scripts\Install Media Privacy.bat` setup. Core processing remains usable without the C2PA package.
+- Preserved updater paths, originals, existing tools, environments, models, presets and data. Archived exact V0.4 documentation and validation evidence under `docs/history/v0.4` before editing current release notes.
+
+V0.5 final artifact validation, merge review and publication are pending. Native Windows and NVIDIA acceptance are not claimed. See `docs/V05_RELEASE.md` for capabilities, retention defaults and known boundaries.
+
 ## Repository publication — 2026-10-16
 
 - Established the authoritative GitHub repository, permanent contributor instructions and source-only exclusions.
