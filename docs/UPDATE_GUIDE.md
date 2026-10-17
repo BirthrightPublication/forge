@@ -1,4 +1,12 @@
-# FORGE V0.5 local build updates
+# FORGE V0.5 Windows updates
+
+## Installed GitHub updater
+
+If your installation contains `Update-Application.ps1`, keep that script and its `Update FORGE.bat` wrapper. Finish queued work and close FORGE before starting the wrapper. It selects the latest published GitHub release's single `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip`, verifies the matching `.zip.sha256`, and installs only the contents of `app/` after you type `UPDATE`.
+
+For V0.5.0, the matching assets are `FORGE-v0.5.0-windows-x64.zip` and `FORGE-v0.5.0-windows-x64.zip.sha256`. The package omits settings, presets, queue/history data, media, environments, models, original scripts, and the installed updater entrypoints. This updater keeps overwritten application files and a rollback manifest in `B:\Forge\Update-Backups` and logs in `B:\Forge\Update-Logs`. It does not automatically stop the application, migrate data or perform a health check after copying. See [WINDOWS_RELEASES.md](WINDOWS_RELEASES.md) for the tested contract.
+
+The remaining sections describe the **older offline build updater** and its different package, backup location and confirmation prompts. They do not require replacing your installed GitHub updater.
 
 ## Your folder layout
 

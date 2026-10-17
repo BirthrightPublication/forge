@@ -1,2 +1,4 @@
 # Windows launchers intentionally retain CRLF line endings.
 *.bat whitespace=cr-at-eol
+# Acceptance must execute the exact user-supplied updater bytes on Windows.
+tests/fixtures/windows_updater/* -text

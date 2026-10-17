@@ -1,5 +1,7 @@
 # Building and publishing FORGE
 
+Every new release must include a Windows GitHub-updater installation asset named `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` plus `.zip.sha256`, using the full version and a root `app/` directory. [WINDOWS_RELEASES.md](WINDOWS_RELEASES.md) documents its builder, tests and automatic publication. This format excludes protected updater entrypoints and local state. Preserve the existing offline package described below for users of the older updater.
+
 Use a tagged source checkout for a release. `VERSION.txt`, `forge/__init__.py`, and the tag must agree: version `0.5.0` uses tag `v0.5.0` and produces `FORGE-v0.5.zip`; patch version `0.5.1` produces `FORGE-v0.5.1.zip`.
 
 The owner approved merging and releasing V0.5.0. Its validation passed 478 Python tests, 324 real Chromium checks and upgrade/code rollback from V0.1, V0.2, V0.3 and V0.4. The release URL is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The following commands document the release procedure; they do not assert that the remote tag or assets have already been published. Distribute CI test/source information as `VALIDATION.json` and exact release-asset hashes as `CHECKSUMS.sha256` beside the ZIP. The four local upgrade runs are documented separately in `UPGRADE_INTEGRATION.json`.

@@ -1,0 +1,296 @@
+name: Tested Windows release assets
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Exact existing version tag to test and package
+        required: true
+        type: string
+      build_only:
+        description: Return tested assets to the caller without changing an existing release
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      artifact_name:
+        description: Artifact containing the tested Windows ZIP, checksum and validation JSON
+        value: ${{ jobs.finalize.outputs.artifact_name }}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact existing version tag (vMAJOR.MINOR.PATCH)
+        required: true
+        default: v0.5.0
+        type: string
+  release:
+    types: [published]
+  push:
+    branches:
+      - main
+      - development/fix-windows-release-assets
+    paths:
+      - .github/windows-release-target
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  resolve:
+    name: Select an exact existing tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.target.outputs.tag }}
+      build_only: ${{ steps.target.outputs.build_only }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - id: target
+        name: Validate the release request
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          RELEASE_EVENT_TAG: ${{ github.event.release.tag_name }}
+          BUILD_ONLY: ${{ inputs.build_only && 'true' || 'false' }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          requested = os.environ.get('REQUESTED_TAG', '')
+          if requested:
+              tag = requested
+          elif os.environ['GITHUB_EVENT_NAME'] == 'release':
+              tag = os.environ['RELEASE_EVENT_TAG']
+          elif os.environ['GITHUB_EVENT_NAME'] == 'push' and os.environ['GITHUB_REF'] in {
+                  'refs/heads/main', 'refs/heads/development/fix-windows-release-assets'}:
+              tag = Path('.github/windows-release-target').read_text(encoding='utf-8').strip()
+          else:
+              raise SystemExit('Only a reusable call, dispatch, published release or explicit backfill target can request these assets.')
+          if not re.fullmatch(r'v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', tag):
+              raise SystemExit('The exact release tag must be vMAJOR.MINOR.PATCH.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'tag={tag}\nbuild_only={os.environ["BUILD_ONLY"]}\n')
+          print('Selected existing source tag:', tag)
+          PY
+
+  build:
+    name: Test the tagged source and Windows package
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+      PYTHONUNBUFFERED: '1'
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Check out packaging tooling at the workflow commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - name: Check out the exact existing application tag separately
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: refs/tags/${{ needs.resolve.outputs.tag }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6; Node 24
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            source/requirements-core.txt
+            source/requirements-dev.txt
+            source/scripts/requirements-media-privacy.txt
+      - name: Install tagged test dependencies and local media tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
+          python -m pip install --disable-pip-version-check -r source/requirements-dev.txt
+          if [[ -f source/scripts/requirements-media-privacy.txt ]]; then
+            python -m pip install --disable-pip-version-check -r source/scripts/requirements-media-privacy.txt
+          fi
+          python -m pip check
+          mkdir -p "$RUNNER_TEMP/windows-linux-evidence" "$RUNNER_TEMP/windows-build"
+      - name: Run the complete Python suite from the exact application tag
+        working-directory: source
+        run: python -m pytest -q --junitxml="$RUNNER_TEMP/windows-linux-evidence/tagged-python.xml" | tee "$RUNNER_TEMP/windows-linux-evidence/tagged-python.txt"
+      - name: Test the new Windows packaging rules
+        working-directory: tooling
+        run: python -m pytest -q tests/test_windows_package.py tests/test_windows_publish.py --junitxml="$RUNNER_TEMP/windows-linux-evidence/windows-packager.xml" | tee "$RUNNER_TEMP/windows-linux-evidence/windows-packager.txt"
+      - name: Build and compare the filtered package with its exact tagged source
+        run: |
+          python tooling/scripts/package_windows_release.py build --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/windows-build" --tag "$RELEASE_TAG" > "$RUNNER_TEMP/windows-linux-evidence/package-build.json"
+          python tooling/scripts/package_windows_release.py validate "$RUNNER_TEMP/windows-build/FORGE-$RELEASE_TAG-windows-x64.zip" --tag "$RELEASE_TAG" --checksum "$RUNNER_TEMP/windows-build/FORGE-$RELEASE_TAG-windows-x64.zip.sha256" --source "$GITHUB_WORKSPACE/source" > "$RUNNER_TEMP/windows-linux-evidence/package-validation.json"
+          python tooling/scripts/publish_windows_release.py record-linux --tag "$RELEASE_TAG" --source "$GITHUB_WORKSPACE/source" --tooling "$GITHUB_WORKSPACE/tooling" --assets "$RUNNER_TEMP/windows-build" --source-junit "$RUNNER_TEMP/windows-linux-evidence/tagged-python.xml" --packager-junit "$RUNNER_TEMP/windows-linux-evidence/windows-packager.xml" --package-validation "$RUNNER_TEMP/windows-linux-evidence/package-validation.json" --output "$RUNNER_TEMP/windows-build/linux-validation.json"
+          cp source/requirements-core.txt "$RUNNER_TEMP/windows-build/tagged-requirements-core.txt"
+      - name: Retain Linux evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
+        with:
+          name: windows-linux-evidence-${{ needs.resolve.outputs.tag }}
+          path: ${{ runner.temp }}/windows-linux-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Transfer the tested package to native Windows
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
+        with:
+          name: windows-build-${{ needs.resolve.outputs.tag }}
+          path: ${{ runner.temp }}/windows-build/
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Test the unchanged updater and installed app on Windows x64
+    needs: [resolve, build]
+    runs-on: windows-2022
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+      PYTHONUNBUFFERED: '1'
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Check out acceptance tooling at the workflow commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: windows-build-${{ needs.resolve.outputs.tag }}
+          path: tested
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6; Node 24
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install only tagged core requirements and the HTTP smoke-test client
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check -r tested/tagged-requirements-core.txt httpx==0.28.1
+          if ($LASTEXITCODE -ne 0) { throw 'The tagged application requirements could not be installed.' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Python dependency verification failed.' }
+      - name: Exercise the unmodified Windows updater and its installed application
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:GITHUB_WORKSPACE "tested/FORGE-$env:RELEASE_TAG-windows-x64.zip"
+          $checksum = "$archive.sha256"
+          $evidence = Join-Path $env:RUNNER_TEMP 'forge-windows-acceptance'
+          $pythonExecutable = (Get-Command python -ErrorAction Stop).Source
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tooling/tests/windows_release_acceptance.ps1 -Archive $archive -Checksum $checksum -Output $evidence -PythonExecutable $pythonExecutable
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows updater or installed-application acceptance failed.' }
+      - name: Retain the native Windows evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
+        with:
+          name: windows-acceptance-${{ needs.resolve.outputs.tag }}
+          path: |
+            ${{ runner.temp }}/forge-windows-acceptance/windows-acceptance.json
+            ${{ runner.temp }}/forge-windows-acceptance/*/installed-app-smoke.json
+            ${{ runner.temp }}/forge-windows-acceptance/*/stdout.log
+            ${{ runner.temp }}/forge-windows-acceptance/*/stderr.log
+            ${{ runner.temp }}/forge-windows-acceptance/*/installed-app-smoke.stdout.log
+            ${{ runner.temp }}/forge-windows-acceptance/*/installed-app-smoke.stderr.log
+          if-no-files-found: error
+          retention-days: 14
+
+  finalize:
+    name: Prepare the three tested Windows release assets
+    needs: [resolve, build, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.artifact.outputs.name }}
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+    steps:
+      - name: Check out only the validation and publisher helper
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+          sparse-checkout: scripts/publish_windows_release.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: windows-build-${{ needs.resolve.outputs.tag }}
+          path: tested
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: windows-acceptance-${{ needs.resolve.outputs.tag }}
+          path: native
+      - name: Require matching Linux and native Windows evidence before returning assets
+        run: python3 tooling/scripts/publish_windows_release.py prepare-validation --tag "$RELEASE_TAG" --assets tested --linux-results tested/linux-validation.json --windows-results native/windows-acceptance.json
+      - id: artifact
+        name: Name the verified artifact
+        run: echo "name=tested-windows-$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
+        with:
+          name: tested-windows-${{ needs.resolve.outputs.tag }}
+          path: |
+            tested/FORGE-${{ needs.resolve.outputs.tag }}-windows-x64.zip
+            tested/FORGE-${{ needs.resolve.outputs.tag }}-windows-x64.zip.sha256
+            tested/FORGE-${{ needs.resolve.outputs.tag }}-windows-x64.validation.json
+          if-no-files-found: error
+          retention-days: 14
+
+  publish_existing:
+    name: Append verified assets to an existing published release
+    needs: [resolve, build, windows, finalize]
+    if: needs.resolve.outputs.build_only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    concurrency:
+      group: forge-windows-release-${{ needs.resolve.outputs.tag }}
+      cancel-in-progress: false
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+    steps:
+      # No application source is checked out in this write-enabled job.
+      - name: Check out only the tested publisher helper
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+          sparse-checkout: scripts/publish_windows_release.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: tested-windows-${{ needs.resolve.outputs.tag }}
+          path: tested
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: windows-build-${{ needs.resolve.outputs.tag }}
+          path: linux
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6; Node 24
+        with:
+          name: windows-acceptance-${{ needs.resolve.outputs.tag }}
+          path: native
+      - name: Compare, append and download-verify without replacing historical assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/publish_windows_release.py publish --tag "$RELEASE_TAG" --assets tested --linux-results linux/linux-validation.json --windows-results native/windows-acceptance.json --repository "$GITHUB_REPOSITORY" --wait-seconds 600
