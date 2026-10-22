@@ -85,18 +85,34 @@ jobs:
           Path('Build/validation').mkdir(parents=True)
           print('Verified release version:', version)
           PY
-      - name: Install the local media test tools
+      - name: Ensure local media tools are available
+        timeout-minutes: 4
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check -r requirements-dev.txt
-          if [[ -f scripts/requirements-media-privacy.txt ]]; then
-            python -m pip install --disable-pip-version-check -r scripts/requirements-media-privacy.txt
+          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
+            sudo timeout 180 apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
+            sudo timeout 180 apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
           fi
-          python -m pip check
-          python -m playwright install --with-deps chromium
           command -v ffmpeg
           command -v ffprobe
+      - name: Install the tagged Python test dependencies
+        timeout-minutes: 8
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-dev.txt
+          if [[ -f scripts/requirements-media-privacy.txt ]]; then
+            python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r scripts/requirements-media-privacy.txt
+          fi
+          python -m pip check
+      - name: Install and verify Chromium
+        timeout-minutes: 8
+        run: |
+          python -m playwright install chromium
+          check_browser() {
+            python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(); b.close(); p.stop()'
+          }
+          if ! check_browser; then
+            timeout 180 python -m playwright install-deps chromium
+            check_browser
+          fi
       - name: Run the complete Python suite
         run: python -m pytest -q --junitxml=Build/validation/PYTEST.xml | tee Build/validation/PYTHON_TEST_RESULTS.txt
       - name: Run real browser checks in disposable services
