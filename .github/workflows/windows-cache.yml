@@ -1,0 +1,73 @@
+name: Windows cached upgrade validation
+
+on:
+  push:
+    branches: [main, 'development/**']
+    paths:
+      - scripts/package_windows_release.py
+      - tests/windows_release_acceptance.ps1
+      - tests/test_windows_package.py
+      - .github/workflows/windows-cache.yml
+
+permissions:
+  contents: read
+
+jobs:
+  cached-upgrade:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: 8aa269a730a36cf7457c0494d365283a95d8695b # immutable v0.6.0 application
+          path: tagged-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install acceptance dependencies
+        run: |
+          python -m pip install --timeout 30 --retries 1 -r tagged-source/requirements-core.txt pytest==9.0.2 httpx==0.28.1
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency validation failed.' }
+      - name: Test version timestamps and the next-build package with old caches
+        run: |
+          python -m pytest -q tests/test_windows_package.py
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging regression tests failed.' }
+          python scripts/package_windows_release.py build --source tagged-source --output "$env:RUNNER_TEMP/new-format" --tag v0.6.0
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging failed.' }
+          $archive=Join-Path $env:RUNNER_TEMP 'new-format/FORGE-v0.6.0-windows-x64.zip'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/new-format-acceptance" -PythonExecutable (Get-Command python).Source
+          if ($LASTEXITCODE -ne 0) { throw 'New package cached-upgrade acceptance failed.' }
+      - name: Test the actual published V0.6 package and documented cache refresh
+        run: |
+          $folder=Join-Path $env:RUNNER_TEMP 'published-v06'
+          New-Item -ItemType Directory $folder | Out-Null
+          $name='FORGE-v0.6.0-windows-x64.zip'
+          $archive=Join-Path $folder $name
+          $base='https://github.com/BirthrightPublication/forge/releases/download/v0.6.0/'
+          Invoke-WebRequest -Uri ($base+$name) -OutFile $archive -TimeoutSec 120
+          Invoke-WebRequest -Uri ($base+$name+'.sha256') -OutFile ($archive+'.sha256') -TimeoutSec 30
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'a826fdd286f2e4bcdb71707e027356e37644659241fcf6c7e289da8f688b9a9b') { throw 'Published bytes changed.' }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/published-v06-acceptance" -PythonExecutable (Get-Command python).Source -RefreshBytecode
+          if ($LASTEXITCODE -ne 0) { throw 'Published package cache-refresh acceptance failed.' }
+      - name: Retain native evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: windows-cached-upgrades
+          path: |
+            ${{ runner.temp }}/new-format-acceptance/windows-acceptance.json
+            ${{ runner.temp }}/published-v06-acceptance/windows-acceptance.json
+            ${{ runner.temp }}/new-format-acceptance/*/installed-app-smoke.json
+            ${{ runner.temp }}/published-v06-acceptance/*/installed-app-smoke.json
+          if-no-files-found: warn

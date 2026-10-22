@@ -43,6 +43,16 @@ The legacy `FORGE-v0.5.zip` retains its original layout for `scripts/update.py` 
 
 ## Build and validate
 
+The published V0.6.0 archive needs a one-time Python bytecode refresh after the
+external updater succeeds; follow [the V0.6 installation instructions](V0.6_INSTALLATION.md).
+Older Windows packages used the same 1980 timestamps, which can leave same-size
+Python modules running from old caches. New builds encode each semantic version
+in a distinct two-second ZIP timestamp slot starting in 2000. Components must be
+between 0 and 999; larger values fail explicitly instead of reusing a timestamp.
+This preserves reproducibility without depending on the build clock. Existing
+tags and asset bytes remain immutable. Cached-upgrade tests exercise the unchanged
+Windows updater, and separately test the documented refresh on the published V0.6 ZIP.
+
 Use a clean checkout of the exact application tag as `--source`; run the packaging tool from the reviewed release-tooling commit. Do not package a working user installation.
 
 ```bash

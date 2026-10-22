@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import importlib.util
+from datetime import datetime
 import json
 import os
+import py_compile
 from pathlib import Path
 import stat
 import struct
@@ -128,6 +130,37 @@ def test_checksum_conflict_does_not_create_archive(source, tmp_path):
         package.build(source, output, tag=TAG)
     assert not (output / ASSET).exists()
     assert checksum.read_bytes() == b'existing'
+
+
+@pytest.mark.parametrize('previous_timestamp', [(1980, 1, 1, 0, 0, 0), package.release_timestamp('0.4.0')])
+def test_copying_new_release_invalidates_same_size_cached_python(source, archive, tmp_path, previous_timestamp):
+    installed = tmp_path / 'installation'
+    module = installed / 'forge' / '__init__.py'
+    module.parent.mkdir(parents=True)
+    module.write_bytes((source / 'forge/__init__.py').read_bytes().replace(b'0.5.0', b'0.4.0'))
+    stamp = datetime(*previous_timestamp).timestamp()
+    os.utime(module, (stamp, stamp))
+    py_compile.compile(str(module), doraise=True)
+    probe = [sys.executable, '-I', '-c',
+             'import sys; sys.path.insert(0, sys.argv[1]); import forge; print(forge.__version__)', str(installed)]
+    assert subprocess.check_output(probe, text=True).strip() == '0.4.0'
+    with zipfile.ZipFile(archive) as zipped:
+        entry = zipped.getinfo('app/forge/__init__.py')
+        assert len(zipped.read(entry)) == module.stat().st_size
+        module.write_bytes(zipped.read(entry))
+        stamp = datetime(*entry.date_time).timestamp()
+        os.utime(module, (stamp, stamp))
+    assert subprocess.check_output(probe, text=True).strip() == '0.5.0'
+
+
+def test_version_timestamps_are_unique_representable_and_do_not_wrap():
+    versions = ['0.0.0', '0.0.1', '0.5.0', '0.6.0', '0.999.999', '1.0.0', '999.999.999']
+    timestamps = [package.release_timestamp(version) for version in versions]
+    assert timestamps == sorted(set(timestamps))
+    assert all(2000 <= timestamp[0] <= 2064 and timestamp[-1] % 2 == 0 for timestamp in timestamps)
+    for version in ['1000.0.0', '0.1000.0', '0.0.1000']:
+        with pytest.raises(package.PackageError, match='0 through 999'):
+            package.release_timestamp(version)
 
 
 @pytest.mark.parametrize('tag', ['v0.5', '0.5.0', 'v00.5.0', 'v0.5.0-rc1', 'v0.5.0/extra', 'v0.5.1١'])
