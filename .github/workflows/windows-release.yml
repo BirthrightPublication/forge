@@ -130,12 +130,12 @@ jobs:
             # Hosted images carry package indexes. Try those before refreshing
             # unrelated repositories; never bypass the required media tools.
             if ! sudo timeout 120 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 ffmpeg fonts-dejavu-core 2>&1 | tee "$media_log"; then
-              apt_sources=()
-              if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
-                apt_sources=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
-              fi
+              echo '::notice title=Media retry::Using official Ubuntu HTTPS archives with the installed Ubuntu signing keyring.'
+              ubuntu_sources="$RUNNER_TEMP/forge-ubuntu.sources"
+              printf '%s\n' 'Types: deb' 'URIs: https://archive.ubuntu.com/ubuntu/' 'Suites: noble noble-updates noble-backports' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' '' 'Types: deb' 'URIs: https://security.ubuntu.com/ubuntu/' 'Suites: noble-security' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' > "$ubuntu_sources"
+              apt_sources=(-o "Dir::Etc::sourcelist=$ubuntu_sources" -o Dir::Etc::sourceparts=- -o Acquire::ForceIPv4=true)
               sudo timeout 180 apt-get update "${apt_sources[@]}" -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 2>&1 | tee -a "$media_log"
-              sudo timeout 180 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 ffmpeg fonts-dejavu-core 2>&1 | tee -a "$media_log"
+              sudo timeout 180 apt-get install "${apt_sources[@]}" --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 ffmpeg fonts-dejavu-core 2>&1 | tee -a "$media_log"
             fi
           fi
           command -v ffmpeg
