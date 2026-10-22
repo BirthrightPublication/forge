@@ -69,6 +69,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     async def lifespan(app):
         if workers:
             manager.start()
+            app.state.update_catalog.start()
         if store.settings()['daily_update_check']:
             threading.Thread(target=update_check, daemon=True).start()
         yield
@@ -137,15 +138,18 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
-                        'privacy_v5.js','privacy_v5.css'}:
+                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
     @app.get('/api/state')
     def state():
+        from .preferences import allowed_fields
         jobs = store.visible_jobs()
         return {'version':__version__, 'tools':TOOLS, 'jobs':[public_job(j) for j in jobs],
                 'settings':store.settings(), 'dependencies':dependency_state(store.settings()),
+                'working_preferences':store.get('working_preferences', {}),
+                'preference_fields':allowed_fields(), 'update_catalog':app.state.update_catalog.snapshot(),
                 'data_directory':str(store.data), 'presets':store.get('presets', []),
                 'updates':store.get('updates'), 'queue_error':store.get('queue_error'),
                 'platform':sys.platform, 'history_limit':500,'workflows':store.get('workflows',[]),'diagnostics':store.get('diagnostics'),'application_directory':str(ROOT),'favorites':store.get('favorites',[]),
@@ -440,4 +444,10 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount_entitlements(app)
     from .media_api import mount as mount_media_privacy
     mount_media_privacy(app,store,manager)
+    from .preferences import mount as mount_preferences
+    mount_preferences(app,store)
+    from .maintenance import mount as mount_maintenance
+    mount_maintenance(app,store,manager)
+    from .update_catalog import mount as mount_catalog
+    mount_catalog(app,store,manager)
     return app

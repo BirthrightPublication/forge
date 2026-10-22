@@ -267,6 +267,8 @@ def test_mocked_asr_adapter_measures_subsecond_duration(tmp_path, monkeypatch, d
 
     events = []
     monkeypatch.setitem(sys.modules, 'faster_whisper', SimpleNamespace(WhisperModel=Model))
+    monkeypatch.setattr('forge.model_cache.ensure_model', lambda *a, **k: tmp_path/'cached-model')
+    monkeypatch.setattr('forge.cuda_health.runtime_report', lambda: {'runtime_available': False, 'dlls': {}})
     monkeypatch.setitem(sys.modules, 'ctranslate2', SimpleNamespace())
     monkeypatch.setattr(worker, 'emit', lambda kind, **data: events.append({'kind': kind, **data}))
     monkeypatch.setattr(worker, 'export_transcript', lambda *args: [])

@@ -38,7 +38,7 @@ def primary_resource(job):
     options = job.get('payload', {}).get('options', {})
     if tool.startswith('download') or tool == 'model_download':
         return 'network'
-    if tool == 'transcribe' and options.get('device', 'auto') != 'cpu':
+    if tool == 'transcribe' and job.get('payload', {}).get('resolved_device', options.get('device', 'auto')) != 'cpu':
         # If CUDA is unavailable the worker may fall back to CPU. Keep one
         # conservative inference lane rather than assume GPU memory is known.
         return 'gpu'

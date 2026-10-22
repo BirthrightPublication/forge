@@ -12,7 +12,11 @@ if ($WaitForStop -eq 1) {
   }
 }
 & $python (Join-Path $PSScriptRoot 'is_running.py')
-if ($LASTEXITCODE -eq 0) { throw 'Stop FORGE using Stop FORGE.bat, then run this installer again.' }
+if ($LASTEXITCODE -eq 0) {
+  & $python (Join-Path $PSScriptRoot 'request_maintenance.py') --engine $Engine
+  if ($LASTEXITCODE -ne 0) { throw 'Managed installation request failed. Review the message above.' }
+  exit 0
+}
 Write-Host "`nInstall optional $Engine engine into FORGE only."
 Write-Host 'This contacts PyPI and downloads executable Python packages. No media is sent.'
 if ($Engine -eq 'downloads') {

@@ -81,6 +81,55 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  windows-v06:
+    name: V0.6 native maintenance and Windows installation acceptance
+    if: github.ref_name == 'development/v0.6-automation'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install acceptance dependencies
+        run: |
+          python -m pip install -r requirements-core.txt pytest==9.0.2 httpx==0.28.1 cryptography==50.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'Acceptance dependency installation failed.' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Acceptance dependency verification failed.' }
+      - name: Run native process and shared update contracts
+        run: |
+          python -m pytest -q tests/test_v6_models.py tests/test_v6_integration.py tests/test_v6_maintenance.py tests/test_birthright_update_core.py --junitxml="$env:RUNNER_TEMP/v06-native.xml"
+          if ($LASTEXITCODE -ne 0) { throw 'V0.6 native contract tests failed.' }
+      - name: Build and validate the candidate Windows package
+        run: |
+          python scripts/package_windows_release.py build --source . --output "$env:RUNNER_TEMP/v06-package" --tag v0.6.0
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate packaging failed.' }
+          $archive = Join-Path $env:RUNNER_TEMP 'v06-package/FORGE-v0.6.0-windows-x64.zip'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/v06-windows-acceptance" -PythonExecutable (Get-Command python).Source
+          if ($LASTEXITCODE -ne 0) { throw 'Unchanged updater acceptance failed.' }
+      - name: Retain native acceptance results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: v06-windows-review-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/v06-native.xml
+            ${{ runner.temp }}/v06-windows-acceptance/windows-acceptance.json
+            ${{ runner.temp }}/v06-windows-acceptance/*/installed-app-smoke.json
+          if-no-files-found: warn
+
   draft:
     name: Open a draft for human review
     needs: validate

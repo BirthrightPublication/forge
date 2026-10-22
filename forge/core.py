@@ -44,7 +44,8 @@ TOOLS = {
 }
 DEFAULTS = {'workers': 5, 'concurrency_mode':'auto', 'ffmpeg': '', 'ffprobe': '', 'last_output': '', 'default_output': '',
             'daily_update_check': False, 'queue_paused': False, 'cpu_workers':2, 'gpu_workers':1, 'download_workers':2,
-            'disk_workers':2, 'gpu_memory_reserve_mb':1024, 'desktop_notifications':False}
+            'disk_workers':2, 'gpu_memory_reserve_mb':1024, 'desktop_notifications':False, 'automatic_update_checks':True,
+            'automatic_dependency_repairs':True}
 
 
 def data_directory() -> Path:
@@ -294,7 +295,7 @@ class Store:
             self.db.commit()
 
     def update_meta(self, id: str, **fields):
-        allowed={'rank','batch_id','workflow_name','depends_on','step','steps','resource','started','eta_seconds','speed','stage','progress_measured'}
+        allowed={'rank','batch_id','workflow_name','depends_on','step','steps','resource','started','finished','execution_seconds','stage_seconds','eta_seconds','speed','stage','progress_measured'}
         if not set(fields)<=allowed:
             raise ValueError('Invalid job metadata update.')
         with self.lock:

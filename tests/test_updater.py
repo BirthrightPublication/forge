@@ -62,6 +62,21 @@ def test_verify_complete_release_and_bootstrap(tmp_path):
     compile(payload,'embedded updater','exec')
 
 
+def test_managed_source_update_preserves_installed_github_recovery_updater(tmp_path):
+    root,data=install(tmp_path)
+    external=b'@echo off\r\nrem existing GitHub recovery entrypoint\r\n'
+    powershell=b'# existing owner supplied PowerShell updater\r\n'
+    (root/'Update FORGE.bat').write_bytes(external)
+    (root/'Update-Application.ps1').write_bytes(powershell)
+    package=archive(root/'Build/new.zip')
+    backup=u.apply_release(root,package,data)
+    assert (root/'Update FORGE.bat').read_bytes()==external
+    assert (root/'Update-Application.ps1').read_bytes()==powershell
+    u.restore_snapshot(root,backup)
+    assert (root/'Update FORGE.bat').read_bytes()==external
+    assert (root/'Update-Application.ps1').read_bytes()==powershell
+
+
 def test_checksum_failure_and_missing_files(tmp_path):
     p=archive(tmp_path/'broken.zip',overrides={'server.py':b'tampered'})
     with pytest.raises(u.UpdateError,match='Integrity'):u.inspect_release(p)

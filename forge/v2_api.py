@@ -195,11 +195,20 @@ def mount(app,store,manager,sessions,destination,token):
         return FileResponse(path,content_disposition_type='inline')
 
     @app.post('/api/environment/diagnostics')
-    def diagnostics():
+    def diagnostics(body: dict | None = None):
         interpreter=Path(sys.executable).with_name('python.exe') if os.name=='nt' else Path(sys.executable)
+        arguments = []
+        if body and body.get('inference'):
+            from .model_cache import REPOSITORIES
+            if body['inference'] not in REPOSITORIES:
+                raise ValueError('Choose an approved cached model for the inference test.')
+            with manager.lock:
+                if manager.active:
+                    raise ValueError('Finish active jobs before running GPU inference diagnostics.')
+            arguments = ['--inference', body['inference']]
         try:
-            p=subprocess.run([str(interpreter),str(ROOT/'scripts'/'diagnostics.py')],stdout=subprocess.PIPE,stderr=subprocess.PIPE,
-                             encoding='utf-8',errors='replace',timeout=40,env={**os.environ,'PYTHONUTF8':'1'},**no_window())
+            p=subprocess.run([str(interpreter),str(ROOT/'scripts'/'diagnostics.py'),*arguments],stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                             encoding='utf-8',errors='replace',timeout=90 if arguments else 40,env={**os.environ,'PYTHONUTF8':'1','FORGE_DATA_DIR':str(store.data)},**no_window())
         except subprocess.TimeoutExpired:
             raise ValueError('Diagnostics timed out. No runtime, driver or model was modified.')
         if p.returncode:
@@ -210,18 +219,14 @@ def mount(app,store,manager,sessions,destination,token):
 
     @app.get('/api/environment/models')
     def models():
-        values=[]
-        for name in ('tiny','base','small','medium','large-v3','large-v3-turbo'):
-            folders=list((store.data/'models').glob('models--*--faster-whisper-'+name))
-            snapshots=[]
-            for folder in folders:
-                snapshots.extend(p for p in (folder/'snapshots').glob('*') if (p/'model.bin').is_file() and (p/'config.json').is_file() and (p/'tokenizer.json').is_file())
-            size=0
-            for folder in folders:
-                with contextlib.suppress(OSError):
-                    size+=sum(p.stat().st_size for p in (folder/'blobs').glob('*') if p.is_file())
-            values.append({'model':name,'cached':bool(snapshots),'bytes':size,'note':'Cache presence only; not an inference test.'})
-        return {'models':values,'directory':str(store.data/'models')}
+        from .model_cache import inventory
+        return {'models': inventory(store.data), 'directory': str(store.data/'models')}
+
+    @app.post('/api/environment/models/select')
+    def select_model(body: dict):
+        from .model_cache import select_revision
+        select_revision(store.data, body.get('model', ''), body.get('revision', ''))
+        return models()
 
     @app.post('/api/environment/models/download')
     def download_model(body: ModelDownload):
@@ -258,13 +263,5 @@ def mount(app,store,manager,sessions,destination,token):
         engine=body.get('engine')
         if engine not in {'transcription','downloads','speakers','media-privacy'}:raise ValueError('Unknown optional engine.')
         if os.name!='nt':return {'started':False,'message':'The guided installer is Windows-only. Installer scripts are in the application folder.'}
-        with manager.lock:
-            if any(j['status'] in {'running','queued','cancelling','finalizing'} for j in store.jobs(limit=100000)):
-                raise ValueError('Finish or cancel queued/active jobs before installing packages.')
-            if engine=='speakers':
-                command=['powershell.exe','-NoProfile','-NoExit','-ExecutionPolicy','Bypass','-File',str(ROOT/'scripts'/'install_speakers.ps1'),'-WaitForStop','1']
-            else:
-                command=['powershell.exe','-NoProfile','-NoExit','-ExecutionPolicy','Bypass','-File',str(ROOT/'scripts'/'install_optional.ps1'),'-Engine',engine,'-WaitForStop','1']
-            subprocess.Popen(command,cwd=ROOT,creationflags=subprocess.CREATE_NEW_CONSOLE)
-            if app.state.shutdown:app.state.shutdown()
-        return {'started':True,'message':'FORGE is stopping. Confirm the installation in the Windows console, then reopen FORGE when it completes.'}
+        result = app.state.maintenance_service.request([engine], approve=body.get('consent') is True)
+        return {'started': True, **result}

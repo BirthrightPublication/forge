@@ -156,6 +156,8 @@ jobs:
               check('browser_generators_check.py', '--output', evidence / 'generators')
               if Path('tests/browser_v5_check.py').is_file():
                   check('browser_v5_check.py', '--output', evidence / 'media-privacy', '--allow-test-writes')
+              if Path('tests/browser_v6_check.py').is_file():
+                  check('browser_v6_check.py', '--output', evidence / 'birthright-updates')
           finally:
               # Retain only explicit test reports and screenshots, never service
               # databases, runtime credentials, model caches or generated values.
@@ -163,7 +165,7 @@ jobs:
                   if path.is_file() and ((path.suffix == '.png' and path.name.startswith(('FORGE-', 'black-scripting-'))) or path.name in {
                           'BROWSER_V0.4_RESULTS.json', 'BROWSER_GENERATORS_RESULTS.json',
                           'BROWSER_V0.5_RESULTS.json', 'BROWSER_V0.5_STUDIO_RESULTS.json', 'browser-results.json', 'BROWSER_V05_RESULTS.json',
-                          'BROWSER_V05_REPORT.json'}):
+                          'BROWSER_V05_REPORT.json', 'BROWSER_V6_RESULTS.json'}):
                       target = Path('Build/validation/browser') / path.relative_to(evidence)
                       target.parent.mkdir(parents=True, exist_ok=True)
                       shutil.copyfile(path, target)

@@ -426,6 +426,8 @@ def test_transcription_adapter_contract(tmp_path,monkeypatch,gpu,fail_gpu):
                 words=[types.SimpleNamespace(start=.2,end=.6,word=' Test',probability=.98)])
             return iter([segment]),types.SimpleNamespace(language='en',language_probability=.99,duration=2)
     monkeypatch.setitem(sys.modules,'faster_whisper',types.SimpleNamespace(WhisperModel=Model))
+    monkeypatch.setattr('forge.model_cache.ensure_model', lambda *a, **k: tmp_path/'cached-model')
+    monkeypatch.setattr('forge.cuda_health.runtime_report', lambda: {'runtime_available': gpu, 'dlls': {}})
     monkeypatch.setitem(sys.modules,'ctranslate2',types.SimpleNamespace(get_cuda_device_count=lambda:int(gpu)))
     monkeypatch.setenv('HF_HUB_OFFLINE','1')
     o=Transcribe(model='base',timestamps='word',vocabulary='FORGE',formats=['txt','json']).model_dump()

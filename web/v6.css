@@ -1,0 +1,25 @@
+/* Birthright Update Center: shared visual language, compact FORGE integration. */
+.nav-scroll{scrollbar-width:none}.nav-scroll::-webkit-scrollbar{width:0}
+.nav-caption{margin-top:19px;margin-bottom:9px}.nav-item{padding-top:10px;padding-bottom:10px}
+.sidebar nav{margin-bottom:14px}.brand{gap:12px}.brand-words strong{letter-spacing:5px}
+.page-heading{margin-bottom:22px}.page-heading>div>p{display:none}
+.tool-card{min-height:130px;padding:18px}.tool-card>p{display:none}
+.fields{gap:14px}.panel-body{padding:17px}.column{gap:16px}
+.v4-output .form-footer small{display:none}.v4-source .dropzone{min-height:155px;padding:20px}
+#birthright-updates{position:relative;color:var(--gold);flex:none}
+#update-count{position:absolute;right:-5px;top:-5px;min-width:15px;padding:1px 4px;border-radius:8px;background:var(--gold);color:#151512;font-size:9px;line-height:14px}
+#update-count[hidden]{display:none}.birthright-updates{max-width:760px;padding:24px;background:#191a17;color:#eee9df}
+.birthright-update-header{display:flex;justify-content:space-between;gap:16px;align-items:start}
+.birthright-update-header h2{font-size:27px;margin:3px 0 10px}.birthright-update-header small{color:var(--gold);letter-spacing:2px;font-size:9px}
+.birthright-update-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.birthright-update-list{max-height:56vh;overflow:auto;scrollbar-width:thin}
+.birthright-update-group{margin:20px 0 6px;font-size:9px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase}
+.birthright-update-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 0;border-bottom:1px solid #34352e;align-items:center}
+.birthright-update-row strong{font-size:12px;font-weight:400}.birthright-update-row small{display:block;font-size:10px;color:#b0ad9f;margin-top:5px;overflow-wrap:anywhere}
+.birthright-update-row details{font-size:10px;color:#aaa795;margin-top:8px}.birthright-update-row summary{cursor:pointer}
+.birthright-update-row pre{font:11px/1.6 inherit;max-height:180px;margin:8px 0;white-space:pre-wrap}
+.birthright-update-row select{background:#11120f;color:#eee9df;border:1px solid #494335;padding:6px;max-width:230px;font-size:10px}
+.birthright-update-status{font-size:11px;line-height:1.6;color:#b8af96;margin:10px 0}
+.birthright-update-error{color:var(--bad)}.v6-reset{font-size:10px;min-height:28px}
+.v6-durations{font-size:11px;line-height:1.8}.v6-durations dt{color:var(--gold)}
+@media(max-width:600px){.birthright-updates{padding:18px}.birthright-update-row{gap:8px}.birthright-update-row select{max-width:160px}}
