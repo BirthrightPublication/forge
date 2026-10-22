@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from datetime import datetime, timedelta
 import hashlib
 import json
 import os
@@ -394,8 +395,24 @@ def write_new_or_same(path: Path, data: bytes):
         raise
 
 
+def release_timestamp(version: str) -> tuple[int, ...]:
+    """Unique DOS timestamp per supported version; independent of build clocks.
+
+    Base-1000 components map bijectively to two-second ZIP timestamp slots.
+    All supported versions fit between 2000 and 2064 (also within signed Unix
+    timestamp capacity through normal 0.x versions). Never reuse a version for
+    changed source. Fail explicitly instead of wrapping an oversized component.
+    """
+    major, minor, patch = map(int, version_from_tag('v' + version).split('.'))
+    if max(major, minor, patch) > 999:
+        raise PackageError('Windows ZIP timestamps support version components 0 through 999.')
+    value = datetime(2000, 1, 1) + timedelta(seconds=2 * (major * 1000000 + minor * 1000 + patch))
+    return (value.year, value.month, value.day, value.hour, value.minute, value.second)
+
+
 def build(source: Path, output: Path, *, tag: str) -> Path:
     version = version_from_tag(tag)
+    timestamp = release_timestamp(version)
     files, _ = expected_payload(source, tag)
     output = Path(output)
     if is_link(output):
@@ -403,13 +420,13 @@ def build(source: Path, output: Path, *, tag: str) -> Path:
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     name = f'FORGE-v{version}-windows-x64.zip'
-    # Fixed ZIP metadata and stored entries yield identical bytes across clocks,
-    # source mtimes, host operating systems, and compression-library versions.
+    # Version-specific, deterministic mtimes invalidate timestamp-based Python
+    # caches retained by the owner's unchanged Copy-Item updater.
     with tempfile.TemporaryDirectory(prefix='.forge-windows-', dir=output) as temporary:
         candidate = Path(temporary) / name
         with zipfile.ZipFile(candidate, 'w', compression=zipfile.ZIP_STORED) as zipped:
             for relative, content in sorted(files.items()):
-                info = zipfile.ZipInfo('app/' + relative, date_time=(1980, 1, 1, 0, 0, 0))
+                info = zipfile.ZipInfo('app/' + relative, date_time=timestamp)
                 info.create_system = 3
                 info.external_attr = (stat.S_IFREG | 0o644) << 16
                 zipped.writestr(info, content)

@@ -7,7 +7,8 @@ param(
   [Parameter(Mandatory=$true)][string]$Archive,
   [Parameter(Mandatory=$true)][string]$Checksum,
   [Parameter(Mandatory=$true)][string]$Output,
-  [string]$PythonExecutable
+  [string]$PythonExecutable,
+  [switch]$RefreshBytecode
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -253,7 +254,16 @@ function New-Case([string]$ScenarioName, [string]$ZipPath, [string]$ShaPath, [st
   $sentinels['Update-Application.ps1']=''
   $sentinels['Update FORGE.bat']=''
   Write-Fixture (Join-Path $root 'VERSION.txt') '0.0.0'
-  Write-Fixture (Join-Path $root 'forge\__init__.py') '# Installed old application bytes; must be backed up.'
+  $oldZip=[IO.Compression.ZipFile]::OpenRead($Archive)
+  try {
+    $reader=New-Object IO.StreamReader($oldZip.GetEntry('app/forge/__init__.py').Open())
+    try { $oldSource=$reader.ReadToEnd() } finally { $reader.Dispose() }
+  } finally { $oldZip.Dispose() }
+  $oldSource=$oldSource.Replace($script:packageVersion, ($script:packageVersion -replace '[0-9]', '9'))
+  $oldInit=Join-Path $root 'forge\__init__.py'
+  New-Item -ItemType Directory -Force (Split-Path $oldInit -Parent) | Out-Null
+  [IO.File]::WriteAllText($oldInit, $oldSource, (New-Object Text.UTF8Encoding($false)))
+  (Get-Item -LiteralPath $oldInit).LastWriteTime=[datetime]'1980-01-01T00:00:00'
   $oldFiles=@{}
   foreach ($name in @('VERSION.txt','forge\__init__.py')) { $oldFiles[$name]=Hash-File (Join-Path $root $name) }
   $preserved=@{}
@@ -406,7 +416,21 @@ try {
   Assert-Check (@($payload | Where-Object {$_.relative -eq 'forge\__init__.py'}).Count -eq 1) 'Candidate contains the installed application module'
 
   $positive=New-Case 'install' $Archive $Checksum 'UPDATE'
+  & $PythonExecutable -c "import py_compile,sys; py_compile.compile(sys.argv[1], doraise=True)" (Join-Path $positive.root 'forge\__init__.py')
+  Assert-Check ($LASTEXITCODE -eq 0) 'Seed a real old timestamp-based Python cache before updating'
   $null=Run-Case $positive 0 'SUCCESS: Updated FORGE' 2 1
+  $probe="import sys; sys.path.insert(0, sys.argv[1]); from forge import __version__; print(__version__)"
+  $cachedVersion=& $PythonExecutable -c $probe $positive.root
+  Assert-Check ($LASTEXITCODE -eq 0) 'Probe the installed version with existing bytecode caches'
+  if ($RefreshBytecode) {
+    Assert-Check ($cachedVersion -eq ($packageVersion -replace '[0-9]', '9')) 'Published fixed-timestamp ZIP reproduces stale-cache behavior'
+    & $PythonExecutable -m compileall --invalidation-mode checked-hash -q -f (Join-Path $positive.root 'forge') (Join-Path $positive.root 'scripts') (Join-Path $positive.root 'launcher.py') (Join-Path $positive.root 'server.py')
+    Assert-Check ($LASTEXITCODE -eq 0) 'Documented cache refresh compiles application code only'
+    $cachedVersion=& $PythonExecutable -c $probe $positive.root
+    Assert-Check ($LASTEXITCODE -eq 0) 'Probe the refreshed installed application'
+  }
+  Assert-Check ($cachedVersion -eq $packageVersion) 'Existing Python cache cannot retain the previous application version'
+  $report.cached_upgrade=[ordered]@{status='passed'; refresh_required=[bool]$RefreshBytecode; version=$cachedVersion}
   $report.installation_evidence=Read-InstallationEvidence $positive
   foreach ($file in $payload) {
     Assert-PayloadFile $positive.root $file
