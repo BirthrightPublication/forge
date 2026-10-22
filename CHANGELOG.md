@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0 — development candidate, pending review and release
+
+- Add Birthright Updates with actionable counts, current/available versions, changelogs, Later, individual installation and compatible batch installation.
+- Introduce the application-independent Birthright Update Core and tested Ed25519 manifest contract; current GitHub assets retain their existing HTTPS/SHA-256 publication mode until publisher signing keys are configured.
+- Download selected transcription models automatically, verify publisher file hashes, coordinate caches across processes and retain immutable model revisions.
+- Diagnose CUDA 12/cuBLAS/cuDNN 9 loading separately from actual inference, avoid repeated known-broken CUDA dispatch and report Auto CPU fallback.
+- Add approved dependency-class maintenance with queued-work preservation, environment backup, wheel staging, validation, recovery and automatic restart.
+- Remember safe working settings separately from presets, without automatically storing content or secrets.
+- Persist measured execution/stage durations and refine the compact charcoal/gold interface, FORGE branding and sidebar scrolling.
+- Keep the existing Windows `app/` ZIP/checksum, source history, protected paths and rollback contracts. Native Windows and physical GPU evidence are reported separately.
+
+
 ## V0.5.0 Windows release packaging correction
 
 - Added `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` contract, with the complete tagged application payload beneath `app/`.

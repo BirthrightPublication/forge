@@ -108,3 +108,9 @@ __pycache__/
 /*.wma
 /*.aiff
 /*.aif
+
+# Managed maintenance state belongs in FORGE_DATA_DIR, never in source.
+/maintenance/
+/cuda-health.json
+/.forge-maintenance.json
+/.forge-maintenance.lock

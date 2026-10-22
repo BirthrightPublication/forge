@@ -13,6 +13,8 @@ from forge.core import data_directory, json_write
 
 
 def main():
+    if (Path(__file__).resolve().parent/'.forge-maintenance.json').exists():
+        raise RuntimeError('FORGE maintenance is active or needs recovery. Do not start a second service during installation.')
     data = data_directory()
     data.mkdir(parents=True, exist_ok=True)
     lock = (data/'service.lock').open('a+b')

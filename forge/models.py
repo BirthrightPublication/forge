@@ -20,7 +20,9 @@ class Transcribe(Strict):
     beam_size: int = Field(5, ge=1, le=10)
     vad: bool = True
     vocabulary: str = Field('', max_length=2000)
-    allow_model_download: bool = False
+    # Accepted for old presets/history; starting transcription now authorizes its model download.
+    allow_model_download: bool = True
+    model_revision: str = Field(default='', pattern=r'^(|[0-9a-f]{40})$')
     style: Literal['raw','clean'] = 'raw'
     remove_fillers: bool = True
     subtitle_chars: int = Field(42, ge=20, le=80)
@@ -143,6 +145,8 @@ class Pick(Strict):
     kind: Literal['files','folder','executable'] = 'files'
 
 class Settings(Strict):
+    automatic_update_checks: bool = True
+    automatic_dependency_repairs: bool = True
     concurrency_mode: Literal['auto','manual'] = 'auto'
     workers: int = Field(5, ge=1, le=5)
     cpu_workers: int = Field(2, ge=1, le=5)
@@ -215,3 +219,4 @@ class WorkflowRun(Workflow):
 class ModelDownload(Strict):
     model: Literal['tiny','base','small','medium','large-v3','large-v3-turbo']
     consent: bool = False
+    revision: str = Field(default='', pattern=r'^(|[0-9a-f]{40})$')

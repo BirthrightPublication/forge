@@ -1,6 +1,9 @@
 param([int]$WaitForStop=0)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+if (Test-Path -LiteralPath (Join-Path $root '.forge-maintenance.json')) {
+  throw 'Maintenance is active or interrupted. Wait for its console, or run: py -3 scripts/managed_install.py --recover'
+}
 $python = Join-Path $root '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python)) { throw 'Run Setup FORGE.bat first.' }
 if ($WaitForStop -eq 1) {
@@ -12,7 +15,11 @@ if ($WaitForStop -eq 1) {
   }
 }
 & $python (Join-Path $PSScriptRoot 'is_running.py')
-if ($LASTEXITCODE -eq 0) { throw 'Stop FORGE before installing optional engines.' }
+if ($LASTEXITCODE -eq 0) {
+  & $python (Join-Path $PSScriptRoot 'request_maintenance.py') --engine speakers
+  if ($LASTEXITCODE -ne 0) { throw 'Managed installation request failed. Review the message above.' }
+  exit 0
+}
 Write-Host 'Install optional pyannote.audio into a separate .diarization-venv (CPU speaker labeling).'
 Write-Host 'This downloads Python/PyTorch packages from PyPI. No media is uploaded.'
 Write-Host 'The Community-1 model is NOT included. Obtain its full offline folder from the publisher after accepting its access conditions.'

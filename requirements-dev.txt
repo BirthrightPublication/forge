@@ -4,3 +4,4 @@ httpx==0.28.1
 numpy>=2.2,<3
 playwright==1.57.0
 zxing-cpp==2.3.0
+cryptography==50.0.2

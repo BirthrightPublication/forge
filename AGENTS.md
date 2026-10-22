@@ -24,6 +24,9 @@
 - Run tests appropriate to the change, including real media and integration checks where practical. Record what actually ran and distinguish Windows-native, GPU, codec, and optional dependency coverage that remains untested.
 - Do not introduce a new license grant or relicense code without user approval. The existing FORGE MIT license has the user's approval; preserve its scope and notices. Review third-party code, binaries, model weights, and distribution terms separately before bundling them.
 - Do not silently copy or duplicate TrueEngine into FORGE. If a cross-repository integration is authorized, use an explicit reviewed dependency boundary, pin the exact upstream version or commit, and document compatibility and licensing.
+- Keep Birthright Update Core application-independent. FORGE's cache, queue, environment and installer behavior belongs in adapters, not in the shared package. Atlas is still being developed; do not claim its implementation was inspected or silently duplicate another application's updater.
+- Discovery never authorizes a new application version. Require explicit approval, preserve the installed external updater, verify packages before replacement, and retain rollback/recovery journals. Compatible repairs may reuse prior approval for an explicitly registered dependency class.
+- Signed manifests must use application-pinned publisher keys and fail closed on signature, application/channel, expiration or sequence errors. Do not label SHA-256 checksums as signatures or fabricate production signing keys. Document the current unsigned GitHub mode until a real signing policy is approved and configured.
 
 ## Releases and completion reporting
 

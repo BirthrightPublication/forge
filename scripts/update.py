@@ -172,7 +172,7 @@ def plan_release(root,archive):
     changed_sources=[]
     for rel,content in contents.items():
         target=assert_target(root,rel)
-        if rel.startswith('original_scripts/') and target.exists():result['preserved_originals']+=1
+        if preserve_installed(root,rel,target):result['preserved_originals']+=1
         elif not target.exists():result['new_files']+=1
         elif target.read_bytes()==content:result['unchanged_files']+=1
         else:result['changed_files']+=1
@@ -180,6 +180,10 @@ def plan_release(root,archive):
     bytecode_files(root,changed_sources)
     result['sha256']=result['archive_sha256'];result['preserved_files']=result['preserved_originals']
     return result
+
+def preserve_installed(root,rel,target):
+    return target.exists() and (rel.startswith('original_scripts/') or
+        (rel.casefold()=='update forge.bat' and (root/'Update-Application.ps1').is_file()))
 
 def atomic_write(path,content):
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -373,7 +377,7 @@ def apply_release(root,archive,data,*,backups=None,verify=None):
     writes={}
     for rel,content in contents.items():
         target=assert_target(root,rel)
-        if rel.startswith('original_scripts/') and target.exists():continue
+        if preserve_installed(root,rel,target):continue
         if target.is_file() and target.read_bytes()==content:continue
         writes[rel]=content
     bytecode_files(root,writes)

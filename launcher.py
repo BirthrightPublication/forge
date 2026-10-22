@@ -34,14 +34,17 @@ def alive(data):
         return None
 
 def main():
+    if '--stop' in sys.argv:
+        runtime = alive(data_directory())
+        if runtime:
+            request(runtime, '/api/shutdown', {})
+        return
+    if (ROOT/'.forge-maintenance.json').exists():
+        raise RuntimeError('FORGE maintenance is running or was interrupted. Wait for its console, or recover using: py -3 scripts/managed_install.py --recover')
     if (ROOT/'.forge-updating').exists() or (ROOT/'.forge-update-state.json').exists():
         raise RuntimeError('A FORGE update is in progress or was interrupted. Run Update FORGE.bat to finish or recover it before opening the Studio.')
     data = data_directory(); data.mkdir(parents=True, exist_ok=True)
     runtime = alive(data)
-    if '--stop' in sys.argv:
-        if runtime:
-            request(runtime, '/api/shutdown', {})
-        return
     if not runtime:
         interpreter = ROOT/'.venv'/'Scripts'/'python.exe' if os.name == 'nt' else Path(sys.executable)
         if not interpreter.is_file():

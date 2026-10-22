@@ -13,6 +13,7 @@ from pathlib import Path
 import psutil
 from .core import ROOT, Store, no_window
 from .resources import MEDIA_ANALYSIS, ResourceMonitor, admission_reason, admission_state, primary_resource, required_resources
+from .timing import JobClock
 
 TERMINAL = {'failed', 'cancelled', 'interrupted', 'completed', 'blocked'}
 
@@ -38,6 +39,8 @@ class QueueManager:
         self.store = store
         self.lock = threading.RLock()
         self.maintenance = False
+        self.maintenance_pending = False
+        self.repair_pending = False
         self.require_feature = None  # Optional server-owned entitlement boundary.
         self.active: dict[str, subprocess.Popen] = {}
         self.threads: list[threading.Thread] = []
@@ -46,7 +49,7 @@ class QueueManager:
         self.scheduler = threading.Thread(target=self.loop, name='forge-scheduler', daemon=True)
 
     def check_accepting(self):
-        if self.maintenance:
+        if self.maintenance or self.maintenance_pending:
             raise ValueError("FORGE is preparing an application update. New jobs are temporarily blocked.")
 
     def start(self):
@@ -64,13 +67,23 @@ class QueueManager:
         metrics = self.monitor.sample(self.store.data)
         with self.lock:
             settings = self.store.settings()
-            if settings['queue_paused'] or self.maintenance:
+            if settings['queue_paused'] or self.maintenance or self.repair_pending:
                 return
             for job in self.store.jobs(status='queued', limit=100000):
                 if self.stop_event.is_set():
                     break
                 if not self.prepare_dependency(job):
                     continue
+                if job['tool'] == 'transcribe':
+                    from .cuda_health import recent_failure
+                    failure = recent_failure(self.store.data)
+                    device = job['payload'].get('options', {}).get('device', 'auto')
+                    if failure and device == 'cuda':
+                        self.store.update_job(job['id'], status='blocked', message='CUDA needs repair: ' + failure + '. Run GPU diagnostics in Updates, or select CPU and retry.')
+                        continue
+                    resolved = 'cpu' if failure and device == 'auto' else device
+                    job['payload']['resolved_device'] = resolved
+                    self.store.update_payload(job['id'], job['payload'])
                 active_jobs = [self.store.job(id) for id in self.active]
                 state = admission_state(settings, active_jobs, metrics)
                 reason = admission_reason(job, active_jobs, state)
@@ -159,6 +172,7 @@ class QueueManager:
         return True
 
     def launch(self, job: dict):
+        clock = JobClock()
         payload = {**job['payload'], 'data': str(self.store.data), 'parent_pid': os.getpid(),
                    'parent_started': psutil.Process().create_time()}
         env = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONUNBUFFERED': '1', 'HF_HUB_DISABLE_TELEMETRY': '1', 'DO_NOT_TRACK': '1'}
@@ -174,7 +188,7 @@ class QueueManager:
             self.store.update_meta(job['id'],resource=self.resource(job),started=time.time(),stage='Starting',eta_seconds=None,speed='',progress_measured=False)
             p.stdin.write(json.dumps(payload, ensure_ascii=False))
             p.stdin.close()
-            t = threading.Thread(target=self.collect, args=(job, p), daemon=True)
+            t = threading.Thread(target=self.collect, args=(job, p, clock), daemon=True)
             self.threads.append(t)
             t.start()
         except Exception as error:
@@ -186,7 +200,8 @@ class QueueManager:
             self.active.pop(job['id'], None)
             self.store.update_job(job['id'], status='failed', message='Could not start worker: ' + str(error)[:800])
 
-    def collect(self, job: dict, p: subprocess.Popen):
+    def collect(self, job: dict, p: subprocess.Popen, clock=None):
+        clock = clock or JobClock()
         id = job['id']
         error = ''
         result = None
@@ -207,6 +222,7 @@ class QueueManager:
                 with self.lock:
                     status = self.store.job(id)['status']
                     if event.get('kind') == 'progress' and status == 'running':
+                        clock.enter(str(event.get('stage') or 'Processing')[:200])
                         value = event.get('progress', 0)
                         if isinstance(value, (int, float)):
                             self.store.update_job(id, progress=max(0, min(99, value)), message=str(event.get('message', ''))[:2000])
@@ -214,6 +230,7 @@ class QueueManager:
                             if not isinstance(eta,(int,float)) or eta<0 or eta>10**9: eta=None
                             self.store.update_meta(id,eta_seconds=eta,speed=str(event.get('speed',''))[:100],stage=str(event.get('stage',event.get('message','')))[:200],progress_measured=event.get('progress_measured') is True)
                     elif event.get('kind') == 'finalizing' and status == 'running':
+                        clock.enter('Publishing')
                         self.store.update_job(id, status='finalizing', progress=96, message='Publishing verified outputs')
                         self.store.update_meta(id, progress_measured=False)
                     elif event.get('kind') == 'result':
@@ -236,6 +253,9 @@ class QueueManager:
                     self.store.update_job(id, status='completed', progress=100, message='Completed' + (' · review notes' if warnings else ''), outputs=outputs, warnings=warnings)
                 else:
                     message = error or (''.join(stderr)[-1600:] if stderr else f'Worker stopped (exit {code}). Retry restarts the job.')
+                    if job['tool'] == 'transcribe' and any(s in message.lower() for s in ('cublas', 'cudnn', 'no kernel image', 'cuda driver')):
+                        from .cuda_health import remember_failure
+                        remember_failure(self.store.data, message)
                     self.store.update_job(id, status='interrupted' if self.stop_event.is_set() else 'failed', message=message, outputs=outputs, warnings=warnings)
         except Exception as exc:
             with contextlib.suppress(Exception):
@@ -244,7 +264,7 @@ class QueueManager:
             self.kill(p)
             with self.lock:
                 with contextlib.suppress(Exception):
-                    self.store.update_meta(id,eta_seconds=None,speed='',stage='Finished')
+                    self.store.update_meta(id,eta_seconds=None,speed='',stage='Finished',finished=time.time(),**clock.snapshot())
                 self.active.pop(id, None)
             # Only this application's exact job-owned work directory is removed.
             stage = Path(job['payload']['destination']) / ('.forge-' + id + '.work')

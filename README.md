@@ -1,14 +1,14 @@
 # FORGE — Local Production Studio
 
-**V0.5.0 · Media Privacy & Watermark Studio · Windows 11**
+**V0.6.0 development candidate · Birthright Updates, automation and interface refinement · Windows 11**
 
-A Windows-local production studio opened in your default browser. V0.5 adds seven Media Privacy tools for ownership watermarks, local fingerprint comparisons, metadata/provenance inspection and verified exports. Existing production tools, Queue 3.0, Black Scripting, local generators and updater recovery remain available. Application source is included; your original batch files are kept for reference and are not executed by the web service.
+FORGE is a Windows-local production studio opened in your browser. V0.6 adds automatic cached transcription models, CUDA diagnostics, managed dependency installation and recovery, Birthright Updates, remembered working settings, and measured job durations. Existing Media Privacy tools, Black Scripting, generators, queue controls and external Windows update compatibility are preserved.
 
-The owner approved merging and releasing V0.5.0. Validation passed 478 Python tests, 324 real Chromium checks and upgrade/rollback checks from four earlier versions. Native Windows and physical NVIDIA acceptance remain separate checks. Exact V0.4 documentation, test reports and screenshots are preserved in [the V0.4 archive](docs/history/v0.4/README.md), with file hashes in its `ARCHIVE_MANIFEST.json`.
+This branch is a review candidate. It has not yet been approved, tagged or published as V0.6.0. See [the V0.6 operations guide](docs/V0.6-OPERATIONS.md), [shared Birthright update contract](docs/BIRTHRIGHT_UPDATE_CORE.md), and [current validation report](docs/TEST_REPORT.md). V0.5.0 remains the previously published release until the new release gates succeed.
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The release URL for this version is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The previously published stable release is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 

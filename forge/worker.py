@@ -221,6 +221,9 @@ from .transcripts import export_transcript, assign_speakers
 
 
 def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Path):
+    from .cuda_health import add_runtime_paths, runtime_report, failure_message, remember_failure, recent_failure
+    from .model_cache import ensure_model
+    add_runtime_paths()
     if options.get('diarization'):
         from .speaker_labels import validate
         validate(options)
@@ -233,19 +236,25 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
     os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
     os.environ['DO_NOT_TRACK'] = '1'
     os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
-    os.environ['HF_HUB_OFFLINE']='0' if options['allow_model_download'] else '1'
+    cached = ensure_model(data, options['model'], progress, options.get('model_revision', ''))
     device = options['device']
-    if device == 'auto':
-        try:
-            device = 'cuda' if ctranslate2.get_cuda_device_count() > 0 else 'cpu'
-        except Exception:
-            device = 'cpu'
-    progress(1, f'Loading {options["model"]} on {device}; the first model download can take time')
     warnings = []
+    if device == 'auto':
+        report = runtime_report()
+        failure = recent_failure(data)
+        device = 'cuda' if report['runtime_available'] and not failure else 'cpu'
+        if device == 'cpu' and (failure or report.get('cuda_devices')):
+            warnings.append('Auto selected CPU. ' + (failure or failure_message(report)))
+    elif device == 'cuda':
+        report = runtime_report()
+        failure = recent_failure(data)
+        if not report['runtime_available'] or failure:
+            raise RuntimeError(failure or failure_message(report))
+    progress(1, f'Loading {options["model"]} on {device}', stage='Model loading')
 
     def recognize(dev):
-        model = WhisperModel(options['model'], device=dev, compute_type='float16' if dev == 'cuda' else 'int8',
-                             download_root=str(data / 'models'), local_files_only=not options['allow_model_download'])
+        model = WhisperModel(str(cached), device=dev, compute_type='float16' if dev == 'cuda' else 'int8',
+                             local_files_only=True)
         started=time.monotonic()
         need_words=options['timestamps'] in {'word','sentence'} or options.get('diarization',False) or any(f in options['formats'] for f in ('srt','vtt','html','csv'))
         generated, info = model.transcribe(str(source), language=options['language'] or None,
@@ -264,20 +273,24 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
             speed=s.end/elapsed
             progress(100*s.end/total if measured else 0,f'Transcribing on {dev} · {timestamp(s.end)}',progress_measured=measured,stage='Speech recognition',speed=f'{speed:.2f}x audio',eta_seconds=max(0,total-s.end)/speed if measured and speed>0 else None)
         details = {'language': info.language, 'language_probability': info.language_probability,
-                   'duration': info.duration, 'device': dev, 'task': options['task']}
+                   'duration': info.duration, 'device': dev, 'task': options['task'], 'model_revision': cached.name}
+        if dev == 'cuda':
+            json_write(data / 'cuda-health.json', {'ready': True, 'inference_tested': True,
+                       'inference_passed': True, 'checked': time.time(), 'python': sys.executable,
+                       'model': options['model'], 'revision': cached.name})
         return segments, details
 
     try:
         segments, info = recognize(device)
     except Exception as error:
-        gpu_error = any(word in str(error).lower() for word in ('cuda', 'cudnn', 'cublas', 'driver', 'device', 'float16'))
+        gpu_error = any(word in str(error).lower() for word in ('cuda', 'cudnn', 'cublas', 'driver', 'device', 'float16', 'out of memory'))
+        if device == 'cuda' and gpu_error and 'out of memory' not in str(error).lower():
+            remember_failure(data, str(error))
         if options['device'] == 'auto' and device == 'cuda' and gpu_error:
             warnings.append('GPU execution failed; Auto restarted this job on CPU.')
             emit('warning', message=warnings[-1])
             segments, info = recognize('cpu')
         else:
-            if not options['allow_model_download'] and any(w in str(error).lower() for w in ('cache', 'offline', 'local', 'download', 'snapshot')):
-                raise RuntimeError('The model is not cached. Enable “Allow first model download” or choose a cached model. ' + str(error)[:500]) from error
             raise
     if options.get('diarization') and segments:
         from .speaker_labels import diarize
@@ -417,10 +430,9 @@ def run(payload: dict):
                 raise RuntimeError('An asset or comparison file changed after being queued. Select the inputs again.')
         if tool=='model_download':
             if not options.get('consent'):raise RuntimeError('Model download consent is required.')
-            os.environ['HF_HUB_OFFLINE']='0';os.environ['HF_HUB_DISABLE_TELEMETRY']='1'
-            from faster_whisper.utils import download_model
-            progress(1,'Downloading approved model files; size/progress is not reported by this adapter',stage='Model download')
-            cached=download_model(options['model'],cache_dir=str(data/'models'))
+            os.environ['HF_HUB_DISABLE_TELEMETRY']='1'
+            from .model_cache import ensure_model
+            cached=ensure_model(data,options['model'],progress,options.get('revision',''))
             report=stage_dir/(safe_name(options['model'])+'_model-ready.json')
             json_write(report,{'model':options['model'],'cache':str(cached),'note':'Downloaded/cached; inference has not been tested.'})
             files=[report]

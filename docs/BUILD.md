@@ -1,3 +1,24 @@
+# Building the V0.6 candidate
+
+Use the existing commands below with version `0.6.0`. Run the complete Python suite,
+all existing browser harnesses, and `tests/browser_v6_check.py --output <new-disposable-folder>`.
+The Windows review job additionally tests native process identity/waits, maintenance,
+and the exact supplied PowerShell updater. The normal tagged release workflow gates
+publication on both Linux/browser tests and the native Windows package checks.
+
+Before committing changed application files, rebuild the source manifest using the
+legacy builder and copy its `release-manifest.json` back to the source tree. Build
+Windows candidates with `scripts/package_windows_release.py build --source .
+--output <outside-source> --tag v0.6.0`; validate against that exact source inventory.
+Final release artifacts must be rebuilt from the approved tagged commit. Never move
+an existing version tag or replace published asset bytes to make a candidate match.
+
+New assets are `FORGE-v0.6.0-windows-x64.zip`, `.zip.sha256` and validation evidence;
+the compatible legacy asset is `FORGE-v0.6.zip`. Production signing remains disabled
+until approved publisher keys are configured; see `BIRTHRIGHT_UPDATE_CORE.md`.
+
+## Established build commands and package contracts
+
 # Building and publishing FORGE
 
 Every new release must include a Windows GitHub-updater installation asset named `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` plus `.zip.sha256`, using the full version and a root `app/` directory. [WINDOWS_RELEASES.md](WINDOWS_RELEASES.md) documents its builder, tests and automatic publication. This format excludes protected updater entrypoints and local state. Preserve the existing offline package described below for users of the older updater.
