@@ -115,16 +115,24 @@ jobs:
             source/requirements-core.txt
             source/requirements-dev.txt
             source/scripts/requirements-media-privacy.txt
-      - name: Install tagged test dependencies and local media tools
+      - name: Ensure local media tools are available
+        timeout-minutes: 4
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check -r source/requirements-dev.txt
+          mkdir -p "$RUNNER_TEMP/windows-linux-evidence" "$RUNNER_TEMP/windows-build"
+          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
+            sudo timeout 180 apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
+            sudo timeout 180 apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+      - name: Install the tagged Python test dependencies
+        timeout-minutes: 8
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r source/requirements-dev.txt
           if [[ -f source/scripts/requirements-media-privacy.txt ]]; then
-            python -m pip install --disable-pip-version-check -r source/scripts/requirements-media-privacy.txt
+            python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r source/scripts/requirements-media-privacy.txt
           fi
           python -m pip check
-          mkdir -p "$RUNNER_TEMP/windows-linux-evidence" "$RUNNER_TEMP/windows-build"
       - name: Run the complete Python suite from the exact application tag
         working-directory: source
         run: python -m pytest -q --junitxml="$RUNNER_TEMP/windows-linux-evidence/tagged-python.xml" | tee "$RUNNER_TEMP/windows-linux-evidence/tagged-python.txt"
