@@ -60,12 +60,16 @@ jobs:
             requirements-dev.txt
             scripts/requirements-media-privacy.txt
       - name: Install Python and local media validation dependencies
+        timeout-minutes: 8
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          mkdir -p "$TEST_OUTPUT"
+          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
+            sudo apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
+            sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
+          fi
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-dev.txt | tee "$TEST_OUTPUT/dependency-install.txt"
           if [[ -f scripts/requirements-media-privacy.txt ]]; then
-            python -m pip install --disable-pip-version-check -r scripts/requirements-media-privacy.txt
+            python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r scripts/requirements-media-privacy.txt | tee -a "$TEST_OUTPUT/dependency-install.txt"
           fi
           python -m pip check
           command -v ffmpeg
@@ -94,6 +98,8 @@ jobs:
       HF_HUB_DISABLE_TELEMETRY: '1'
       DO_NOT_TRACK: '1'
     steps:
+      - name: Preserve source bytes for manifest verification
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.sha }}
@@ -114,8 +120,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'V0.6 native contract tests failed.' }
       - name: Build and validate the candidate Windows package
         run: |
-          python scripts/package_windows_release.py build --source . --output "$env:RUNNER_TEMP/v06-package" --tag v0.6.0
-          if ($LASTEXITCODE -ne 0) { throw 'Candidate packaging failed.' }
+          $buildOutput = & python scripts/package_windows_release.py build --source . --output "$env:RUNNER_TEMP/v06-package" --tag v0.6.0 2>&1
+          $buildCode = $LASTEXITCODE
+          $buildOutput | Write-Output
+          if ($buildCode -ne 0) {
+            $message = (($buildOutput | Select-Object -Last 10) -join ' ').Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Candidate package verification::$message"
+            throw 'Candidate packaging failed.'
+          }
           $archive = Join-Path $env:RUNNER_TEMP 'v06-package/FORGE-v0.6.0-windows-x64.zip'
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/v06-windows-acceptance" -PythonExecutable (Get-Command python).Source
           if ($LASTEXITCODE -ne 0) { throw 'Unchanged updater acceptance failed.' }

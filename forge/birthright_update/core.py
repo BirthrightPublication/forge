@@ -124,7 +124,7 @@ class Transport:
             try:
                 os.link(part, target)
             except FileExistsError:
-                if digest(target) != asset.sha256:
+                if target.is_symlink() or digest(target) != asset.sha256:
                     raise UpdateError('A different update file appeared during transfer.')
             return target
         finally:

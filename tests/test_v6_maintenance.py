@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -52,7 +53,9 @@ def test_failed_verification_restores_exact_previous_environment(tmp_path,monkey
     monkeypatch.setattr(installer,'run',run)
     with pytest.raises(RuntimeError,match='dependency conflict'):installer.install(task)
     assert (env/'installed.txt').read_text()=='original compatible packages'
-    assert (data/'maintenance'/task['id']/'.venv-failed/installed.txt').read_text()=='broken install'
+    failed=list((data/'maintenance'/task['id']).glob('.venv-failed-*/installed.txt'))
+    assert len(failed)==1 and failed[0].read_text()=='broken install'
+    assert json.loads((data/'maintenance'/task['id']/'transaction.json').read_text())['state']=='rolled_back'
     assert (data/'models/model.bin').read_bytes()==b'existing model sentinel'
 
 
@@ -61,6 +64,52 @@ def test_download_failure_never_mutates_existing_environment(tmp_path,monkeypatc
     monkeypatch.setattr(installer,'run',lambda *a,**k:(_ for _ in ()).throw(RuntimeError('offline')))
     with pytest.raises(RuntimeError,match='offline'):installer.install(task)
     assert (env/'installed.txt').read_text()=='original compatible packages'
+
+
+def test_interrupted_install_is_recovered_from_durable_journal(tmp_path,monkeypatch):
+    root,data,env,task=fixture(tmp_path,monkeypatch)
+    def run(command,**kwargs):
+        if 'install' in command:
+            (env/'installed.txt').write_text('interrupted package replacement')
+            raise KeyboardInterrupt('simulate process interruption outside exception rollback')
+    monkeypatch.setattr(installer,'run',run)
+    with pytest.raises(KeyboardInterrupt):installer.install(task)
+    marker=root/'.forge-maintenance.json'
+    marker.write_text(json.dumps({'id':task['id'],'data':str(data)}))
+    monkeypatch.setattr('launcher.alive',lambda *_:False)
+    installer.recover()
+    assert not marker.exists()
+    assert (env/'installed.txt').read_text()=='original compatible packages'
+    assert (data/'settings.json').read_text()=='settings sentinel'
+    assert json.loads((data/'maintenance'/task['id']/'transaction.json').read_text())['state']=='rolled_back'
+    assert json.loads((data/'maintenance'/(task['id']+'.result.json')).read_text())['status']=='recovered'
+
+
+def test_recovery_refuses_live_installer_and_keeps_marker(tmp_path,monkeypatch):
+    root,data,env,task=fixture(tmp_path,monkeypatch)
+    marker=root/'.forge-maintenance.json'
+    marker.write_text(json.dumps({'id':task['id'],'data':str(data)}))
+    with installer.maintenance_lock():
+        with pytest.raises((TimeoutError,RuntimeError),match='(?i)(busy|lock|timeout|timed)'):
+            installer.recover()
+    assert marker.exists() and (env/'installed.txt').read_text()=='original compatible packages'
+
+
+def test_incomplete_backup_does_not_displace_existing_environment(tmp_path,monkeypatch):
+    root,data,env,task=fixture(tmp_path,monkeypatch)
+    backup=data/'maintenance'/task['id'];backup.mkdir()
+    with pytest.raises(RuntimeError,match='backup is incomplete'):
+        installer.restore_environments(backup,['.venv'],['.venv'])
+    assert (env/'installed.txt').read_text()=='original compatible packages'
+
+
+def test_launcher_rejects_interrupted_maintenance_before_service_start(tmp_path,monkeypatch):
+    import launcher
+    root,data,env,task=fixture(tmp_path,monkeypatch)
+    (root/'.forge-maintenance.json').write_text('{}')
+    monkeypatch.setattr(launcher,'ROOT',root)
+    with pytest.raises(RuntimeError,match='maintenance'):
+        launcher.main()
 
 
 @pytest.mark.skipif(os.name!='nt',reason='Native Windows process-handle acceptance')

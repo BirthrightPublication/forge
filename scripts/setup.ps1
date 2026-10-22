@@ -1,5 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+if (Test-Path -LiteralPath (Join-Path $root '.forge-maintenance.json')) {
+  throw 'Maintenance is active or interrupted. Wait for its console, or run: py -3 scripts/managed_install.py --recover'
+}
 Set-Location -LiteralPath $root
 Write-Host "`nFORGE V0.3 - local setup`n"
 Write-Host 'Creates a private Python environment in this folder and a Start shortcut.'

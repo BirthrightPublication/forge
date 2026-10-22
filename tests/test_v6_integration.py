@@ -177,3 +177,20 @@ def test_repair_pause_preserves_queued_jobs(tmp_path,monkeypatch):
     queue.dispatch_once()
     assert store.job(job['id'])['status']=='queued'
     store.close()
+
+
+def test_cancelled_maintenance_cannot_restart_when_a_new_request_clears_its_event(client,monkeypatch):
+    from forge import maintenance
+    # Hold queued work so no installer process is launched on this test platform.
+    store=client.app.state.store
+    store.add_job('qr','held synthetic job',{'options':{}})
+    monkeypatch.setattr(maintenance,'os',SimpleNamespace(name='nt'))
+    service=client.app.state.maintenance_service
+    service.request(['transcription'],approve=True)
+    old_event,old_thread=service.cancelled,service.thread
+    service.cancel()
+    service.request(['downloads'],approve=True)
+    assert old_event.is_set() and service.cancelled is not old_event
+    old_thread.join(2)
+    assert not old_thread.is_alive()
+    service.cancel();service.thread.join(2)

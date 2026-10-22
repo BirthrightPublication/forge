@@ -54,7 +54,7 @@ class Maintenance:
                 self.store.set('dependency_approvals', sorted(set(approvals + engines)))
             self.manager.maintenance_pending = True
             self.manager.repair_pending = preserve_queued
-            self.cancelled.clear()
+            self.cancelled = threading.Event()
             value = {'id': uuid.uuid4().hex, 'engines': engines, 'status': 'waiting',
                      'application': application,
                      'preserve_queued': preserve_queued,
@@ -64,7 +64,7 @@ class Maintenance:
                 for job in self.store.jobs(limit=100000):
                     if job['status'] in {'queued', 'running'}:
                         self.manager.cancel(job['id'])
-            self.thread = threading.Thread(target=self._wait, args=(value,), daemon=True)
+            self.thread = threading.Thread(target=self._wait, args=(value, self.cancelled), daemon=True)
             self.thread.start()
             return value
 
@@ -79,14 +79,23 @@ class Maintenance:
             self.store.set('maintenance', value)
             return value
 
-    def _wait(self, value):
+    def _wait(self, value, cancelled):
+        helper = None
+        marker = ROOT / '.forge-maintenance.json'
+        owns_marker = False
         try:
-            while not self.cancelled.wait(.5):
+            while not cancelled.wait(.5):
                 with self.manager.lock:
+                    if cancelled.is_set():
+                        return
                     if self.manager.active or (not value['preserve_queued'] and any(j['status'] == 'queued' for j in self.store.jobs(limit=100000))):
                         continue
                     if self.manager.stop_event.is_set():
                         return
+                    if not self.app.state.shutdown:
+                        raise RuntimeError('The launcher did not register its shutdown handler.')
+                    if marker.exists():
+                        raise RuntimeError('Earlier maintenance needs recovery before another installation.')
                     settings = self.store.settings()
                     task = {**value, 'root': str(ROOT), 'data': str(self.store.data),
                             'parent_pid': os.getpid(), 'parent_started': psutil.Process().create_time(),
@@ -94,17 +103,24 @@ class Maintenance:
                     path = self.store.data / 'maintenance' / (value['id'] + '.request.json')
                     json_write(path, task)
                     self.manager.maintenance = True
+                    json_write(marker, {'id': value['id'], 'data': str(self.store.data)})
+                    owns_marker = True
                     # The base interpreter survives replacement/rollback of a private environment.
                     python = str(Path(sys._base_executable).with_name('python.exe'))
-                    subprocess.Popen([python, str(ROOT / 'scripts' / 'managed_install.py'), str(path)],
+                    helper = subprocess.Popen([python, str(ROOT / 'scripts' / 'managed_install.py'), str(path)],
                                      cwd=ROOT, creationflags=subprocess.CREATE_NEW_CONSOLE,
                                      env={**os.environ, 'FORGE_DATA_DIR': str(self.store.data), 'PYTHONUTF8': '1'})
                     self.store.set('maintenance', {**value, 'status': 'starting', 'message': 'FORGE is stopping for installation; it will reopen automatically.'})
-                    if not self.app.state.shutdown:
-                        raise RuntimeError('The launcher did not register its shutdown handler.')
                     self.app.state.shutdown()
                     return
         except Exception as exc:
+            # This process is still alive, so the helper has not passed its
+            # exact-parent exit gate and cannot have changed an environment.
+            if helper is not None:
+                helper.terminate()
+                helper.wait(timeout=10)
+            if owns_marker:
+                marker.unlink(missing_ok=True)
             with self.manager.lock:
                 self.manager.maintenance = self.manager.maintenance_pending = False
                 self.manager.repair_pending = False

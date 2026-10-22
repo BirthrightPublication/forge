@@ -8,14 +8,17 @@ infrastructure failures, not application failures.
 
 ## Verified in this Linux environment
 
-- Full candidate suite: **642 passed, 2 Windows-only tests skipped** on Linux.
-  Background discovery exposed a shutdown race in that run; it was fixed and the
-  affected 104-test API/worker suite passed with thread exceptions treated as errors.
+- Full candidate suite: **647 passed, 2 Windows-only tests skipped** on Linux,
+  with background thread exceptions treated as errors. The earlier discovery
+  shutdown race is fixed; the complete rerun passed in 90.82 seconds.
 - New tests cover model integrity, interrupted downloads, cache locking and offline
   reuse; secret-filtered persistent preferences; measured timing; CUDA readiness
   evidence and CPU scheduling; approved update gates; manifest signatures, replay
   and expiration; safe verified downloads; environment backup/rollback; and external
   updater preservation.
+- Durable maintenance recovery tests cover interrupted replacement, restoration
+  from the journal, refusal to race an active installer, incomplete backup handling
+  and the service launch guard. Cancelling a request cannot revive an older waiter.
 - Real Chromium checks passed: Studio 127, Media Privacy 88, Black Scripting 26,
   generators 83, and Birthright Updates/V0.6 26 (350 checks total). Real media and QR
   jobs ran, originals remained unchanged, and no JavaScript errors were reported.
@@ -43,8 +46,20 @@ remain user-managed; no arbitrary executable installer is downloaded or run.
 
 ## Final candidate gates
 
-Full Python suite, all supported-version upgrade/rollback runs, final package hashes,
-source/privacy inventory, pushed commit and Windows CI results are pending recording.
+Incremental upgrade and code rollback passed from V0.1, V0.2, V0.3, V0.4 and V0.5
+using the candidate built from commit `daadc5289f46f5f4754789e0dc545a72095f4019`.
+User settings, presets, scripts, history, model/environment sentinels and exports were
+preserved. The source-only credential-pattern scan found no matches across 261 paths.
+The branch was pushed and verified; draft PR #1 is open.
+
+Initial GitHub run `39855665421`: native Windows maintenance/shared-core tests passed.
+Windows source packaging failed before updater acceptance; checkout byte conversion
+is now disabled and package failure details are emitted as annotations. Linux CI
+hit its time limit while preparing dependencies, before tests started. Dependency
+setup now reuses installed media tools and has bounded retries/timeouts. These CI
+failures do not replace the passing local tests; the next run must still pass.
+
+Final source/package hashes and native Windows updater acceptance remain pending.
 A candidate ZIP or local commit is not a published release. Review and explicit
 approval are required before merging, tagging and publishing V0.6.0.
 

@@ -8,7 +8,7 @@ This branch is a review candidate. It has not yet been approved, tagged or publi
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The release URL for this version is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The previously published stable release is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
