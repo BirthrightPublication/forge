@@ -116,15 +116,31 @@ jobs:
             source/requirements-dev.txt
             source/scripts/requirements-media-privacy.txt
       - name: Ensure local media tools are available
-        timeout-minutes: 4
+        timeout-minutes: 10
         run: |
           mkdir -p "$RUNNER_TEMP/windows-linux-evidence" "$RUNNER_TEMP/windows-build"
-          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
-            sudo timeout 180 apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
-            sudo timeout 180 apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
+          media_log="$RUNNER_TEMP/forge-media-setup.log"
+          trap 'code=$?; tail -n 15 "$media_log" 2>/dev/null | while IFS= read -r line; do line="${line//%/%25}"; echo "::error title=Media setup::$line"; done; exit "$code"' ERR
+          missing=()
+          command -v ffmpeg || missing+=(ffmpeg)
+          command -v ffprobe || missing+=(ffprobe)
+          [[ -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]] || missing+=(DejaVuSans.ttf)
+          echo "::notice title=Media prerequisites::Missing: ${missing[*]:-none}"
+          if (( ${#missing[@]} )); then
+            # Hosted images carry package indexes. Try those before refreshing
+            # unrelated repositories; never bypass the required media tools.
+            if ! sudo timeout 120 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 ffmpeg fonts-dejavu-core 2>&1 | tee "$media_log"; then
+              apt_sources=()
+              if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+                apt_sources=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+              fi
+              sudo timeout 180 apt-get update "${apt_sources[@]}" -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 2>&1 | tee -a "$media_log"
+              sudo timeout 180 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 ffmpeg fonts-dejavu-core 2>&1 | tee -a "$media_log"
+            fi
           fi
           command -v ffmpeg
           command -v ffprobe
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
       - name: Install the tagged Python test dependencies
         timeout-minutes: 8
         run: |
