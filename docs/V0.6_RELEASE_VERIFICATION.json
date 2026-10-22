@@ -1,0 +1,255 @@
+{
+  "release": {
+    "release_url": "https://github.com/BirthrightPublication/forge/releases/tag/v0.6.0",
+    "published_at": "2026-10-22T23:36:50Z",
+    "tag": "v0.6.0",
+    "source_commit": "8aa269a730a36cf7457c0494d365283a95d8695b",
+    "windows_zip": "FORGE-v0.6.0-windows-x64.zip",
+    "sha256": "a826fdd286f2e4bcdb71707e027356e37644659241fcf6c7e289da8f688b9a9b",
+    "assets_downloaded_and_verified": [
+      "BROWSER_EVIDENCE.zip",
+      "BROWSER_TEST_RESULTS.txt",
+      "CHANGELOG.md",
+      "CHECKSUMS.sha256",
+      "FORGE-v0.6.0-windows-x64.validation.json",
+      "FORGE-v0.6.0-windows-x64.zip",
+      "FORGE-v0.6.0-windows-x64.zip.sha256",
+      "FORGE-v0.6.zip",
+      "FORGE-v0.6.zip.sha256",
+      "PYTEST.xml",
+      "PYTHON_TEST_RESULTS.txt",
+      "Update.FORGE.bat",
+      "VALIDATION.json"
+    ],
+    "python_suite": {
+      "errors": 0,
+      "failed": 0,
+      "passed": 648,
+      "skipped": 2,
+      "total": 650
+    },
+    "windows_packager_suite": {
+      "errors": 0,
+      "failed": 0,
+      "passed": 95,
+      "skipped": 0,
+      "total": 95
+    },
+    "native_windows_checks": 676,
+    "native_windows_cases": [
+      {
+        "name": "install",
+        "status": "passed"
+      },
+      {
+        "name": "cancelled",
+        "status": "passed"
+      },
+      {
+        "name": "wrong-checksum",
+        "status": "passed"
+      },
+      {
+        "name": "no-windows-asset",
+        "status": "passed"
+      },
+      {
+        "name": "protected-payload",
+        "status": "passed"
+      },
+      {
+        "name": "existing-junction",
+        "status": "passed"
+      }
+    ],
+    "public_downloads": "passed",
+    "tagged_source_comparison": "passed"
+  },
+  "legacy_upgrade_rollback": {
+    "schema": 1,
+    "tag": "v0.6.0",
+    "source_commit": "8aa269a730a36cf7457c0494d365283a95d8695b",
+    "host": "linux",
+    "native_windows_execution": false,
+    "source_manifest_sha256": "564d1a692694b6c02f9675b38fcbf151cb5b8964bec0587a55e518f9eabc6a72",
+    "archive_identity_note": "These checks used a locally built legacy ZIP of the exact tagged source. ZIP timestamps can differ from the GitHub workflow archive; application files and manifest are compared separately.",
+    "result": "passed",
+    "versions": [
+      {
+        "result": "passed",
+        "host": "linux",
+        "base_version": "0.1.0",
+        "candidate_version": "0.6.0",
+        "base_sha256": "63489858aa087944b0aa7097e24b072ff6ee019267de2e92e83b6ef5e6855f1e",
+        "candidate_sha256": "1876c35de82e7f02675c1ff7c9561441b33c86a946a804e02065c8fd68ec7c04",
+        "original_files_preserved": 8,
+        "protected_files_verified": 14,
+        "baseline_workflow_favorites_tested": false,
+        "checks": [
+          "Candidate manifest and source hashes verified",
+          "Baseline installation detected at version 0.1.0",
+          "Full release installed through updater main at version 0.6.0",
+          "Code backup and separate SQLite snapshot created",
+          "Baseline settings, preset and completed history preserved",
+          "Candidate API and real QR worker executed",
+          "Code-only rollback restored original baseline file bytes",
+          "Baseline code reopened current database and retained new history/output",
+          "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+          "Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+          "New Black Scripting and generator configuration records survive code rollback unchanged",
+          "Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location",
+          "V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline"
+        ],
+        "native_windows_execution": false
+      },
+      {
+        "result": "passed",
+        "host": "linux",
+        "base_version": "0.2.0",
+        "candidate_version": "0.6.0",
+        "base_sha256": "89856a26546eb4541eda5159e4eb3dcf31c08cd7ba54896e13011bc07f539b84",
+        "candidate_sha256": "1876c35de82e7f02675c1ff7c9561441b33c86a946a804e02065c8fd68ec7c04",
+        "original_files_preserved": 8,
+        "protected_files_verified": 14,
+        "baseline_workflow_favorites_tested": true,
+        "checks": [
+          "Candidate manifest and source hashes verified",
+          "Baseline installation detected at version 0.2.0",
+          "Full release installed through updater main at version 0.6.0",
+          "Code backup and separate SQLite snapshot created",
+          "Baseline settings, preset and completed history preserved",
+          "Candidate API and real QR worker executed",
+          "Code-only rollback restored original baseline file bytes",
+          "Baseline code reopened current database and retained new history/output",
+          "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+          "Baseline workflow and favorites preserved through upgrade and rollback",
+          "Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+          "New Black Scripting and generator configuration records survive code rollback unchanged",
+          "Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location",
+          "V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline"
+        ],
+        "native_windows_execution": false
+      },
+      {
+        "result": "passed",
+        "host": "linux",
+        "base_version": "0.3.0",
+        "candidate_version": "0.6.0",
+        "base_sha256": "335542cce788332177b7e0985f8c8abb3f3b86e952cc887e9daf24691a3ca5e8",
+        "candidate_sha256": "1876c35de82e7f02675c1ff7c9561441b33c86a946a804e02065c8fd68ec7c04",
+        "original_files_preserved": 8,
+        "protected_files_verified": 14,
+        "baseline_workflow_favorites_tested": true,
+        "checks": [
+          "Candidate manifest and source hashes verified",
+          "Baseline installation detected at version 0.3.0",
+          "Full release installed through updater main at version 0.6.0",
+          "Code backup and separate SQLite snapshot created",
+          "Baseline settings, preset and completed history preserved",
+          "Candidate API and real QR worker executed",
+          "Code-only rollback restored original baseline file bytes",
+          "Baseline code reopened current database and retained new history/output",
+          "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+          "Baseline workflow and favorites preserved through upgrade and rollback",
+          "Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+          "New Black Scripting and generator configuration records survive code rollback unchanged",
+          "Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location",
+          "V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline"
+        ],
+        "native_windows_execution": false
+      },
+      {
+        "result": "passed",
+        "host": "linux",
+        "base_version": "0.4.0",
+        "candidate_version": "0.6.0",
+        "base_sha256": "8cff04f434c86921fd09500375550e60a11b3ae928ca8d3720c9d66a34232943",
+        "candidate_sha256": "1876c35de82e7f02675c1ff7c9561441b33c86a946a804e02065c8fd68ec7c04",
+        "original_files_preserved": 8,
+        "protected_files_verified": 14,
+        "baseline_workflow_favorites_tested": true,
+        "checks": [
+          "Candidate manifest and source hashes verified",
+          "Baseline installation detected at version 0.4.0",
+          "Full release installed through updater main at version 0.6.0",
+          "Code backup and separate SQLite snapshot created",
+          "Baseline settings, preset and completed history preserved",
+          "Candidate API and real QR worker executed",
+          "Code-only rollback restored original baseline file bytes",
+          "Baseline code reopened current database and retained new history/output",
+          "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+          "Baseline workflow and favorites preserved through upgrade and rollback",
+          "Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+          "New Black Scripting and generator configuration records survive code rollback unchanged",
+          "Existing V0.4 Black Scripting definitions and generator presets preserved unchanged in stored JSON",
+          "Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location",
+          "V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline"
+        ],
+        "native_windows_execution": false
+      },
+      {
+        "result": "passed",
+        "host": "linux",
+        "base_version": "0.5.0",
+        "candidate_version": "0.6.0",
+        "base_sha256": "98b644f9f999631df1f695f2435a99dd684543bd35e9e05e02f2c79e2480241b",
+        "candidate_sha256": "1876c35de82e7f02675c1ff7c9561441b33c86a946a804e02065c8fd68ec7c04",
+        "original_files_preserved": 7,
+        "protected_files_verified": 14,
+        "baseline_workflow_favorites_tested": true,
+        "checks": [
+          "Candidate manifest and source hashes verified",
+          "Baseline installation detected at version 0.5.0",
+          "Full release installed through updater main at version 0.6.0",
+          "Code backup and separate SQLite snapshot created",
+          "Baseline settings, preset and completed history preserved",
+          "Candidate API and real QR worker executed",
+          "Code-only rollback restored original baseline file bytes",
+          "Baseline code reopened current database and retained new history/output",
+          "Original scripts, private environments, tools, config, model caches, inputs and outputs preserved",
+          "Baseline workflow and favorites preserved through upgrade and rollback",
+          "Expected release registry, offline grants, legacy projection and memory-only generator execute after upgrade",
+          "New Black Scripting and generator configuration records survive code rollback unchanged",
+          "Existing V0.4 Black Scripting definitions and generator presets preserved unchanged in stored JSON",
+          "Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location",
+          "V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline"
+        ],
+        "native_windows_execution": false
+      }
+    ]
+  },
+  "cached_upgrade": {
+    "native_windows_run": "https://github.com/BirthrightPublication/forge/actions/runs/39873720877",
+    "tooling_commit": "28b3aa26d706fa29c4b1463a9b109e82c58c998e",
+    "status": "success",
+    "published_zip_requires_refresh": true,
+    "future_package_requires_refresh": false,
+    "local_published_bytes_regression": {
+      "host": "linux",
+      "scope": "Actual published init module bytes; simulate Windows timestamp-preserving copy, then run documented cache refresh.",
+      "old_archive_sha256": "5539b5d3b55333a8506e876d25241ffb0fe0c306941c55455bb93e19f6391dbf",
+      "new_archive_sha256": "a826fdd286f2e4bcdb71707e027356e37644659241fcf6c7e289da8f688b9a9b",
+      "old_zip_timestamp": [
+        1980,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "new_zip_timestamp": [
+        1980,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "version_before": "0.5.0",
+      "version_after_copy": "0.5.0",
+      "version_after_refresh": "0.6.0",
+      "result": "passed"
+    }
+  },
+  "scope": "Supplemental public download, upgrade and cache checks. Original release assets remain immutable. See V0.6_INSTALLATION.md for the required published-package cache refresh."
+}
