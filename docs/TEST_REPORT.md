@@ -52,15 +52,26 @@ User settings, presets, scripts, history, model/environment sentinels and export
 preserved. The source-only credential-pattern scan found no matches across 261 paths.
 The branch was pushed and verified; draft PR #1 is open.
 
-Initial GitHub run `39855665421`: native Windows maintenance/shared-core tests passed.
-Windows source packaging failed before updater acceptance; checkout byte conversion
-is now disabled and package failure details are emitted as annotations. Linux CI
-hit its time limit while preparing dependencies, before tests started. Dependency
-setup now reuses installed media tools and has bounded retries/timeouts. These CI
-failures do not replace the passing local tests; the next run must still pass.
+GitHub run [39860918101](https://github.com/BirthrightPublication/forge/actions/runs/39860918101)
+passed all jobs for implementation commit `7643ba001ed4ad4fff1dd81b5a831c4dbb39fae3`:
+complete Linux Python suite, native Windows maintenance/shared-core tests, Windows
+package construction, and the unchanged PowerShell updater's installation, data
+preservation and failure-path acceptance. The earlier package-byte and dependency
+preparation failures are resolved. CI retained both Linux and Windows evidence
+artifacts; this cloud proxy blocks downloading their Azure-backed contents (HTTP 403),
+so native success is verified through GitHub's completed job/step status.
 
-Final source/package hashes and native Windows updater acceptance remain pending.
-A candidate ZIP or local commit is not a published release. Review and explicit
-approval are required before merging, tagging and publishing V0.6.0.
+The final implementation's V0.5 upgrade/rollback was repeated successfully, including
+real QR and privacy export jobs, current data reopened by V0.5, seven original scripts
+and fourteen protected file sentinels. The V0.6 Chromium checks were also repeated:
+all 26 passed. Local Windows package validation verifies 253 source files and retains
+164 application files plus the manifest under `app/`; its matching checksum is built
+alongside it. Candidate hashes are recorded in PR #1 and checksum companion files.
+
+This report-only follow-up updates the release manifest after recording the tested
+implementation. It does not alter application behavior. V0.6 is ready for review;
+merge, tag and public release remain pending explicit approval. Tagged release
+workflows repeat their required gates and publish only successfully tested assets.
+A candidate ZIP or local commit is not a published release.
 
 The prior version's report is preserved at `history/v0.5/TEST_REPORT.md` and in Git history.
