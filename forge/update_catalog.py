@@ -250,7 +250,10 @@ def mount(app, store, manager):
                            'source': None, 'url': None, 'batch_id': uuid.uuid4().hex}
                 store.add_job('model_download', 'Install ' + model, payload)
             if engines or package:
-                return app.state.maintenance_service.request(engines, approve=True, application_package=package)
+                # Model jobs may need the engine being repaired in this batch.
+                # Keep them queued until maintenance verifies it and restarts.
+                return app.state.maintenance_service.request(engines, approve=True, application_package=package,
+                                                             preserve_queued=bool(models))
         return {'message': 'Model installations queued; existing revisions are retained.'}
 
     @app.post('/api/updates/application')

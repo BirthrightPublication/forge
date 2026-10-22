@@ -68,9 +68,12 @@ all 26 passed. Local Windows package validation verifies 253 source files and re
 164 application files plus the manifest under `app/`; its matching checksum is built
 alongside it. Candidate hashes are recorded in PR #1 and checksum companion files.
 
-This report-only follow-up updates the release manifest after recording the tested
-implementation. It does not alter application behavior. V0.6 is ready for review;
-merge, tag and public release remain pending explicit approval. Tagged release
+A subsequent batch-order regression test ensures model jobs wait for environment
+maintenance in a combined update. The affected integration/maintenance suite passed
+31 tests, with two Windows-only skips; GitHub repeats the full suite on that commit.
+The report-only predecessor also passed native Windows acceptance. Current PR checks
+identify the latest tested source. Merge, tag and public release remain pending
+explicit approval. Tagged release
 workflows repeat their required gates and publish only successfully tested assets.
 A candidate ZIP or local commit is not a published release.
 

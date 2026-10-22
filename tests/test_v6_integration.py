@@ -164,6 +164,28 @@ def test_update_install_requires_explicit_approval(client):
     assert not client.app.state.store.get('dependency_approvals')
 
 
+def test_combined_engine_and_model_update_preserves_jobs_until_engine_is_ready(client,monkeypatch):
+    from forge import update_catalog
+    monkeypatch.setattr(update_catalog,'os',SimpleNamespace(name='nt'))
+    store=client.app.state.store
+    existing=store.add_job('qr','existing queued work',{'options':{}})
+    store.set('update_catalog',{'entries':[
+        {'id':'transcription','category':'dependencies','action':'repair'},
+        {'id':'model:tiny','category':'models','action':'update','available':'a'*40},
+    ]})
+    requests=[]
+    def request(engines,**kwargs):
+        requests.append((engines,kwargs))
+        return {'status':'waiting'}
+    monkeypatch.setattr(client.app.state.maintenance_service,'request',request)
+    result=client.post('/api/updates/install',json={'consent':True,'ids':['transcription','model:tiny']})
+    assert result.status_code==200,result.text
+    assert requests==[(['transcription'],{'approve':True,'application_package':None,'preserve_queued':True})]
+    assert store.job(existing['id'])['status']=='queued'
+    models=[job for job in store.jobs() if job['tool']=='model_download']
+    assert len(models)==1 and models[0]['status']=='queued'
+
+
 def test_maintenance_cancel_requires_separate_active_job_confirmation(client):
     response=client.post('/api/maintenance/install',json={'engines':['transcription'],'approve':True,'cancel_jobs':True})
     assert response.status_code==400 and 'Confirm cancellation' in response.json()['detail']
