@@ -276,7 +276,10 @@ def test_native_managed_restart_verifies_new_process_and_preserves_queue(tmp_pat
     try:
         assert installer.restart_verified(task,result)==__version__
         runtime=json.loads((data/'runtime.json').read_text())
-        installer.verify_health(runtime,__version__,children[0].pid)
+        pid=installer.owned_server_pid(runtime,children[0].pid)
+        installer.verify_health(runtime,__version__,pid)
+        with pytest.raises(RuntimeError,match='owned'):
+            installer.owned_server_pid(runtime,99999999)
         assert launcher.request(runtime,'/api/state')['settings']['queue_paused'] is True
         reopened=Store(data)
         try:
@@ -285,9 +288,13 @@ def test_native_managed_restart_verifies_new_process_and_preserves_queue(tmp_pat
         finally: reopened.close()
         assert (data/'models/sentinel.bin').read_bytes()==b'preserve cached model'
     finally:
+        try:
+            runtime=json.loads((data/'runtime.json').read_text())
+            launcher.request(runtime,'/api/shutdown',{})
+        except (OSError,ValueError): pass
         for child in children:
-            if child.poll() is None:child.terminate()
-            child.wait(timeout=15)
+            try: child.wait(timeout=15)
+            except subprocess.TimeoutExpired: installer.stop_owned_child(child)
 
 
 def test_download_authentication_reaches_worker_but_not_presets(tmp_path):

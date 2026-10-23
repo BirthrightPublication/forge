@@ -227,6 +227,63 @@ def verify_health(runtime, expected, pid):
         raise RuntimeError('Restarted health/imported application version does not match the installed release.')
 
 
+def owned_server_pid(runtime, launcher_pid):
+    """Windows venv redirectors own a child interpreter with a different PID.
+
+    Require an unbroken current process ancestry to the still-live Popen handle;
+    matching an HTTP port or runtime-file PID alone is never sufficient.
+    """
+    pid=runtime.get('pid')
+    if type(pid) is not int or pid<=0:
+        raise RuntimeError('The restarted service has no valid process identity.')
+    if pid==launcher_pid: return pid
+    if os.name!='nt': raise RuntimeError('The restarted service is not the owned child process.')
+    from ctypes import wintypes
+    class Entry(ctypes.Structure):
+        _fields_=[('size',wintypes.DWORD),('usage',wintypes.DWORD),('pid',wintypes.DWORD),
+                  ('heap',ctypes.c_size_t),('module',wintypes.DWORD),('threads',wintypes.DWORD),
+                  ('parent',wintypes.DWORD),('priority',wintypes.LONG),('flags',wintypes.DWORD),
+                  ('exe',wintypes.WCHAR*260)]
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateToolhelp32Snapshot.argtypes=[wintypes.DWORD,wintypes.DWORD]
+    kernel.CreateToolhelp32Snapshot.restype=wintypes.HANDLE
+    kernel.Process32FirstW.argtypes=[wintypes.HANDLE,ctypes.POINTER(Entry)]
+    kernel.Process32NextW.argtypes=[wintypes.HANDLE,ctypes.POINTER(Entry)]
+    kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+    snapshot=kernel.CreateToolhelp32Snapshot(2,0)
+    if snapshot==ctypes.c_void_p(-1).value:
+        raise OSError('Cannot verify the restarted interpreter process tree.')
+    parents={}
+    try:
+        entry=Entry();entry.size=ctypes.sizeof(Entry)
+        if kernel.Process32FirstW(snapshot,ctypes.byref(entry)):
+            while True:
+                parents[entry.pid]=entry.parent
+                if not kernel.Process32NextW(snapshot,ctypes.byref(entry)): break
+    finally:
+        kernel.CloseHandle(snapshot)
+    current=pid
+    for _ in range(16):
+        current=parents.get(current)
+        if current==launcher_pid: return pid
+        if not current: break
+    raise RuntimeError('The restarted backend is not owned by this maintenance process.')
+
+
+def stop_owned_child(child):
+    if child.poll() is not None: return
+    if os.name=='nt':
+        # The original process handle remains live: this PID cannot have been reused.
+        try:
+            subprocess.run(['taskkill','/PID',str(child.pid),'/T','/F'],cwd=ROOT,
+                           timeout=15,check=True,creationflags=subprocess.CREATE_NO_WINDOW)
+        except subprocess.CalledProcessError:
+            if child.poll() is None: raise
+    else:
+        child.terminate()
+    child.wait(timeout=15)
+
+
 def restart_verified(task, result_path):
     data = Path(task['data'])
     python = ROOT / '.venv' / 'Scripts' / 'python.exe'
@@ -248,7 +305,8 @@ def restart_verified(task, result_path):
                 raise RuntimeError('The restarted service exited. Review service.log; the verified backup is retained.')
             try:
                 runtime = json.loads((data/'runtime.json').read_text('utf-8'))
-                verify_health(runtime, expected, child.pid)
+                server_pid = owned_server_pid(runtime, child.pid)
+                verify_health(runtime, expected, server_pid)
                 break
             except (OSError, ValueError, RuntimeError) as error:
                 last_error = str(error)
@@ -260,11 +318,15 @@ def restart_verified(task, result_path):
         request(runtime, '/api/queue', {'paused':bool(task['queue_paused'])})
     except BaseException:
         # This process handle belongs only to the child we created.
-        if child.poll() is None:
-            child.terminate(); child.wait(timeout=15)
-        run([str(python), '-c', preference, str(data), str(bool(task['queue_paused']))], timeout=30)
+        try:
+            stop_owned_child(child)
+        finally:
+            run([str(python), '-c', preference, str(data), str(bool(task['queue_paused']))], timeout=30)
         raise
-    subprocess.Popen([str(python.with_name('pythonw.exe')),str(ROOT/'launcher.py')],cwd=ROOT,env=environment)
+    try:
+        subprocess.Popen([str(python.with_name('pythonw.exe')),str(ROOT/'launcher.py')],cwd=ROOT,env=environment)
+    except OSError:
+        print('The service passed health checks. Open FORGE.bat to reopen your browser.')
     return expected
 
 
