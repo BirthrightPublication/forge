@@ -222,7 +222,7 @@ renderDock=function(){
  const c=$('.counter');if(c)c.textContent=busyJobs().length;
 };
 function v4SyncShell(){
- if(!state)return;$('#black-scripting-launcher').innerHTML=icon('script')+'<span>Black Scripting</span>';$('#black-scripting-launcher').onclick=()=>navigate('workflows');$('#black-scripting-launcher').classList.toggle('active',view==='workflows');
+ if(!state)return;const active=view==='workflows',label=active?'Exit Black Scripting':'Enter Black Scripting';$('#black-scripting-launcher').innerHTML=icon('script')+'<span>'+label+'</span>';$('#black-scripting-launcher').setAttribute('aria-label',label);$('#black-scripting-launcher').setAttribute('aria-pressed',String(active));$('#black-scripting-launcher').title=label;$('#black-scripting-launcher').onclick=()=>window.ForgeShell?window.ForgeShell.toggleBlack():navigate('workflows');$('#black-scripting-launcher').classList.toggle('active',view==='workflows');
  document.body.classList.toggle('black-scripting-workspace',view==='workflows');document.body.classList.toggle('black-scripting-active',view==='workflows');
  $$('#sidebar [data-view="workflows"], #sidebar [data-favorite-nav="workflows"]').forEach(b=>b.remove());
  let osNav=$('#forge-os-nav');if(!osNav){const caption=document.createElement('div');caption.className='nav-caption';caption.textContent='FORGE OS';osNav=document.createElement('nav');osNav.id='forge-os-nav';osNav.setAttribute('aria-label','FORGE OS utilities');$('#tool-nav').after(caption,osNav);}

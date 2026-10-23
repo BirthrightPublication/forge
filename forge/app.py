@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import ValidationError
 from . import __version__
 from .core import ROOT, TOOLS, PRIVACY_TOOLS, Store, absolute_path, dependency_state, no_window, passwords, safe_name
-from .models import JobRequest, OPTION_MODELS, Password, Pick, Preset, QueueAction, Register, Settings
+from .models import JobRequest, OPTION_MODELS, Output, Password, Pick, Preset, QueueAction, Register, Settings
 from .queue import QueueManager, public_job
 from .auth import BrowserSessions
 from .entitlements import EntitlementService, require_feature
@@ -70,6 +70,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
         if workers:
             manager.start()
             app.state.update_catalog.start()
+            app.state.download_studio.start()
         if store.settings()['daily_update_check']:
             threading.Thread(target=update_check, daemon=True).start()
         yield
@@ -79,6 +80,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     app = FastAPI(title='FORGE Local Studio', version=__version__, docs_url=None, redoc_url=None,
                   openapi_url=None, lifespan=lifespan)
     app.state.store = store
+    app.state.port = port
     app.state.manager = manager
     app.state.entitlements = EntitlementService()
     manager.require_feature = lambda tool: require_feature(app, 'transcribe' if tool == 'model_download' else tool)
@@ -128,7 +130,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.get('/health')
     def health():
-        return {'app':'FORGE','version':__version__}
+        return {'app':'FORGE','version':__version__,'pid':os.getpid()}
 
     @app.get('/')
     def index():
@@ -138,7 +140,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
-                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css'}:
+                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -310,8 +312,15 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
             if body.tool in PRIVACY_TOOLS:
                 from .media_api import validate_media_options
                 plan = validate_media_options(body.tool, Path(source['path']), options, settings)
-            folder = destination(body.output, source, settings)
-            payload = {'tool':body.tool,'options':options,'settings':settings, 'destination':str(folder), 'source':source, 'url':url, 'batch_id':batch_id}
+            if body.tool.startswith('download_') and body.output.mode in {'default','last'}:
+                saved=app.state.download_studio.destinations.snapshot()
+                selected=saved['last'] if body.output.mode=='last' and saved['last'] else saved['default']
+                folder=destination(Output(mode='custom',directory=selected,subfolder=body.output.subfolder),None,settings)
+            else:
+                folder = destination(body.output, source, settings)
+            payload = {'tool':body.tool,'options':options,'settings':settings, 'destination':str(folder), 'source':source, 'url':url, 'batch_id':batch_id, 'priority':body.priority}
+            if body.tool.startswith('download_'):
+                payload['resume_key']=uuid.uuid4().hex
             if source:
                 stat = Path(source['path']).stat()
                 payload['source_stat'] = {'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
@@ -324,6 +333,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
         with manager.lock:
             manager.check_accepting()
             jobs = [store.add_job(body.tool, label, payload) for label,payload in planned]
+        if body.tool.startswith('download_'):
+            app.state.download_studio.destinations.remember(folder)
         if body.output.mode == 'custom':
             settings['last_output'] = str(absolute_path(body.output.directory, directory=True))
             store.set('settings', settings)
@@ -367,6 +378,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
             raise ValueError('This tool uses its own configuration presets.')
         try:
             options = OPTION_MODELS[body.tool].model_validate(body.options).model_dump()
+            if body.tool.startswith('download_'): options['cookies']=''
         except ValidationError:
             if body.tool == 'qr':
                 raise ValueError('Invalid QR preset settings. Check content, colors, size and selected QR type.') from None
@@ -450,4 +462,6 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount_maintenance(app,store,manager)
     from .update_catalog import mount as mount_catalog
     mount_catalog(app,store,manager)
+    from .download_studio import mount as mount_download_studio
+    mount_download_studio(app,store,manager)
     return app

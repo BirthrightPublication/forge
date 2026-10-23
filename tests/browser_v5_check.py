@@ -157,7 +157,7 @@ try:
                 page.goto(origin + '/#launch=' + ticket)
             except Exception:
                 raise RuntimeError('Cannot open the disposable FORGE service; verify startup in its local server log.') from None
-            page.wait_for_selector('.tool-card')
+            page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
             check('Authorization clears temporary launch credentials',
                   page.evaluate('()=>token===""&&launchTicket===""&&location.hash===""'))
             check('Overview exposes all eighteen tools', page.locator('.tool-card').count() == 18)

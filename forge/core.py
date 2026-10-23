@@ -245,9 +245,22 @@ class Store:
         job = {'id': uuid.uuid4().hex, 'tool': tool, 'label': label, 'status': 'queued', 'progress': 0, 'message': 'Waiting for a processing slot.', 'payload': payload, 'outputs': [], 'warnings': [], 'created': now, 'updated': now}
         payload['job_id'] = job['id']
         with self.lock:
-            self.db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)', (job['id'], tool, label, 'queued', 0, job['message'], json.dumps(payload, ensure_ascii=False), '[]', '[]', now, now))
-            self.db.commit()
-        self.update_meta(job['id'], batch_id=payload.get('batch_id',''), workflow_name=payload.get('workflow_name',''), depends_on=payload.get('depends_on',''), step=payload.get('step',0), steps=payload.get('steps',0))
+            try:
+                if payload.get('watch_media'):
+                    row = self.db.execute('SELECT data FROM watch_media WHERE id=?',(payload['watch_media'],)).fetchone()
+                    if not row: raise ValueError('Watched media record is missing; review Channel Watch.')
+                    media = json.loads(row[0])
+                    current = self.job(media['job_id']) if media.get('job_id') else None
+                    if current and current['status'] in {'queued','running','cancelling','finalizing','completed'}:
+                        raise ValueError('This watched media already has active or completed work.')
+                    media.update(job_id=job['id'],status='queued',auto_pending=False,attempts=media['attempts']+1)
+                    self.db.execute('UPDATE watch_media SET data=? WHERE id=?',(json.dumps(media),payload['watch_media']))
+                self.db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?)', (job['id'], tool, label, 'queued', 0, job['message'], json.dumps(payload, ensure_ascii=False), '[]', '[]', now, now))
+                self.db.commit()
+            except BaseException:
+                self.db.rollback()
+                raise
+        self.update_meta(job['id'], priority=payload.get('priority','normal'), batch_id=payload.get('batch_id',''), workflow_name=payload.get('workflow_name',''), depends_on=payload.get('depends_on',''), step=payload.get('step',0), steps=payload.get('steps',0))
         return self.job(job['id'])
 
     def job(self, id: str) -> dict:
@@ -273,7 +286,7 @@ class Store:
             else:
                 rows = self.db.execute('SELECT jobs.*, job_meta.value AS _meta FROM jobs LEFT JOIN job_meta USING(id) ORDER BY created DESC LIMIT ?', (limit,)).fetchall()
         jobs=[self._decode(row) for row in rows]
-        return sorted(jobs,key=lambda j:j.get('rank',j['created'])) if status=='queued' else jobs
+        return sorted(jobs,key=lambda j:({'critical':0,'high':1,'normal':2,'low':3}.get(j.get('priority'),2),j.get('rank',j['created']))) if status=='queued' else jobs
 
     def visible_jobs(self, limit=500) -> list[dict]:
         """Keep unfinished and failed work visible beyond the terminal history window."""
@@ -295,7 +308,7 @@ class Store:
             self.db.commit()
 
     def update_meta(self, id: str, **fields):
-        allowed={'rank','batch_id','workflow_name','depends_on','step','steps','resource','started','finished','execution_seconds','stage_seconds','eta_seconds','speed','stage','progress_measured'}
+        allowed={'priority','rank','batch_id','workflow_name','depends_on','step','steps','resource','started','finished','execution_seconds','stage_seconds','eta_seconds','speed','stage','progress_measured'}
         if not set(fields)<=allowed:
             raise ValueError('Invalid job metadata update.')
         with self.lock:

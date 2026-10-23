@@ -129,6 +129,9 @@ CHECK_STATE = r"""def check_state(store):
             assert store.get(key) == expected, (key, store.get(key), expected)
     source = Path(fixture['privacy_source'])
     assert hashlib.sha256(source.read_bytes()).hexdigest() == fixture['privacy_source_sha256']
+    if fixture.get('v7_destination'):
+        assert store.get('download_default') == fixture['v7_destination']
+        assert store.db.execute('SELECT data FROM watch_media WHERE id=?',('youtube:preserved-fixture',)).fetchone() is not None
 """
 
 
@@ -241,6 +244,12 @@ try:
             fixture['v5_job_id'] = media_id
             fixture['v5_outputs'] = [{'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()} for path in outputs]
             check_state(app.state.store)
+        if tuple(map(int, state['version'].split('.'))) >= (0, 7, 0):
+            destination = str(app.state.store.data / 'saved-download-folder')
+            response = c.post('/api/downloads/directories',json={'path':destination,'name':'Preserved destination','pinned':True,'default':True,'create':True})
+            assert response.status_code == 200, response.text
+            app.state.download_studio.put('watch_media','youtube:preserved-fixture',{'key':'youtube:preserved-fixture','status':'archived','title':'Synthetic preserved watch history','discovered':0})
+            fixture['v7_destination']=destination
         fixture_path.write_text(json.dumps(fixture), encoding='utf-8')
 finally:
     app.state.store.close()

@@ -66,7 +66,7 @@ try:
         api('/presets',{'tool':'retune','name':'432 lossless','options':{'target_hz':432,'format':'flac'},'output':{'mode':'source'}})
         ticket=api('/launch-ticket',{})['ticket']
         page.goto(base+'/#launch='+ticket)
-        page.wait_for_selector('.tool-card')
+        page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
         page.locator('#black-scripting-launcher').click()
         page.wait_for_selector('.black-plus')
         check('Initial workbench empty',page.locator('[data-black-node]').count()==0)

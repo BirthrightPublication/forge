@@ -136,12 +136,15 @@ def install(task):
     saved = {}
     changed = []
     journal = backup / 'transaction.json'
+    def stage(status,message):
+        write(data/'maintenance'/(task['id']+'.result.json'),{'status':status,'message':message})
     def checkpoint(state='installing'):
         write(journal, {'state': state, 'changed': changed, 'saved': list(saved)})
     checkpoint()
     base = sys.executable
     try:
         for environment in environments:
+            stage('backing_up','Backing up the existing '+environment+' environment.')
             target = ROOT / environment
             if target.is_symlink() or (hasattr(target, 'is_junction') and target.is_junction()):
                 raise ValueError('Managed environments cannot be links or junctions.')
@@ -162,11 +165,13 @@ def install(task):
             reqs = [str(ROOT / ENGINES[e][0]) for e in task['engines'] if ENGINES[e][1] == environment]
             args = [item for req in reqs for item in ('-r', req)]
             constraints = ['-c', str(ROOT / 'requirements-core.txt')] if environment == '.venv' else []
+            stage('downloading','Downloading compatible packages from PyPI.')
             run([str(python), '-m', 'pip', '--isolated', '--disable-pip-version-check', 'download',
                  '--index-url', 'https://pypi.org/simple', '--only-binary=:all:', '--dest', str(wheels), *constraints, *args])
             if environment not in changed:
                 changed.append(environment)
                 checkpoint()
+            stage('installing','Installing verified local dependency wheels.')
             run([str(python), '-m', 'pip', '--isolated', '--disable-pip-version-check', 'install', '--no-index',
                  '--find-links', str(wheels), '--only-binary=:all:', '--upgrade', '--upgrade-strategy', 'only-if-needed', *constraints, *args])
             run([str(python), '-m', 'pip', 'check'], timeout=120)
@@ -177,6 +182,7 @@ def install(task):
                     run([str(python), '-c', 'import ' + modules[engine]], timeout=120)
         application = task.get('application')
         if application:
+            stage('installing','Backing up and applying verified application source.')
             package = Path(application['path']).resolve()
             if package.parent != (ROOT / 'Build').resolve() or hashlib.sha256(package.read_bytes()).hexdigest() != application['sha256']:
                 raise ValueError('The approved application package changed. Nothing from it was installed.')
@@ -190,12 +196,74 @@ def install(task):
             adapter = LocalUpdaterAdapter(ROOT, python, package, service_stopped=True)
             apply_update(adapter, release, package, approved=True)
         checkpoint('completed')
-        return {'status': 'completed', 'message': 'Dependencies installed and verified. Environments and model caches were preserved.',
-                'backup': str(backup), 'completed': time.time()}
+        return {'status': 'installed', 'message': 'Installation verified on disk; checking the fresh interpreter and restarted service.',
+                'backup': str(backup)}
     except Exception:
         restore_environments(backup, changed, saved)
         checkpoint('rolled_back')
         raise
+
+
+def validate_import(python):
+    """A new interpreter must import the installed source, never the host's cache."""
+    expected = (ROOT / 'VERSION.txt').read_text('utf-8').strip()
+    script = ('import compileall,py_compile,sys; from pathlib import Path; '
+              'root=Path(sys.argv[1]); sys.path.insert(0,str(root)); '
+              'assert all(compileall.compile_dir(str(root/p),quiet=1,force=True,invalidation_mode=py_compile.PycInvalidationMode.CHECKED_HASH) for p in ("forge","scripts")); '
+              'import forge; assert forge.__version__==sys.argv[2], "Imported version does not match installed version"; '
+              'assert Path(forge.__file__).resolve()==root/"forge"/"__init__.py", "Wrong import root"')
+    run([str(python), '-I', '-c', script, str(ROOT), expected], timeout=120)
+    return expected
+
+
+def verify_health(runtime, expected, pid):
+    from launcher import request
+    if (Path(runtime.get('root','')).resolve() != ROOT or runtime.get('pid') != pid
+            or runtime.get('version') != expected):
+        raise RuntimeError('Restarted service identity does not match this installation.')
+    health = request(runtime, '/health')
+    state = request(runtime, '/api/state')
+    if health.get('pid') != pid or health.get('version') != expected or state.get('version') != expected:
+        raise RuntimeError('Restarted health/imported application version does not match the installed release.')
+
+
+def restart_verified(task, result_path):
+    data = Path(task['data'])
+    python = ROOT / '.venv' / 'Scripts' / 'python.exe'
+    write(result_path, {'status':'validating', 'message':'Verifying fresh imports and application caches.'})
+    expected = validate_import(python)
+    # Suspend dispatch during health validation, without deleting queued work.
+    preference = 'from forge.core import Store; import sys; from pathlib import Path; s=Store(Path(sys.argv[1])); v=s.settings(); v["queue_paused"]=sys.argv[2]=="True"; s.set("settings",v)'
+    run([str(python), '-c', preference, str(data), 'True'], timeout=30)
+    write(result_path, {'status':'restarting','message':'Starting FORGE '+expected+' and checking its process and health.'})
+    environment = {**os.environ, 'FORGE_DATA_DIR':str(data), 'FORGE_PORT':str(task.get('port',8765)), 'PYTHONUTF8':'1'}
+    with (data / 'service.log').open('ab') as log:
+        child = subprocess.Popen([str(python),str(ROOT/'server.py')],cwd=ROOT,env=environment,
+                                 stdout=log,stderr=log,stdin=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW)
+    try:
+        deadline = time.monotonic()+60
+        while time.monotonic()<deadline:
+            if child.poll() is not None:
+                raise RuntimeError('The restarted service exited. Review service.log; the verified backup is retained.')
+            try:
+                runtime = json.loads((data/'runtime.json').read_text('utf-8'))
+                verify_health(runtime, expected, child.pid)
+                break
+            except (OSError, ValueError, RuntimeError):
+                time.sleep(.25)
+        else:
+            raise RuntimeError('Restart health verification timed out. No update success was recorded.')
+        from launcher import request
+        # Restore via the live service to avoid stale in-memory settings.
+        request(runtime, '/api/queue', {'paused':bool(task['queue_paused'])})
+    except BaseException:
+        # This process handle belongs only to the child we created.
+        if child.poll() is None:
+            child.terminate(); child.wait(timeout=15)
+        run([str(python), '-c', preference, str(data), str(bool(task['queue_paused']))], timeout=30)
+        raise
+    subprocess.Popen([str(python.with_name('pythonw.exe')),str(ROOT/'launcher.py')],cwd=ROOT,env=environment)
+    return expected
 
 
 def main():
@@ -234,17 +302,19 @@ def main():
         safe = safe and not any((ROOT / name).exists() for name in ('.forge-updating', '.forge-update-state.json'))
         if safe:
             marker.unlink()
+        if stopped and safe and result['status']=='installed':
+            try:
+                version = restart_verified(task, result_path)
+                result.update(status='completed', version=version, completed=time.time(),
+                              message='FORGE '+version+' restarted and passed process, import and health checks. Existing data and environments were preserved.')
+            except Exception as exc:
+                result.update(status='failed', message=str(exc)[:1000]+' Use the external updater for rollback or recovery; backups are retained.')
         write(result_path, result)
         print(result['message'])
     if stopped:
         if not safe:
             print('Recovery remains pending. Run: py -3 scripts/managed_install.py --recover')
             return 1
-        python = ROOT / '.venv' / 'Scripts' / 'python.exe'
-        # Restore the previous dispatch preference, including a previously paused queue.
-        run([str(python), '-c', 'from forge.core import Store; import sys; from pathlib import Path; s=Store(Path(sys.argv[1])); v=s.settings(); v["queue_paused"]=sys.argv[2]=="True"; s.set("settings",v)',
-             task['data'], str(bool(task['queue_paused']))], timeout=30)
-        subprocess.Popen([str(python.with_name('pythonw.exe')), str(ROOT / 'launcher.py')], cwd=ROOT)
     return 0 if result['status'] == 'completed' else 1
 
 

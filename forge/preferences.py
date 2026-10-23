@@ -11,7 +11,7 @@ MODELS = {**OPTION_MODELS, **MODELS, 'password': Password}
 # Only these constrained configuration strings are eligible beyond schema enums.
 # No text/URL/contact/Wi-Fi/prompt/cookie/asset/reference or generated-value fields.
 SAFE_STRINGS = {'language', 'model_revision', 'diarization_model', 'subtitle_languages',
-                'foreground', 'background', 'color', 'symbols', 'exclude', 'custom_chars', 'pattern', 'remove_tags'}
+                'foreground', 'background', 'color', 'symbols', 'exclude', 'custom_chars', 'pattern', 'remove_tags', 'filename_template'}
 
 
 def _safe_shape(schema):
@@ -43,7 +43,10 @@ def safe_options(tool, options):
             continue
         try:
             values[key] = TypeAdapter(Annotated[field.annotation, field]).validate_python(value)
-        except ValidationError:
+            if key == 'filename_template':
+                from .download_support import validate_template
+                values[key] = validate_template(values[key])
+        except (ValidationError, ValueError):
             # Editing an incomplete field must not discard other valid preferences.
             continue
     return values

@@ -20,8 +20,11 @@ class Maintenance:
         self.app, self.store, self.manager = app, store, manager
         self.cancelled = threading.Event()
         self.thread = None
+        self.store.set('update_transfer', {})
 
     def status(self):
+        transfer = self.store.get('update_transfer', {})
+        if transfer: return transfer
         value = self.store.get('maintenance', {})
         path = self.store.data / 'maintenance' / (value.get('id', '') + '.result.json')
         if value.get('id') and path.is_file():
@@ -30,6 +33,16 @@ class Maintenance:
                 value = {**value, **json.loads(path.read_text('utf-8'))}
             except (OSError, ValueError):
                 pass
+        if (value.get('status') in {'waiting','starting'} and not self.manager.maintenance_pending
+                and not (self.thread and self.thread.is_alive())
+                and not (ROOT / '.forge-maintenance.json').exists()):
+            value = {**value, 'status':'cancelled', 'message':'The pending installation was interrupted before replacement. Request it again when ready.'}
+            self.store.set('maintenance', value)
+        if value.get('id') and value.get('status') in {'completed','failed','cancelled','recovered'}:
+            with self.store.lock:
+                history=self.store.get('maintenance_history',[])
+                history=[item for item in history if item.get('id')!=value['id']]
+                self.store.set('maintenance_history',[{key:value[key] for key in ('id','status','message','version','requested','completed') if key in value}]+history[:29])
         return value
 
     def request(self, engines, *, approve=False, cancel_jobs=False, application_package=None, preserve_queued=False):
@@ -53,12 +66,13 @@ class Maintenance:
             if approve:
                 self.store.set('dependency_approvals', sorted(set(approvals + engines)))
             self.manager.maintenance_pending = True
+            preserve_queued = preserve_queued or self.store.settings()['queue_paused']
             self.manager.repair_pending = preserve_queued
             self.cancelled = threading.Event()
             value = {'id': uuid.uuid4().hex, 'engines': engines, 'status': 'waiting',
                      'application': application,
                      'preserve_queued': preserve_queued,
-                     'message': 'Waiting for existing jobs to finish. New jobs are paused.', 'requested': time.time()}
+                     'message': 'Waiting for active jobs; queued work is preserved.' if preserve_queued else 'Waiting for existing jobs to finish. New jobs are paused.', 'requested': time.time()}
             self.store.set('maintenance', value)
             if cancel_jobs:
                 for job in self.store.jobs(limit=100000):
@@ -88,6 +102,11 @@ class Maintenance:
                 with self.manager.lock:
                     if cancelled.is_set():
                         return
+                    if time.time()-value['requested'] > 1800:
+                        raise RuntimeError('Installation request expired after 30 minutes waiting for work. No files were changed; request it again when ready.')
+                    if self.store.settings()['queue_paused']:
+                        value['preserve_queued'] = True
+                        self.manager.repair_pending = True
                     if self.manager.active or (not value['preserve_queued'] and any(j['status'] == 'queued' for j in self.store.jobs(limit=100000))):
                         continue
                     if self.manager.stop_event.is_set():
@@ -98,6 +117,7 @@ class Maintenance:
                         raise RuntimeError('Earlier maintenance needs recovery before another installation.')
                     settings = self.store.settings()
                     task = {**value, 'root': str(ROOT), 'data': str(self.store.data),
+                            'port': self.app.state.port,
                             'parent_pid': os.getpid(), 'parent_started': psutil.Process().create_time(),
                             'queue_paused': settings['queue_paused']}
                     path = self.store.data / 'maintenance' / (value['id'] + '.request.json')
@@ -134,6 +154,11 @@ def mount(app, store, manager):
     @app.get('/api/maintenance')
     def status():
         return service.status()
+
+    @app.get('/api/maintenance/history')
+    def history():
+        service.status()
+        return {'history':store.get('maintenance_history',[])}
 
     @app.post('/api/maintenance/install')
     def install(body: dict):
