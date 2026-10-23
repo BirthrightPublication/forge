@@ -242,6 +242,7 @@ def restart_verified(task, result_path):
                                  stdout=log,stderr=log,stdin=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW)
     try:
         deadline = time.monotonic()+60
+        last_error = 'No runtime identity was available.'
         while time.monotonic()<deadline:
             if child.poll() is not None:
                 raise RuntimeError('The restarted service exited. Review service.log; the verified backup is retained.')
@@ -249,10 +250,11 @@ def restart_verified(task, result_path):
                 runtime = json.loads((data/'runtime.json').read_text('utf-8'))
                 verify_health(runtime, expected, child.pid)
                 break
-            except (OSError, ValueError, RuntimeError):
+            except (OSError, ValueError, RuntimeError) as error:
+                last_error = str(error)
                 time.sleep(.25)
         else:
-            raise RuntimeError('Restart health verification timed out. No update success was recorded.')
+            raise RuntimeError('Restart health verification timed out: '+last_error+' No update success was recorded.')
         from launcher import request
         # Restore via the live service to avoid stale in-memory settings.
         request(runtime, '/api/queue', {'paused':bool(task['queue_paused'])})
@@ -302,11 +304,15 @@ def main():
         safe = safe and not any((ROOT / name).exists() for name in ('.forge-updating', '.forge-update-state.json'))
         if safe:
             marker.unlink()
-        if stopped and safe and result['status']=='installed':
+        if stopped and safe and result['status'] in {'installed','failed'}:
             try:
                 version = restart_verified(task, result_path)
-                result.update(status='completed', version=version, completed=time.time(),
-                              message='FORGE '+version+' restarted and passed process, import and health checks. Existing data and environments were preserved.')
+                if result['status']=='installed':
+                    result.update(status='completed', version=version, completed=time.time(),
+                                  message='FORGE '+version+' restarted and passed process, import and health checks. Existing data and environments were preserved.')
+                else:
+                    result.update(version=version, completed=time.time(),
+                                  message=result['message']+' The preserved installation restarted and passed health checks; the attempted update still failed.')
             except Exception as exc:
                 result.update(status='failed', message=str(exc)[:1000]+' Use the external updater for rollback or recovery; backups are retained.')
         write(result_path, result)

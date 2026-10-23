@@ -125,7 +125,17 @@ jobs:
       - name: Run native process and shared update contracts
         run: |
           python -m pytest -q tests/test_v6_models.py tests/test_v6_integration.py tests/test_v6_maintenance.py tests/test_birthright_update_core.py tests/test_v7_studio.py --junitxml="$env:RUNNER_TEMP/v06-native.xml"
-          if ($LASTEXITCODE -ne 0) { throw 'Native contract tests failed.' }
+          if ($LASTEXITCODE -ne 0) {
+            if (Test-Path "$env:RUNNER_TEMP/v06-native.xml") {
+              [xml]$report = Get-Content "$env:RUNNER_TEMP/v06-native.xml" -Raw
+              foreach ($failure in $report.SelectNodes('//testcase[failure or error]')) {
+                $details = if ($failure.failure) { $failure.failure.message } else { $failure.error.message }
+                $message = ([string]$details).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+                Write-Output "::error title=$($failure.name)::$message"
+              }
+            }
+            throw 'Native contract tests failed.'
+          }
       - name: Build and validate the candidate Windows package
         run: |
           $version = (Get-Content VERSION.txt -Raw).Trim()

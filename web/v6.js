@@ -59,9 +59,10 @@
   const guided=$('[data-install-engine]')?.closest('.panel');if(guided){const note=$('.note',guided);if(note)note.textContent='Approved installations wait for work to finish and restart FORGE automatically.';}
   const daily=$('[name="daily_update_check"]')?.closest('.field');if(daily)daily.remove();
  };
- let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer;
+ let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer,loadedVersion=null;
  function badge(){
   catalog=state?.update_catalog||catalog;
+  if(!loadedVersion&&state?.version)loadedVersion=state.version;
   const count=catalog.count||0;$('#update-count').textContent=String(count);$('#update-count').hidden=!count;
   updateButton.setAttribute('aria-label',count?`Updates: ${count} available`:'Updates');
   updateButton.classList.toggle('is-checking',!!catalog.busy);updateButton.classList.toggle('has-updates',!!count);
@@ -94,7 +95,7 @@
   try{const value=await api('/maintenance');if(value.message)status(value.message+(value.total?' '+bytes(value.received||0)+' / '+bytes(value.total):value.received?' '+bytes(value.received):''),value.status==='failed');
    showMaintenance(value);
    updateButton.dataset.stage=value.status||'idle';const fraction=value.total>0?Math.min(1,(value.received||0)/value.total):0;updateButton.style.setProperty('--update-progress',String(fraction*62.83));
-   if(value.status==='completed'&&value.version&&value.version!==state.version)location.reload();
+   if(value.status==='completed'&&value.version&&loadedVersion&&value.version!==loadedVersion)location.reload();
    if(['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status)){clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,2000);}
    if(value.status==='waiting'&&!$('#cancel-maintenance')){const button=document.createElement('button');button.id='cancel-maintenance';button.className='text-button';button.textContent='Cancel installation request';button.onclick=async()=>{await api('/maintenance/cancel',{});button.remove();monitorMaintenance();};center?.append(button);}
   }catch{status('Waiting for the maintenance service to restart.');clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,3000);}

@@ -213,7 +213,7 @@
     "scripts/install_optional.ps1": "97a3dd62530bbf3d4f77c9bf9a4bf056f330b8276f5c4977a1a4ffd1e333621d",
     "scripts/install_speakers.ps1": "f6a93152a88e6462b705c897721004a40d8f97bca378fa1bb5149ab062a9b783",
     "scripts/is_running.py": "cff34ea0c7ec630f85320a9a7ad57e1d3ec74709bc18842ed75e1db083ee974a",
-    "scripts/managed_install.py": "1178f01f49d270b2e8fdb4c1a5921215eecfec7386d2cb8b64df4fdd1b146242",
+    "scripts/managed_install.py": "21a2363d40447f5cb6574a20be19a367f4175d4dc3550b1f5e61a75132dfad41",
     "scripts/native_picker.py": "4abee0675dc7615ff3af61af5ef78f66fb590dc4429ebad4c2cabdcd74fabf8c",
     "scripts/package_release.py": "598fc9f7b1ce43c52f0d8ddabe4833886d62a50a2c0d24d07813c68e160f765e",
     "scripts/package_windows_release.py": "cb2be058ffa8007b55efbb43540b851c0166a17558147e11c4d806b5f5430dda",
@@ -275,7 +275,7 @@
     "web/v4.css": "a467be5cbbe022883850535e28fc36616c80d0df0899c590aea7fbbd1a363349",
     "web/v4.js": "112b00a95b6f5959b398d24b1378a0a9debe958774d440768c0be2ae1d1f3707",
     "web/v6.css": "4d230a75df9584c9fe0576be70c2fd92c37e54368d66dc61b918efe84b8c904e",
-    "web/v6.js": "f5096b98ba25d370772e430db2675465c4749cb1183f44f48cd2a591a3db0d68",
+    "web/v6.js": "a74a4f7bbdd2836ca154629d50efa5a813555cd6c9aa3bf8c63f85b32526f66b",
     "web/v7.css": "976544380d950bbaf9a650f6d66277c803a4c7e245a2cedb9430b706e08f217b",
     "web/v7.js": "da183c2985bfd42c7eba9a46d40398b36b14f41852f9ea96c2d5eedbb26cda1c"
   }
