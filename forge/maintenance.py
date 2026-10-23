@@ -118,6 +118,7 @@ class Maintenance:
                     settings = self.store.settings()
                     task = {**value, 'root': str(ROOT), 'data': str(self.store.data),
                             'port': self.app.state.port,
+                            'browser_sessions': {key: item['expires'] for key,item in self.store.get('browser_sessions',{}).items()},
                             'parent_pid': os.getpid(), 'parent_started': psutil.Process().create_time(),
                             'queue_paused': settings['queue_paused']}
                     path = self.store.data / 'maintenance' / (value['id'] + '.request.json')

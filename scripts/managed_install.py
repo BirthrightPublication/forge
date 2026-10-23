@@ -14,6 +14,9 @@ import shutil
 import subprocess
 import sys
 import time
+import threading
+from http.cookies import CookieError, SimpleCookie
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -92,6 +95,69 @@ def write(path, value):
         stream.flush()
         os.fsync(stream.fileno())
     os.replace(temp, path)
+
+
+class MaintenanceProgress:
+    """Read-only loopback status during service downtime; no application imports.
+
+    Existing browser cookies are checked against approved session hashes. No
+    installer actions, files, login endpoints or cross-origin reads are exposed.
+    """
+    def __init__(self, task, result_path):
+        self.task,self.path=task,result_path
+        self.server=self.thread=None
+
+    def start(self):
+        owner=self
+        port=int(self.task.get('port',8765))
+        if not 1024<=port<=65535: raise ValueError('Invalid maintenance status port.')
+        origin='http://127.0.0.1:'+str(port)
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args): pass
+            def do_GET(self):
+                allowed=self.headers.get('Host')=='127.0.0.1:'+str(port)
+                allowed &= self.headers.get('Origin') in {None,origin}
+                allowed &= self.headers.get('Sec-Fetch-Site','none') in {'none','same-origin'}
+                try:
+                    cookies=SimpleCookie(self.headers.get('Cookie',''))
+                    value=cookies.get('forge_browser_'+str(port))
+                    secret=value.value if value else ''
+                    expires=owner.task.get('browser_sessions',{}).get(hashlib.sha256(secret.encode()).hexdigest(),0)
+                    allowed &= bool(secret) and len(secret)<=256 and expires>time.time()
+                except (CookieError,ValueError,TypeError):
+                    allowed=False
+                code=200 if allowed else 401
+                body={'detail':'Authorized same-origin browser session required.'}
+                if allowed:
+                    code=200 if self.path=='/api/maintenance' else 503
+                    body={'detail':'FORGE is performing approved maintenance.'}
+                    if code==200:
+                        try: body=json.loads(owner.path.read_text('utf-8'))
+                        except (OSError,ValueError): body={'status':'starting','message':'Preparing approved maintenance.'}
+                payload=json.dumps(body).encode('utf-8')
+                self.send_response(code)
+                self.send_header('Content-Type','application/json')
+                self.send_header('Cache-Control','no-store')
+                self.send_header('X-Content-Type-Options','nosniff')
+                self.send_header('Content-Length',str(len(payload)))
+                self.end_headers();self.wfile.write(payload)
+        class Server(ThreadingHTTPServer):
+            allow_reuse_address = os.name != 'nt'
+            daemon_threads = True
+            def get_request(self):
+                connection,address=super().get_request()
+                connection.settimeout(3)
+                return connection,address
+        self.server=Server(('127.0.0.1',port),Handler)
+        self.server.timeout=1
+        self.thread=threading.Thread(target=self.server.serve_forever,kwargs={'poll_interval':.1},daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        if self.server:
+            self.server.shutdown();self.server.server_close()
+            self.thread.join(timeout=3)
+            self.server=None
 
 
 def run(command, *, timeout=1800):
@@ -284,7 +350,7 @@ def stop_owned_child(child):
     child.wait(timeout=15)
 
 
-def restart_verified(task, result_path):
+def restart_verified(task, result_path, before_restart=lambda: None):
     data = Path(task['data'])
     python = ROOT / '.venv' / 'Scripts' / 'python.exe'
     write(result_path, {'status':'validating', 'message':'Verifying fresh imports and application caches.'})
@@ -293,6 +359,7 @@ def restart_verified(task, result_path):
     preference = 'from forge.core import Store; import sys; from pathlib import Path; s=Store(Path(sys.argv[1])); v=s.settings(); v["queue_paused"]=sys.argv[2]=="True"; s.set("settings",v)'
     run([str(python), '-c', preference, str(data), 'True'], timeout=30)
     write(result_path, {'status':'restarting','message':'Starting FORGE '+expected+' and checking its process and health.'})
+    before_restart()  # Release the original loopback port before the new backend binds it.
     environment = {**os.environ, 'FORGE_DATA_DIR':str(data), 'FORGE_PORT':str(task.get('port',8765)), 'PYTHONUTF8':'1'}
     with (data / 'service.log').open('ab') as log:
         child = subprocess.Popen([str(python),str(ROOT/'server.py')],cwd=ROOT,env=environment,
@@ -347,6 +414,7 @@ def main():
         raise ValueError('Invalid maintenance request.')
     result_path = request.with_name(task['id'] + '.result.json')
     stopped = safe = False
+    progress_server = MaintenanceProgress(task,result_path)
     # Keep ownership through journal validation and marker removal. Recovery and
     # a second installer must never race the original transaction's cleanup.
     with maintenance_lock():
@@ -358,6 +426,7 @@ def main():
             wait_for_parent(int(task['parent_pid']), float(task['parent_started']))
             stopped = True
             write(result_path, {'status': 'installing', 'message': 'Installing verified dependency classes; keep this console open.'})
+            progress_server.start()
             result = install(task)
         except Exception as exc:
             result = {'status': 'failed', 'message': str(exc)[:1000] + ' Existing environment backups remain in the maintenance directory.'}
@@ -368,7 +437,7 @@ def main():
             marker.unlink()
         if stopped and safe and result['status'] in {'installed','failed'}:
             try:
-                version = restart_verified(task, result_path)
+                version = restart_verified(task, result_path, before_restart=progress_server.stop)
                 if result['status']=='installed':
                     result.update(status='completed', version=version, completed=time.time(),
                                   message='FORGE '+version+' restarted and passed process, import and health checks. Existing data and environments were preserved.')
@@ -379,6 +448,7 @@ def main():
                 result.update(status='failed', message=str(exc)[:1000]+' Use the external updater for rollback or recovery; backups are retained.')
         write(result_path, result)
         print(result['message'])
+        progress_server.stop()
     if stopped:
         if not safe:
             print('Recovery remains pending. Run: py -3 scripts/managed_install.py --recover')

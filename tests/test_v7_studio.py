@@ -273,8 +273,9 @@ def test_native_managed_restart_verifies_new_process_and_preserves_queue(tmp_pat
     with socket.socket() as socket_:socket_.bind(('127.0.0.1',0));port=socket_.getsockname()[1]
     result=data/'maintenance/result.json';result.parent.mkdir(exist_ok=True)
     task={'data':str(data),'queue_paused':True,'port':port}
+    bridge=installer.MaintenanceProgress(task,result);bridge.start()
     try:
-        assert installer.restart_verified(task,result)==__version__
+        assert installer.restart_verified(task,result,before_restart=bridge.stop)==__version__
         runtime=json.loads((data/'runtime.json').read_text())
         pid=installer.owned_server_pid(runtime,children[0].pid)
         installer.verify_health(runtime,__version__,pid)
@@ -288,6 +289,7 @@ def test_native_managed_restart_verifies_new_process_and_preserves_queue(tmp_pat
         finally: reopened.close()
         assert (data/'models/sentinel.bin').read_bytes()==b'preserve cached model'
     finally:
+        bridge.stop()
         try:
             runtime=json.loads((data/'runtime.json').read_text())
             launcher.request(runtime,'/api/shutdown',{})
@@ -340,3 +342,42 @@ def test_unclassified_requires_explicit_rule_and_auth_path_is_not_public(studio)
     assert studio.sources()[0]['config']['options']['cookies']=='synthetic-local-cookie-path'
     studio.adapter.items.append(media('unknown002','unclassified'));studio.check_once(source['id'])
     assert len(studio.store.jobs())==1
+
+
+def test_maintenance_progress_bridge_is_authenticated_read_only_and_releases_port(tmp_path):
+    import hashlib
+    import socket
+    import urllib.error
+    import urllib.request
+    from test_v6_maintenance import installer
+    with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
+    cookie='synthetic-maintenance-browser-session'
+    task={'port':port,'browser_sessions':{hashlib.sha256(cookie.encode()).hexdigest():time.time()+60}}
+    result=tmp_path/'status.json';installer.write(result,{'status':'backing_up','message':'Synthetic backup stage'})
+    bridge=installer.MaintenanceProgress(task,result);bridge.start()
+    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    base=f'http://127.0.0.1:{port}'
+    headers={'Cookie':f'forge_browser_{port}={cookie}','Origin':base,'Sec-Fetch-Site':'same-origin'}
+    def request(path='/api/maintenance',extra=None,method='GET'):
+        return opener.open(urllib.request.Request(base+path,headers=extra or headers,method=method),timeout=3)
+    try:
+        with pytest.raises(urllib.error.HTTPError) as error:request(extra={'Origin':base})
+        assert error.value.code==401
+        with pytest.raises(urllib.error.HTTPError) as error:request(extra={**headers,'Origin':'https://untrusted.example'})
+        assert error.value.code==401
+        with request() as response:
+            assert response.headers['Cache-Control']=='no-store'
+            assert json.load(response)['status']=='backing_up'
+        installer.write(result,{'status':'installing','message':'Synthetic installation stage'})
+        with request() as response:assert json.load(response)['status']=='installing'
+        with pytest.raises(urllib.error.HTTPError) as error:request('/api/state')
+        assert error.value.code==503
+        with pytest.raises(urllib.error.HTTPError) as error:request(method='POST')
+        assert error.value.code==501
+        # An idle preconnect must not prevent stopping this read-only status host.
+        idle=socket.create_connection(('127.0.0.1',port),timeout=2)
+        bridge.stop();idle.close()
+        with socket.socket() as sock:
+            if __import__('os').name!='nt':sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+            sock.bind(('127.0.0.1',port))
+    finally:bridge.stop()
