@@ -190,4 +190,5 @@ renderNav=function(){renderNavBase();if(state)renderFavorites();};
 const renderBase=render;
 render=function(){renderBase();if(state)renderFavorites();};
 
-boot();
+// All deferred extensions must register before a fast local API can render.
+document.addEventListener('DOMContentLoaded',boot,{once:true});

@@ -4,7 +4,8 @@ if (Test-Path -LiteralPath (Join-Path $root '.forge-maintenance.json')) {
   throw 'Maintenance is active or interrupted. Wait for its console, or run: py -3 scripts/managed_install.py --recover'
 }
 Set-Location -LiteralPath $root
-Write-Host "`nFORGE V0.3 - local setup`n"
+$version = (Get-Content -LiteralPath (Join-Path $root 'VERSION.txt') -Raw).Trim()
+Write-Host "`nFORGE V$version - local setup`n"
 Write-Host 'Creates a private Python environment in this folder and a Start shortcut.'
 Write-Host 'Downloads the listed Python packages from PyPI. No media is uploaded.'
 Write-Host 'No administrator rights, startup task, CUDA installation, or firewall rule.'
