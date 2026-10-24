@@ -52,18 +52,20 @@
   });
  }
  new MutationObserver(refine).observe($('#main'),{childList:true,subtree:true});
- const updateButton=$('#birthright-updates');updateButton.innerHTML=icon('refresh')+'<span id="update-count" hidden></span>';
+ const updateButton=$('#birthright-updates');updateButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="update-progress-ring" cx="12" cy="12" r="10"/><path d="M19 8a8 8 0 1 0 1 7M19 3v5h-5M12 7v9m-3-3 3 3 3-3"/></svg><span id="update-count" hidden></span>';
  const settingsBefore=renderSettings;
  renderSettings=function(){settingsBefore();
   const legacy=$('#check-updates')?.closest('.panel');if(legacy){legacy.querySelector('.panel-header h2').textContent='Birthright Updates';legacy.querySelector('.panel-body').innerHTML='<button class="secondary" id="open-update-center">Open Updates</button>';$('#open-update-center').onclick=()=>updateButton.click();}
   const guided=$('[data-install-engine]')?.closest('.panel');if(guided){const note=$('.note',guided);if(note)note.textContent='Approved installations wait for work to finish and restart FORGE automatically.';}
   const daily=$('[name="daily_update_check"]')?.closest('.field');if(daily)daily.remove();
  };
- let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer;
+ let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer,loadedVersion=null;
  function badge(){
   catalog=state?.update_catalog||catalog;
+  if(!loadedVersion&&state?.version)loadedVersion=state.version;
   const count=catalog.count||0;$('#update-count').textContent=String(count);$('#update-count').hidden=!count;
   updateButton.setAttribute('aria-label',count?`Updates: ${count} available`:'Updates');
+  updateButton.classList.toggle('is-checking',!!catalog.busy);updateButton.classList.toggle('has-updates',!!count);
  }
  const dockBefore=renderDock;
  renderDock=function(){dockBefore();badge();};
@@ -75,30 +77,34 @@
   else if(entry.action||entry.installable||entry.category==='models'&&!entry.installed)action=`<button class="${entry.action?'primary':'secondary'}" data-update-id="${escape(entry.id)}">${entry.action==='update'?'Update':entry.installed?'Repair':'Install'}</button>`;
   const revisions=(entry.revisions||[]).length>1?`<select data-model-revision="${escape(entry.id.slice(6))}" aria-label="${escape(entry.label)} cached revision">${entry.revisions.map(r=>`<option value="${escape(r.revision)}" ${r.revision===entry.installed?'selected':''}>${escape(r.revision.slice(0,12))} · cached</option>`).join('')}</select>`:'';
   const display=value=>/^[0-9a-f]{40}$/.test(value||'')?value.slice(0,12):value;
-  return `<div class="birthright-update-row"><div><strong>${escape(entry.label)}</strong><small title="${escape(entry.installed)}">${escape(display(entry.installed)||'Not installed')}${entry.available?' → '+escape(display(entry.available)):''}</small>${entry.published?`<small>${escape(new Date(entry.published).toLocaleDateString())}${entry.bytes?' · '+bytes(entry.bytes):''}</small>`:''}${entry.notes||entry.rollback?`<details><summary>${entry.category==='application'?'Changelog':'Details'}</summary><pre>${escape(entry.notes||entry.available||'')}${entry.rollback?'\nRollback: '+escape(entry.rollback):''}</pre></details>`:''}${revisions}</div><div>${action}</div></div>`;
+  return `<div class="birthright-update-row"><div><strong>${escape(entry.label)}</strong><small title="${escape(entry.installed)}">${escape(display(entry.installed)||'Not installed')}${entry.available?' → '+escape(display(entry.available)):''}</small>${entry.published?`<small>${escape(new Date(entry.published).toLocaleDateString())}${entry.bytes?' · '+bytes(entry.bytes):''}</small>`:''}${entry.notes||entry.rollback?`<details><summary>${entry.category==='application'?'Changelog':'Details'}</summary><pre>${escape(entry.notes||entry.available||'')}${entry.rollback?'\nRollback: '+escape(entry.rollback):''}</pre></details>`:''}${entry.category==='application'&&entry.notes?`<small>${escape(entry.notes.slice(0,140))}</small>`:''}${revisions}</div><div>${action}</div></div>`;
  }
  function draw(){
   if(!center?.open)return;
-  const entries=catalog.entries||[],available=entries.filter(e=>e.action);
-  center.innerHTML=`<div class="birthright-update-header"><div><small>BIRTHRIGHT</small><h2>Updates</h2><span class="birthright-update-status">FORGE ${escape(state.version)}</span></div><button class="text-button" id="updates-later">Later</button></div><div class="birthright-update-actions"><button class="secondary" id="updates-refresh" ${catalog.busy?'disabled':''}>${icon('refresh')}${catalog.busy?'Checking…':'Refresh'}</button><button class="primary" id="updates-all" ${available.length?'':'disabled'}>Update all compatible${available.length?' · '+available.length:''}</button></div><div class="birthright-update-list">${Object.entries(categories).map(([key,title])=>{const list=entries.filter(e=>e.category===key);return list.length?`<h3 class="birthright-update-group">${title}</h3>${list.map(row).join('')}`:'';}).join('')||'<p class="birthright-update-status">Checking installed components…</p>'}</div><p id="birthright-update-status" class="birthright-update-status" role="status">${escape(catalog.errors?.join(' ')||(!available.length&&!catalog.busy?'No compatible updates available.':''))}</p>`;
+  const entries=catalog.entries||[],available=entries.filter(e=>e.action&&e.category!=='application');
+  center.innerHTML=`<div class="birthright-update-header"><div><small>BIRTHRIGHT</small><h2>Updates</h2><span class="birthright-update-status">FORGE ${escape(state.version)}</span></div><button class="text-button" id="updates-later">Later</button></div><div class="birthright-update-actions"><button class="secondary" id="updates-refresh" ${catalog.busy?'disabled':''}>${icon('refresh')}${catalog.busy?'Checking…':'Refresh'}</button><button class="primary" id="updates-all" ${available.length?'':'disabled'}>Update all compatible${available.length?' · '+available.length:''}</button></div><div class="birthright-update-list">${Object.entries(categories).map(([key,title])=>{const list=entries.filter(e=>e.category===key);return list.length?`<h3 class="birthright-update-group">${title}</h3>${list.map(row).join('')}`:'';}).join('')||'<p class="birthright-update-status">Checking installed components…</p>'}</div><small class="birthright-update-status">Last checked: ${catalog.checked?escape(when(catalog.checked)):'Not yet'}</small><details><summary>Update history</summary><div id="update-history"></div></details><p id="birthright-update-status" class="birthright-update-status" role="status">${escape(catalog.errors?.join(' ')||(!available.length&&!catalog.busy?'No compatible updates available.':''))}</p>`;
   $('#updates-later').onclick=()=>center.close();$('#updates-refresh').onclick=()=>check(true);
   $('#updates-all').onclick=()=>install(available);
   $$('[data-update-id]',center).forEach(button=>button.onclick=()=>install(entries.filter(e=>e.id===button.dataset.updateId)));
   $$('[data-model-revision]',center).forEach(select=>select.onchange=async()=>{try{await api('/environment/models/select',{model:select.dataset.modelRevision,revision:select.value});status('Cached revision selected.');check(true);}catch(error){status(error.message,true);}});
   $('#update-gpu-check')?.addEventListener('click',gpuCheck);
+  api('/maintenance/history').then(result=>{const el=$('#update-history');if(el)el.innerHTML=result.history.map(v=>`<p class="note">${escape(when(v.completed||v.requested))} · ${escape(v.status)}${v.version?' · '+escape(v.version):''}<br>${escape(v.message||'')}</p>`).join('')||'<p class="note">No managed installations recorded.</p>';}).catch(()=>{});
  }
  async function check(force=false){try{catalog=await api(force?'/updates/refresh':'/updates/catalog',force?{}:undefined);if(state)state.update_catalog=catalog;badge();draw();clearTimeout(refreshTimer);if(catalog.busy)refreshTimer=setTimeout(()=>check(),1000);}catch(error){status(error.message,true);}}
  async function monitorMaintenance(){
-  try{const value=await api('/maintenance');if(value.message)status(value.message,value.status==='failed');
-   if(['waiting','starting','installing'].includes(value.status)){clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,2000);}
+  try{const value=await api('/maintenance');if(value.message)status(value.message+(value.total?' '+bytes(value.received||0)+' / '+bytes(value.total):value.received?' '+bytes(value.received):''),value.status==='failed');
+   showMaintenance(value);
+   updateButton.dataset.stage=value.status||'idle';const fraction=value.total>0?Math.min(1,(value.received||0)/value.total):0;updateButton.style.setProperty('--update-progress',String(fraction*62.83));
+   if(value.status==='completed'&&value.version&&loadedVersion&&value.version!==loadedVersion)location.reload();
+   if(['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status)){clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,2000);}
    if(value.status==='waiting'&&!$('#cancel-maintenance')){const button=document.createElement('button');button.id='cancel-maintenance';button.className='text-button';button.textContent='Cancel installation request';button.onclick=async()=>{await api('/maintenance/cancel',{});button.remove();monitorMaintenance();};center?.append(button);}
-  }catch{status('Maintenance is running. FORGE will reopen automatically; use the external updater if recovery is needed.');}
+  }catch{status('Waiting for the maintenance service to restart.');clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,3000);}
  }
  async function install(entries){
   if(!entries.length)return;
   const descriptions=entries.map(e=>e.label).join(', ');
   if(!confirm(`Install compatible updates for ${descriptions}? Packages and models download from approved publishers. Existing jobs finish first; FORGE restarts if needed. Selected dependency classes also allow compatible repairs. New application versions always require approval.`))return;
-  status('Preparing updates…');
+  status('Preparing updates…');clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,500);
   try{
    const result=await api('/updates/install',{ids:entries.map(e=>e.id),consent:true});
    status(result.message);monitorMaintenance();
@@ -116,8 +122,20 @@
    $('.birthright-update-list',center).append(info);status(result.runtime_available?'Runtime libraries available; inference has not yet been tested.':'CUDA runtime is incomplete. CPU remains available.');
   }catch(error){status(error.message,true);}
  }
+ function showMaintenance(value){
+  let banner=$('#maintenance-banner');
+  const pending=['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status);
+  if(!pending){banner?.remove();return;}
+  if(!banner){banner=document.createElement('div');banner.id='maintenance-banner';banner.className='maintenance-banner';banner.role='status';$('#main').prepend(banner);}
+  banner.innerHTML='<span></span>';banner.firstChild.textContent=value.message||'Maintenance pending.';
+  if(value.status==='waiting'){const button=document.createElement('button');button.className='secondary';button.textContent='Cancel request';button.onclick=async()=>{try{await api('/maintenance/cancel',{});monitorMaintenance();}catch(error){notify(error.message,true);}};banner.append(button);}
+ }
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&center?.open){center.close();event.preventDefault();}});
+ document.addEventListener('pointerdown',event=>{if(center?.open&&!center.contains(event.target)&&!updateButton.contains(event.target))center.close();});
+ setInterval(()=>{if(!document.hidden)monitorMaintenance();},5000);
+ updateButton.setAttribute('aria-expanded','false');
  updateButton.onclick=()=>{
-  capture();if(!center){center=document.createElement('dialog');center.className='birthright-updates';center.setAttribute('aria-label','Birthright Updates');document.body.append(center);center.addEventListener('close',()=>clearTimeout(refreshTimer));}
-  center.showModal();draw();check(!catalog.checked);monitorMaintenance();
+  capture();if(!center){center=document.createElement('dialog');center.className='birthright-updates';center.setAttribute('aria-label','Birthright Updates');document.body.append(center);center.addEventListener('close',()=>{clearTimeout(refreshTimer);updateButton.setAttribute('aria-expanded','false');updateButton.focus();});}
+  if(center.open){center.close();return;}center.show();updateButton.setAttribute('aria-expanded','true');draw();check(!catalog.checked);monitorMaintenance();center.querySelector('button')?.focus();
  };
 })();

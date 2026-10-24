@@ -57,6 +57,15 @@ def inspect(settings, root=ROOT):
         reqs = requirements(engine, root)
         compatible = all(p['present'] for p in packages)
         repairable = not compatible
+        if engine=='downloads':
+            try:
+                year=int(packages[0]['version'].split('.')[0])
+                compatible &= 2026<=year<2027
+                from .download_support import ejs_compatible
+                compatible &= ejs_compatible()
+            except (ValueError,ImportError):
+                compatible=False
+            repairable=not compatible
         for req in reqs:
             name, sep, version = req.partition('==')
             if sep:

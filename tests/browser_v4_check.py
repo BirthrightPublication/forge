@@ -111,7 +111,7 @@ with sync_playwright() as playwright:
             page.goto(origin + '/#launch=' + launch_ticket)
         except Exception as error:
             raise RuntimeError('Cannot open the disposable FORGE service; verify the runtime port.') from None
-        page.wait_for_selector('.tool-card')
+        page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
         check('Authorized browser loads the served ' + display_version + ' application',
               page.locator('.version').inner_text() == display_version and api('/state')['version'] == expected_version)
         check('Launcher authorization clears temporary ticket and token from the page',
@@ -129,7 +129,7 @@ with sync_playwright() as playwright:
 
         second = context.new_page()
         second.goto(origin)
-        second.wait_for_selector('.tool-card')
+        second.wait_for_function('()=>state!==null');second.evaluate("navigate('overview')");second.wait_for_selector('.tool-card')
         check('A second browser tab uses remembered authorization', second.locator('.tool-card').count() == len(expected_tools))
         second.close()
 

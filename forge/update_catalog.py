@@ -64,7 +64,7 @@ def application_entry(release):
         for asset in (windows[0], sums[0], legacy[0], legacy_sum[0]):
             if asset.get('browser_download_url') != prefix + asset['name']:
                 raise ValueError('Unexpected release asset publisher or path.')
-        entry.update(zip_url=legacy[0]['browser_download_url'], checksum_url=legacy_sum[0]['browser_download_url'], filename=legacy[0]['name'])
+        entry.update(zip_url=legacy[0]['browser_download_url'], checksum_url=legacy_sum[0]['browser_download_url'], filename=legacy[0]['name'],legacy_bytes=legacy[0].get('size'))
     return entry
 
 
@@ -190,13 +190,13 @@ class Catalog:
             self.busy = False
 
 
-def download_application(entry, root=ROOT):
+def download_application(entry, root=ROOT, progress=None):
     """Download to Build only; the existing updater verifies the complete manifest."""
     if entry.get('id') != 'application' or not entry.get('action'):
         raise ValueError('No verified compatible application update is available.')
     checksum = TRANSPORT.metadata(entry['checksum_url']).decode('utf-8-sig').split()[0].lower()
-    asset = Asset(entry['filename'], entry['zip_url'], checksum)
-    return TRANSPORT.download(asset, root / 'Build')
+    asset = Asset(entry['filename'], entry['zip_url'], checksum, size=entry.get('legacy_bytes'))
+    return TRANSPORT.download(asset, root / 'Build', progress=progress or (lambda *args: None))
 
 
 def mount(app, store, manager):
@@ -212,8 +212,21 @@ def mount(app, store, manager):
     def refresh():
         return catalog.refresh(force=True)
 
+    install_lock = threading.Lock()
+
     @app.post('/api/updates/install')
     def install(body: dict):
+        if not install_lock.acquire(blocking=False):
+            raise ValueError('An update request is already being prepared. Review Updates for progress.')
+        try:
+            return install_selected(body)
+        except Exception:
+            store.set('update_transfer', {})
+            raise
+        finally:
+            install_lock.release()
+
+    def install_selected(body):
         if body.get('consent') is not True:
             raise ValueError('Approve the selected updates before installation.')
         ids = body.get('ids')
@@ -230,7 +243,16 @@ def mount(app, store, manager):
         app_entry = next((e for e in selected if e['category'] == 'application'), None)
         if (engines or app_entry) and os.name != 'nt':
             raise ValueError('Managed package/application installation requires Windows.')
-        package = download_application(app_entry) if app_entry else None
+        with manager.lock:
+            manager.check_accepting()
+        def progress(received, total, speed):
+            store.set('update_transfer', {'status':'downloading','message':'Downloading the approved application package.',
+                                         'received':received,'total':total,'speed':speed})
+        if app_entry:
+            store.set('update_transfer', {'status':'downloading','message':'Connecting to the approved release publisher.'})
+        package = download_application(app_entry, progress=progress or (lambda *args: None)) if app_entry else None
+        if package:
+            store.set('update_transfer', {'status':'verifying','message':'Verifying checksum, manifest and protected paths.'})
         if package:
             result = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'update.py'), '--root', str(ROOT),
                                      '--zip', str(package), '--dry-run'], capture_output=True, text=True, timeout=90)
@@ -252,33 +274,13 @@ def mount(app, store, manager):
             if engines or package:
                 # Model jobs may need the engine being repaired in this batch.
                 # Keep them queued until maintenance verifies it and restarts.
-                return app.state.maintenance_service.request(engines, approve=True, application_package=package,
+                result = app.state.maintenance_service.request(engines, approve=True, application_package=package,
                                                              preserve_queued=bool(models))
+                store.set('update_transfer', {})
+                return result
         return {'message': 'Model installations queued; existing revisions are retained.'}
 
     @app.post('/api/updates/application')
     def application(body: dict):
-        if os.name != 'nt':
-            raise ValueError('Managed application updates require Windows.')
-        if body.get('consent') is not True:
-            raise ValueError('Confirm the application update before downloading executable source.')
-        entry = next((e for e in catalog.snapshot()['entries'] if e['id'] == 'application'), None)
-        if not entry or not entry.get('action'):
-            raise ValueError('Refresh Updates and select an available compatible application release.')
-        with manager.lock:
-            manager.check_accepting()
-            if manager.active or store.jobs(status='queued'):
-                raise ValueError('Finish existing jobs before applying an application update.')
-            manager.maintenance_pending = True
-        try:
-            package = download_application(entry)
-            command = [sys.executable, str(ROOT / 'scripts' / 'update.py'), '--root', str(ROOT), '--zip', str(package)]
-            check = subprocess.run([*command, '--dry-run'], capture_output=True, text=True, timeout=90)
-            if check.returncode:
-                raise ValueError('The application updater rejected this package: ' + check.stderr[-800:])
-            subprocess.Popen([*command, '--yes', '--pause-on-exit'], cwd=ROOT,
-                             creationflags=subprocess.CREATE_NEW_CONSOLE,
-                             env={**os.environ, 'TEMP': str((ROOT / 'Build').resolve()), 'TMP': str((ROOT / 'Build').resolve())})
-            return {'started': True, 'message': 'Verified update started. FORGE will reopen after installation.'}
-        finally:
-            manager.maintenance_pending = False
+        # One verified installation path, including shutdown and restart checks.
+        return install({'ids':['application'], 'consent':body.get('consent')})

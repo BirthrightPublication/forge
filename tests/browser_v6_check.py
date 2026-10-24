@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from forge.core import Store
+from forge import __version__
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output',type=Path,required=True)
@@ -51,16 +52,16 @@ try:
         browser=playwright.chromium.launch(executable_path=args.chromium,headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':1440,'height':1000});page.on('pageerror',lambda error:errors.append(str(error)))
         page.goto(base+'/#token='+runtime['token']);page.wait_for_selector('#birthright-updates')
-        page.wait_for_function('()=>state!==null&&state.version==="0.6.0"')
+        page.wait_for_function('version=>state!==null&&state.version===version',arg=__version__)
         check('Brand reads boxed F plus ORGE',page.locator('.brand-mark').inner_text()=='F' and page.locator('.brand-words strong').inner_text()=='ORGE')
         check('Accessible FORGE brand retained','FORGE' in page.locator('.brand').get_attribute('aria-label'))
         check('Visible Ctrl+K label removed',page.locator('kbd').count()==0)
         page.keyboard.press('Control+k');check('Ctrl+K still focuses search',page.locator('#search').evaluate('(el)=>el===document.activeElement'))
         check('Badge counts actionable updates only',page.locator('#update-count').inner_text()=='3')
         page.locator('#birthright-updates').click();page.wait_for_selector('.birthright-updates[open]')
-        check('Birthright panel shows current and available version','0.6.0' in page.locator('.birthright-updates').inner_text() and '9.0.0' in page.locator('.birthright-updates').inner_text())
+        check('Birthright panel shows current and available version',__version__ in page.locator('.birthright-updates').inner_text() and '9.0.0' in page.locator('.birthright-updates').inner_text())
         check('Changelog and release date are available',page.get_by_text('Changelog',exact=True).count()==1 and page.locator('.birthright-update-row').first.locator('small').count()>=2)
-        check('Compatible batch action counts three items','3' in page.locator('#updates-all').inner_text())
+        check('Compatible batch excludes the separately approved application','2' in page.locator('#updates-all').inner_text())
         page.once('dialog',lambda dialog:dialog.dismiss());page.locator('#updates-all').click()
         check('Declining installation does not create jobs or approvals',request('/state')['jobs']==[] and not request('/maintenance').get('id'))
         page.locator('#updates-later').click();check('Later closes updates',not page.locator('.birthright-updates').evaluate('(el)=>el.open'))

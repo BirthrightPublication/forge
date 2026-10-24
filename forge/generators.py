@@ -98,13 +98,16 @@ class ObfuscationConfig(CharacterConfig):
 
 
 ADDRESS_FIELDS = ('street', 'unit', 'city', 'region', 'postal_code', 'country')
+AddressField = Literal['street','unit','city','region','postal_code','country','county','phone']
 
 
 class AddressConfig(Config):
     country: Literal['US', 'GB', 'CA', 'DE', 'AU', 'JP'] = 'US'
     include_unit: bool = False
-    fields: list[Literal['street', 'unit', 'city', 'region', 'postal_code', 'country']] = Field(
-        default_factory=lambda: list(ADDRESS_FIELDS), min_length=1, max_length=6)
+    include_county: bool = False
+    include_phone: bool = False
+    locked_fields: list[AddressField] = Field(default_factory=list,max_length=8)
+    fields: list[AddressField] = Field(default_factory=lambda: list(ADDRESS_FIELDS), min_length=1, max_length=8)
 
     @field_validator('fields')
     @classmethod
@@ -219,45 +222,9 @@ def digits(count):
 
 
 def address_rows(options: AddressConfig) -> list[dict]:
-    rows = []
-    countries = {'US': 'United States', 'GB': 'United Kingdom', 'CA': 'Canada', 'DE': 'Germany', 'AU': 'Australia', 'JP': 'Japan'}
-    for _ in range(options.count):
-        number = str(secrets.randbelow(999) + 1)
-        name = secrets.choice(('Willow', 'Cedar', 'Orchard', 'Meadow', 'Harbor', 'Maple'))
-        street, city, region = f'{number} Fictional {name} Lane', 'Example Town', 'Test Region'
-        unit = 'Unit ' + str(secrets.randbelow(90) + 1) if options.include_unit else ''
-        if options.country == 'US':
-            postal = digits(5)
-            region = secrets.choice(('CA', 'NY', 'WA', 'OR'))
-        elif options.country == 'GB':
-            postal = secrets.choice(('AB', 'EX', 'OX')) + digits(1) + ' ' + digits(1) + ''.join(secrets.choice('ABDEFGHJLNPQRSTUWXYZ') for _ in range(2))
-            region = 'Example County'
-        elif options.country == 'CA':
-            letters = 'ABCEGHJKLMNPRSTVXY'
-            postal = ''.join(secrets.choice(letters) if i % 2 == 0 else digits(1) for i in range(6))
-            postal = postal[:3] + ' ' + postal[3:]
-            region = secrets.choice(('ON', 'BC', 'NS'))
-        elif options.country == 'DE':
-            postal, street, city = digits(5), f'Fiktive Beispielstrasse {number}', 'Beispielstadt'
-        elif options.country == 'AU':
-            postal, region = digits(4), secrets.choice(('NSW', 'VIC', 'QLD'))
-        else:
-            postal, street, city, region = digits(3) + '-' + digits(4), f'{number}-1-1 Fictional District', 'Example-shi', 'Example-ken'
-        record = {'street': street, 'unit': unit, 'city': city, 'region': region, 'postal_code': postal, 'country': countries[options.country]}
-        def joined(keys):
-            return ' '.join(record[key] for key in keys if key in options.fields and record[key])
-        if options.country == 'JP':
-            lines = [joined(['country']), joined(['postal_code']), joined(['region', 'city', 'street']), joined(['unit'])]
-        elif options.country == 'DE':
-            lines = [joined(['street']), joined(['unit']), joined(['postal_code', 'city']), joined(['region']), joined(['country'])]
-        elif options.country in {'US', 'CA', 'AU'}:
-            lines = [joined(['street']), joined(['unit']), joined(['city', 'region', 'postal_code']), joined(['country'])]
-        else:
-            lines = [joined([key]) for key in ('street', 'unit', 'city', 'region', 'postal_code', 'country')]
-        row = {'value': ', '.join(line for line in lines if line), 'fictional': True}
-        row.update({key: record[key] for key in options.fields})
-        rows.append(row)
-    return rows
+    from .addresses import address
+    return [address(options.model_dump()) for _ in range(options.count)]
+
 
 
 RUNNERS = {'identity': identity_rows, 'strings': string_rows, 'obfuscation': obfuscation_rows, 'addresses': address_rows}

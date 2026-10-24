@@ -1,14 +1,14 @@
-# FORGE — Local Production Studio
+# FORGE — Scripting Environment Engine
 
-**V0.6.0 development candidate · Birthright Updates, automation and interface refinement · Windows 11**
+**V0.7.0 development candidate · Download Studio, Channel Watch and Birthright Updates · Windows 11**
 
-FORGE is a Windows-local production studio opened in your browser. V0.6 adds automatic cached transcription models, CUDA diagnostics, managed dependency installation and recovery, Birthright Updates, remembered working settings, and measured job durations. Existing Media Privacy tools, Black Scripting, generators, queue controls and external Windows update compatibility are preserved.
+FORGE runs local production tools in your browser. V0.7 unifies audio/video downloads, adds persistent channel monitoring and saved destinations, refines the compact sidebar and Black Scripting mode toggle, and provides individually copyable synthetic address fields. Managed updates verify the newly started backend before reporting success.
 
-This branch is a review candidate. It has not yet been approved, tagged or published as V0.6.0. See [the V0.6 operations guide](docs/V0.6-OPERATIONS.md), [shared Birthright update contract](docs/BIRTHRIGHT_UPDATE_CORE.md), and [current validation report](docs/TEST_REPORT.md). V0.5.0 remains the previously published release until the new release gates succeed.
+This branch is a review candidate, not a published V0.7 release. The current published release is [v0.6.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.6.0). See the [V0.7 operations and architecture guide](docs/V0.7-OPERATIONS.md), [validation report](docs/TEST_REPORT.md), and [shared update contract](docs/BIRTHRIGHT_UPDATE_CORE.md). Owner approval is required before merging, tagging and publishing V0.7.
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). The previously published stable release is [v0.5.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.5.0). The Windows GitHub updater uses `FORGE-v0.5.0-windows-x64.zip` and its matching `.zip.sha256` asset. Its complete application payload is under `app/`. The older `FORGE-v0.5.zip`, `Update.FORGE.bat`, `VALIDATION.json` and `CHECKSUMS.sha256` remain available for the legacy offline updater. Release packages are assets, not Git source files.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Published Windows releases contain exactly one `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` and its `.zip.sha256` companion, with application files under `app/`. A legacy offline ZIP is retained separately. Release packages are GitHub assets, never source files. The V0.7 candidate uses `FORGE-v0.7.0-windows-x64.zip` and legacy `FORGE-v0.7.zip`; these become release assets only after final approval and passing release gates.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
@@ -18,7 +18,7 @@ Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules,
 
 **For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 
-Save the intact `FORGE-v0.5.zip` release asset in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
+Save the intact legacy ZIP for the approved release (currently `FORGE-v0.6.zip`) in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 
@@ -26,7 +26,15 @@ The update is local: no dependency or model installation is performed. Backups a
 
 For a new installation only, extract the ZIP, run `Setup FORGE.bat`, then `Open FORGE.bat`. Setup uses installed 64-bit Python 3.11–3.13 with Tcl/Tk and creates a private `.venv`. It asks before downloading core dependencies. Start-menu/taskbar/Send-to integration uses the existing Windows launcher setup.
 
-## What changes in V0.5
+## What changes in V0.7
+
+- Download Studio retains the existing downloader and presets, with Single Download, Channel Watch and Download History views. Destination favorites and per-source/type rules persist locally.
+- YouTube channel/playlist discovery uses stable IDs, optional historical backfill, bounded polling/backoff, independent media records and atomic queue admission. Other platform adapters are not advertised as implemented.
+- Updates opens a compact right-side panel. Application upgrades require their own approval; compatible component batches exclude them. Pending maintenance can be cancelled, and completion requires fresh imports plus process/root/version/health verification.
+- Icon-first navigation includes Settings, tooltips and anchored Local Engine status. Queue access remains in the header and bottom dock. Black Scripting restores the previous workspace when exited.
+- Synthetic addresses have separate fields, per-field copy/regeneration/locks, full-address copying and options-only presets. Geographic samples remain coherent; generated addresses are not deliverability checks.
+
+## Existing Media Privacy tools
 
 - **Media Privacy** groups seven workspaces behind one sidebar entry, with internal tool navigation, existing compact settings tabs, source-specific processing plans and local evidence views.
 - **Watermark Studio** encodes text/logo marks and audible ownership clips; it supports placements, repeat patterns, configurable movement/timing/fades, presets, batches and actual encoded previews. NVIDIA encoding is attempted when available, with CPU fallback.

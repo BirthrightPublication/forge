@@ -306,7 +306,7 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
     return export_transcript(segments, info, options, stage_dir, stem), warnings
 
 
-def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str):
+def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str, *, resume_dir=None):
     try:
         import yt_dlp
     except ImportError as exc:
@@ -324,7 +324,9 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
         def info(self, message): pass
         def warning(self, message):
             if len(warnings) < 12:
-                warnings.append(str(message)[:1200])
+                from .download_support import diagnostic
+                warning=diagnostic(message)['message']
+                if warning not in warnings: warnings.append(warning)
         def error(self, message): pass
 
     def hook(d):
@@ -338,19 +340,28 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
             done = d.get('downloaded_bytes', 0)
             progress(100*done/total if measured else 0, 'Downloading playlist item '+str(d.get('info_dict',{}).get('playlist_index','?')) if options.get('playlist') else 'Downloading media',progress_measured=bool(measured),stage='Playlist / current file' if options.get('playlist') else 'Download',speed=(f'{d.get("speed",0)/1048576:.2f} MB/s' if d.get('speed') else ''),eta_seconds=d.get('eta') if measured else None)
         elif d.get('status') == 'finished':
-            progress(85, 'Download finished; post-processing')
+            progress(0, 'Download finished; post-processing', progress_measured=False, stage='Post-processing')
     ff = executable('ffmpeg', settings)
     if not ff or not executable('ffprobe', settings):
         raise RuntimeError('Download conversion/merging requires FFmpeg and FFprobe. Configure them in Environment.')
     params = {'outtmpl': str(stage_dir / '%(title).120B [%(id)s].%(ext)s'), 'paths': {'home': str(stage_dir)},
               'quiet': True, 'no_warnings': True, 'logger': Logger(), 'progress_hooks': [hook],
               'noplaylist': not options.get('playlist',False), 'windowsfilenames': True, 'restrictfilenames': False,
-              'overwrites': False, 'socket_timeout': 25, 'retries': 3,
+              'overwrites': False, 'socket_timeout': 25, 'retries': 2, 'extractor_retries': 0,
               'ffmpeg_location': str(Path(ff).parent), 'cachedir': False, 'remote_components': [],
-              'postprocessors': [], 'writethumbnail': False, 'writeinfojson': False,
-              'match_filter': lambda info, **kwargs: 'Live broadcasts are not enabled.' if info.get('is_live') else None}
+              'postprocessors': [], 'writethumbnail': options.get('thumbnail',False), 'writeinfojson': False,
+              'continuedl': options.get('resume',True), 'trim_file_name':200,
+              'match_filter': lambda info, **kwargs: 'Live broadcasts are not enabled.' if info.get('is_live') and not options.get('capture_live') else None}
     templates={'title_id':'%(title).120B [%(id)s].%(ext)s','channel_title':'%(uploader).60B - %(title).100B [%(id)s].%(ext)s','playlist_index':'%(playlist_index)03d - %(title).100B [%(id)s].%(ext)s'}
     params['outtmpl']=str(stage_dir/templates[options.get('filename_style','title_id')])
+    if options.get('filename_template'):
+        from .download_support import validate_template
+        params['outtmpl']=str(stage_dir/validate_template(options['filename_template']))
+    if resume_dir is not None and options.get('resume',True):
+        # Relative outtmpl is required for yt-dlp's home/temp split. Partial
+        # fragments remain in private app data across failed/cancelled retries.
+        params['outtmpl']=Path(params['outtmpl']).name
+        params['paths']={'home':str(stage_dir),'temp':str(resume_dir)}
     if options.get('playlist'):
         params.update(playliststart=options['playlist_start'],playlistend=options['playlist_end'])
     if options.get('subtitles') or options.get('auto_subtitles'):
@@ -365,6 +376,7 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
         # Copy only within private work storage so yt-dlp cannot rewrite the user's cookie file.
         cookie_copy = stage_dir / '_private_cookies.txt'
         shutil.copyfile(options['cookies'], cookie_copy)
+        cookie_copy.chmod(0o600)
         params['cookiefile'] = str(cookie_copy)
     if tool == 'download_audio':
         params['format'] = 'bestaudio/best'
@@ -384,8 +396,10 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
     with yt_dlp.YoutubeDL(params) as ydl:
         try:ydl.extract_info(url,download=True)
         except Exception as exc:
-            if not options.get('playlist'):raise
-            warnings.append('Playlist stopped before all requested entries completed: '+str(exc)[:500])
+            from .download_support import diagnostic
+            message=diagnostic(exc)['message']
+            if not options.get('playlist'):raise RuntimeError(message) from None
+            warnings.append('Playlist stopped before all requested entries completed. '+message)
     files = [p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.mp3','.m4a','.flac','.wav','.mp4','.mkv','.webm','.opus','.ogg'}]
     if not files:
         raise RuntimeError('No complete media output was produced.')
@@ -394,6 +408,12 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
             raise RuntimeError('Downloaded output failed media verification.')
     if options.get('subtitles') or options.get('auto_subtitles'):
         files.extend(p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.srt','.vtt','.ass'})
+    if options.get('thumbnail'):
+        from PIL import Image
+        for p in stage_dir.iterdir():
+            if p.is_file() and p.suffix.lower() in {'.jpg','.jpeg','.png','.webp'}:
+                with Image.open(p) as image: image.verify()
+                files.append(p)
     return files, warnings
 
 
@@ -470,7 +490,12 @@ def run(payload: dict):
         elif tool == 'transcribe':
             files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
         elif tool in {'download_audio','download_video'}:
-            files, warnings = download(payload['url'], stage_dir, options, settings, tool)
+            import hashlib
+            from .model_cache import cache_lock
+            key=hashlib.sha256(str(payload.get('resume_key') or payload.get('watch_media') or job_id).encode()).hexdigest()
+            resume_dir=data/'download-cache'/key
+            with cache_lock(resume_dir/'.lock',lambda *a,**k:progress(0,'Waiting for the previous download attempt',stage='Download resume'),timeout=60):
+                files, warnings = download(payload['url'], stage_dir, options, settings, tool, resume_dir=resume_dir)
         elif tool == 'watermark':
             from .watermark import process
             files, warnings = process(source, stage_dir, options, settings, context=payload)

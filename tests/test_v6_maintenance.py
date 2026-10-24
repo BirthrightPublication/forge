@@ -34,7 +34,7 @@ def test_managed_install_preserves_environment_and_user_data(tmp_path,monkeypatc
         if 'install' in command:(env/'installed.txt').write_text('updated compatible packages')
     monkeypatch.setattr(installer,'run',run)
     result=installer.install(task)
-    assert result['status']=='completed'
+    assert result['status']=='installed'  # Restart/health validation must still pass.
     assert not any('venv' in call for call in calls)
     assert (env/'installed.txt').read_text()=='updated compatible packages'
     assert (Path(result['backup'])/'.venv/installed.txt').read_text()=='original compatible packages'

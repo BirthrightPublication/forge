@@ -40,6 +40,27 @@ class DeleteRequest(BaseModel):
     id: str = Field(pattern=r'^[a-f0-9]{32}$')
 
 
+class AddressRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid',strict=True)
+    options: dict = Field(default_factory=dict)
+    current: dict[str,str] = Field(default_factory=dict,max_length=8)
+    locked: list[Literal['street','unit','city','region','postal_code','country','county','phone']] = Field(default_factory=list,max_length=8)
+    field: Literal['street','unit','city','region','postal_code','country','county','phone'] | None = None
+
+    @field_validator('current')
+    @classmethod
+    def bounded_fields(cls,value):
+        from .addresses import FIELDS
+        if set(value)-set(FIELDS) or any(len(v)>300 or any(ord(c)<32 for c in v) for v in value.values()):
+            raise ValueError('Use bounded address fields without control characters.')
+        return value
+
+
+class AddressBatchRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid',strict=True)
+    items: list[AddressRequest] = Field(min_length=1,max_length=1000)
+
+
 def checked(call, *args):
     try:
         return call(*args)
@@ -53,6 +74,24 @@ def checked(call, *args):
 
 
 def mount(app, store, manager=None):
+    @app.post('/api/generators/addresses/regenerate')
+    def regenerate_address(body:AddressRequest):
+        from .addresses import address
+        require_feature(app,'addresses')
+        options=checked(validate_options,'addresses',body.options).model_dump()
+        result=checked(address,options,body.current,body.locked,body.field)
+        return JSONResponse({'row':result,'persisted':False},headers={'Cache-Control':'no-store'})
+
+    @app.post('/api/generators/addresses/regenerate-batch')
+    def regenerate_addresses(body:AddressBatchRequest):
+        from .addresses import address
+        require_feature(app,'addresses')
+        rows=[]
+        for item in body.items:
+            options=checked(validate_options,'addresses',item.options).model_dump()
+            rows.append(checked(address,options,item.current,item.locked,item.field))
+        return JSONResponse({'rows':rows,'persisted':False},headers={'Cache-Control':'no-store'})
+
     @app.get('/api/generators/catalog')
     def generator_catalog():
         return JSONResponse(catalog(), headers={'Cache-Control': 'no-store'})

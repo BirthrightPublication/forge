@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.6.0 — development candidate, pending review and release
+## 0.7.0 — development candidate, pending owner review
+
+- Unify manual audio/video downloads with persistent Channel Watch and Download History; retain legacy routes, presets and verified media workers.
+- Add saved/pinned/default destinations, stable source folders, content rules, priorities, optional historical imports, live/replay transitions, bounded retries and persistent download identities.
+- Diagnose downloader/runtime/EJS/authentication/network failures, protect local cookie files, resume supported partial transfers and verify outputs before collision-safe publication.
+- Replace the centered update modal with a compact right drawer, measured transfer progress, installation history and cancellable pending maintenance. Separate application approval from compatible component batches.
+- Verify fresh imports and restarted root/PID/version/health before recording update completion. Preserve queued work, backups, environments and models; refuse to open or stop another installation's runtime.
+- Use compact icon-first navigation, Settings in the former queue slot, unclipped tooltips, bottom-anchored Local Engine, left search and dynamic branding. Black Scripting toggles back to the previous workspace.
+- Add form-ready synthetic address fields, copy/regenerate/lock controls and coherent US/UK/CA/AU/DE/JP samples. Addresses remain available during external form filling; generated secrets retain their clearing protections.
+- Extend Python, browser, real local HTTP media, upgrade/rollback and native Windows release gates. Live YouTube access and physical GPU testing are reported separately.
+
+## 0.6.0 — 2026-10-22 (published; see V0.6 release verification)
 
 - Add Birthright Updates with actionable counts, current/available versions, changelogs, Later, individual installation and compatible batch installation.
 - Introduce the application-independent Birthright Update Core and tested Ed25519 manifest contract; current GitHub assets retain their existing HTTPS/SHA-256 publication mode until publisher signing keys are configured.

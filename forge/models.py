@@ -112,6 +112,16 @@ class Download(Strict):
     auto_subtitles: bool = False
     subtitle_languages: str = Field('en', max_length=120, pattern=r'^[a-zA-Z0-9,.*_-]+$')
     filename_style: Literal['title_id','channel_title','playlist_index'] = 'title_id'
+    filename_template: str = Field('', max_length=240)
+    thumbnail: bool = False
+    capture_live: bool = False
+    resume: bool = True
+
+    @field_validator('filename_template')
+    @classmethod
+    def safe_template(cls, value):
+        from .download_support import validate_template
+        return validate_template(value)
 
     @model_validator(mode='after')
     def playlist_bounds(self):
@@ -137,6 +147,7 @@ class JobRequest(Strict):
     urls: list[str] = Field(default_factory=list, max_length=100)
     options: dict = Field(default_factory=dict)
     output: Output = Field(default_factory=Output)
+    priority: Literal['critical','high','normal','low'] = 'normal'
 
 class Register(Strict):
     paths: list[str] = Field(min_length=1, max_length=500)

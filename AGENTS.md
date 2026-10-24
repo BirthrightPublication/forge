@@ -36,3 +36,11 @@
 - Preserve compatibility with `B:\Forge`, `B:\Forge\Build`, `B:\Forge\Backups`, and `Update FORGE.bat`. Test incremental upgrades and rollback against supported earlier releases before describing them as verified.
 - Verify the final packaged artifact, release tag/commit association, asset checksum, and public or authorized release/asset URLs before claiming the release is available. A locally created ZIP or tag is not a published GitHub release.
 - The final release report must identify the repository, branch, commit SHA, push status, PR and merge status, tag and publication status, package location/checksum, tests actually executed, update instructions, and known limitations. State explicitly which remote actions or target-platform checks remain pending.
+
+## V0.7 persistence and validation
+
+- Download Studio must reuse the existing download worker. Source adapters declare actual capabilities; keep network discovery outside scheduler/database locks and sanitize extractor failures before exposing them.
+- Channel Watch tables are additive. Preserve stable platform/media identities across source renames, queue retries and restarts. Commit automatic queue jobs and media associations atomically. Historical backfill is opt-in; explicit authentication failures never trigger retry loops.
+- Keep source authentication paths local and omit them from public API snapshots and ordinary presets. Never package cookies or resume caches. Generated addresses remain memory-only; options-only locks/presets must not store generated values.
+- A managed update is not complete when files are copied. Verify a fresh import and the new process identity, installation root, runtime version and health version before recording completion. Keep old-version/foreign-root launcher guards and native stale-bytecode/restart tests.
+- Run `tests/browser_v7_check.py`, the existing browser regression harnesses, local HTTP downloader tests, upgrade/rollback and native Windows acceptance before proposing a V0.7 release. Distinguish offline source fixtures from live platform tests. Owner review remains required before merge/tag/publication.

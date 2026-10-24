@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark"><meta name="referrer" content="no-referrer">
-<title>FORGE — Local Production Studio</title>
+<title>FORGE — Scripting Environment Engine</title>
 <link rel="icon" href="/assets/forge.ico"><link rel="stylesheet" href="/assets/style.css">
 <link rel="stylesheet" href="/assets/v4.css">
 <link rel="stylesheet" href="/assets/generators.css">
@@ -19,17 +19,20 @@
 <script defer src="/assets/privacy_v5.js"></script>
 <link rel="stylesheet" href="/assets/v6.css">
 <script defer src="/assets/v6.js"></script>
+<link rel="stylesheet" href="/assets/v7.css">
+<script defer src="/assets/downloads_v7.js"></script>
+<script defer src="/assets/v7.js"></script>
 </head>
 <body>
 <div id="app" class="app-shell">
 <aside class="sidebar" id="sidebar">
-<a class="brand" href="#" id="home-brand" aria-label="FORGE Overview"><span class="brand-mark">F</span><span class="brand-words"><strong aria-hidden="true">ORGE</strong><small>LOCAL PRODUCTION STUDIO</small></span></a>
+<a class="brand" href="#" id="home-brand" aria-label="FORGE working tools"><span class="brand-mark">F</span><span class="brand-words"><strong aria-hidden="true">ORGE</strong><small>SCRIPTING ENVIRONMENT ENGINE <span class="version" id="brand-version"></span></small></span></a>
 <div class="nav-scroll"><div class="nav-caption">WORKSPACE</div><nav id="workspace-nav" aria-label="Workspace"></nav>
 <div class="nav-caption">PRODUCTION</div><nav id="tool-nav" aria-label="Production tools"></nav>
-</div><div class="sidebar-foot"><div class="local-mark"><span class="dot"></span> LOCAL ENGINE</div><p>Files stay on this computer.</p><button class="nav-item" id="environment-nav"></button><button class="collapse-button" id="collapse" title="Collapse navigation" aria-label="Collapse navigation"></button></div>
+</div><div class="sidebar-foot"><button class="collapse-button" id="collapse" title="Toggle navigation" aria-label="Toggle navigation"></button><div class="local-mark" title="Local engine · files stay on this computer"><span class="dot"></span><span>LOCAL ENGINE</span></div></div>
 </aside>
 <div class="main-shell">
-<header class="topbar"><div class="breadcrumb"><span>FORGE STUDIO</span><span class="slash">/</span><span id="crumb">Overview</span></div><div class="top-actions"><div class="global-search"><span id="search-icon"></span><input id="search" placeholder="Find a tool…" aria-label="Find a tool"></div><button id="black-scripting-launcher" class="black-launcher" aria-label="Black Scripting — Enter the Forge" title="Enter the Forge"><span aria-hidden="true">⌘</span><span>Black Scripting</span></button><button id="birthright-updates" class="icon-button" aria-label="Updates" title="Updates"><span aria-hidden="true">↻</span><span id="update-count" hidden></span></button><span class="version">V0.6</span><button id="queue-top" class="icon-button" title="Processing queue" aria-label="Open processing queue"></button></div></header>
+<header class="topbar"><div class="top-actions"><div class="global-search"><span id="search-icon"></span><input id="search" placeholder="Find a tool…" aria-label="Find a tool"></div><button id="black-scripting-launcher" class="black-launcher" aria-label="Black Scripting — Enter the Forge" title="Enter the Forge"><span aria-hidden="true">⌘</span><span>Black Scripting</span></button><button id="birthright-updates" class="icon-button" aria-label="Updates" title="Updates"><span aria-hidden="true">↻</span><span id="update-count" hidden></span></button><button id="queue-top" class="icon-button" title="Processing queue" aria-label="Open processing queue"></button></div></header>
 <main id="main" tabindex="-1"></main>
 <footer class="queue-dock"><div class="dock-title" id="dock-title"></div><div id="dock-status">Connecting to the local engine…</div><button id="dock-open">View queue <span>↗</span></button></footer>
 </div></div>

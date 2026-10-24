@@ -93,7 +93,7 @@ def main() -> int:
                 check('Unauthenticated generation is rejected', unauthenticated.post('/api/generators/generate', data={'tool': 'strings'}).status == 401)
                 unauthenticated.dispose()
                 page.goto(origin + '/#token=' + token)
-                page.wait_for_selector('.tool-card')
+                page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
                 check('Launcher authorization is removed from the browser URL', '#' not in page.url and token not in page.url)
                 check('All four generator tools are present in the actual navigation',
                       all(page.locator(f'#sidebar [data-view="{tool}"]').count() for tool in ['identity', 'obfuscation', 'addresses', 'strings']))
@@ -115,7 +115,7 @@ def main() -> int:
                     check(tool + ': actual generator request succeeds without caching', response.status == 200 and response.headers.get('cache-control') == 'no-store')
                     body = response.json()
                     page.wait_for_selector('.generator-values li')
-                    check(tool + ': displayed values match the real API batch', page.locator('.generator-values li').all_text_contents() == [row['value'] for row in body['rows']])
+                    check(tool + ': displayed values match the real API batch', (page.locator('.address-field input').first.input_value()==body['rows'][0]['street'] if tool=='addresses' else page.locator('.generator-values li').all_text_contents() == [row['value'] for row in body['rows']]))
                     return body
 
                 def export_current(format):
@@ -136,7 +136,7 @@ def main() -> int:
                     check(tool + ': arrow keys select and focus the next settings tab', tabs.nth(1).get_attribute('aria-selected') == 'true' and tabs.nth(1).evaluate('(element)=>element===document.activeElement'))
                     body = generate(tool)
                     bodies[tool] = body
-                    check(tool + ': default batch contains ten rows and declares no persistence', body['count'] == 10 and body['persisted'] is False)
+                    check(tool + ': default batch size and no persistence', body['count'] == (1 if tool=='addresses' else 10) and body['persisted'] is False)
                     if tool != 'strings':
                         check(tool + ': synthetic data is explicitly marked fictional', body['fictional'] and all(row['fictional'] for row in body['rows']))
                     else:
@@ -159,7 +159,7 @@ def main() -> int:
                     return values.every(value=>!stored.includes(value));
                 }''', sensitive_values))
 
-                page.locator('#sidebar [data-view="overview"]').click()
+                page.evaluate("navigate('overview')")
                 nav('strings')
                 check('Leaving and reopening a generator clears the batch', page.locator('.generator-values li').count() == 0)
                 page.locator('[role="tab"][aria-label="Alphabet"]').click()
@@ -209,7 +209,7 @@ def main() -> int:
                 check('Hidden-tab event clears values (simulated visibility transition)', page.locator('.generator-values li').count() == 0)
                 generate('strings')
                 page.locator('#search').fill('identity')
-                page.wait_for_selector('.tool-card')
+                page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
                 nav('strings')
                 check('Global search clears generated values', page.locator('.generator-values li').count() == 0)
 

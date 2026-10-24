@@ -50,7 +50,7 @@ async function authorizeBrowser(){
  if(!response.ok)throw new Error('Open FORGE once from its launcher to remember this browser profile. Private windows or cleared site data need separate authorization.');
  csrf=(await response.json()).csrf;
 }
-let state = null, view = 'overview', filter = 'all', pollBusy = false, lastError = false;
+let state = null, view = 'downloads', filter = 'all', pollBusy = false, lastError = false;
 let toastTimer, secretTimer, previewURL;
 const drafts = {};
 const defaults = {
@@ -62,7 +62,7 @@ const defaults = {
  download_video:{format:'mp4',quality:'best',max_height:0,embed_metadata:true,cookies:''},
  password:{length:24,count:1,upper:true,numbers:true,symbols:'!@#$%^-_=+[]{}?',unicode_chars:false,exclude_ambiguous:true}
 };
-const titles = {workflows:'Workflows',model_download:'Model download',overview:'Overview',queue:'Processing Queue',settings:'Environment',transcribe:'Transcribe',retune:'432Hz Conversion',download_audio:'Audio Download',download_video:'Video Download',metadata:'Metadata Studio',qr:'QR Codes',password:'Passwords'};
+const titles = {workflows:'Workflows',model_download:'Model download',overview:'Overview',queue:'Processing Queue',settings:'Settings',transcribe:'Transcribe',retune:'432Hz Conversion',download_audio:'Audio Download',download_video:'Video Download',metadata:'Metadata Studio',qr:'QR Codes',password:'Passwords'};
 const mediaViews = ['transcribe','retune','metadata','workflows'];
 function draft(tool=view) {
  if (!drafts[tool]) drafts[tool]={options:structuredClone(defaults[tool]||{}),sources:[],urls:'',output:{mode:mediaViews.includes(tool)?'source':'default',directory:'',subfolder:''}};
@@ -96,13 +96,10 @@ function ready(tool){
  return deps.ffmpeg&&deps.ffprobe;
 }
 function renderNav(){
- $('#workspace-nav').innerHTML=['overview','queue','workflows'].map(v=>`<button class="nav-item ${view===v?'active':''}" data-view="${v}" title="${titles[v]}">${icon(v==='overview'?'grid':'queue')}<span class="nav-text">${titles[v]}</span>${v==='queue'?`<span class="counter">${busyJobs().length}</span>`:''}</button>`).join('');
+ $('#workspace-nav').innerHTML=`<button class="nav-item ${view==='settings'?'active':''}" data-view="settings" title="Settings">${icon('settings')}<span class="nav-text">Settings</span></button>`;
  $('#tool-nav').innerHTML=Object.keys(defaults).map(v=>`<button class="nav-item ${view===v?'active':''}" data-view="${v}" title="${titles[v]}">${icon(v)}<span class="nav-text">${titles[v]}</span></button>`).join('');
- $('#environment-nav').innerHTML=icon('settings')+'<span class="nav-text">Environment</span>';
- $('#environment-nav').classList.toggle('active',view==='settings');
- $('#environment-nav').onclick=()=>navigate('settings');
  $$('[data-view]', $('#sidebar')).forEach(b=>b.onclick=()=>navigate(b.dataset.view));
- $('#crumb').textContent=titles[view];
+ if($('#crumb'))$('#crumb').textContent=titles[view];
 }
 function heading(eyebrow,title,description,actions=''){
  return `<div class="page-heading"><div><div class="eyebrow">${escape(eyebrow)}</div><h1>${escape(title)}</h1><p>${escape(description)}</p></div>${actions?`<div class="heading-actions">${actions}</div>`:''}</div>`;
@@ -354,9 +351,9 @@ async function refresh(update=true){
 }
 async function boot(){
  $('#search-icon').innerHTML=icon('search');$('#queue-top').innerHTML=icon('queue');$('#collapse').innerHTML=icon('chevron');
- $('#home-brand').onclick=e=>{e.preventDefault();navigate('overview');};$('#queue-top').onclick=()=>navigate('queue');$('#dock-open').onclick=()=>navigate('queue');
+ $('#home-brand').onclick=e=>{e.preventDefault();navigate(window.ForgeShell?.lastTool()||'downloads');};$('#queue-top').onclick=()=>navigate('queue');$('#dock-open').onclick=()=>navigate('queue');
  $('#collapse').onclick=()=>{document.body.classList.toggle('compact');try{localStorage.setItem('forge-compact',String(document.body.classList.contains('compact')));}catch{}};
- try{if(localStorage.getItem('forge-compact')==='true')document.body.classList.add('compact');}catch{}
+ try{if(localStorage.getItem('forge-compact')!=='false')document.body.classList.add('compact');}catch{}
  $('#search').oninput=e=>{$('#clear-password')?.click();clearTimeout(secretTimer);capture();view='overview';renderNav();renderOverview(e.target.value);};
  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#search').focus();}});
  document.addEventListener('dragover',e=>e.preventDefault());
@@ -365,6 +362,7 @@ async function boot(){
   await authorizeBrowser();
   state=await api('/state');
   if(typeof setupV2State==='function')setupV2State(null);
+  try{const saved=localStorage.getItem('forge-last-tool');if(saved&&titles[saved]&&!['overview','queue','workflows','settings'].includes(saved))view=saved;}catch{}
   if(window.startSources.length){const r=await api('/sources?ids='+encodeURIComponent(window.startSources.join(',')));view=r.sources.every(s=>/\.(png|jpe?g|webp)$/i.test(s.name))?'metadata':'transcribe';draft().sources=r.sources;}
   renderNav();render();setInterval(()=>refresh(),1800);
  }catch(e){$('#main').innerHTML=`<div class="connection-error">${heading('LOCAL AUTHORIZATION','Authorize this browser once.','After opening the launcher once, bookmarks work across normal tabs in this browser profile.')}<div class="callout">${escape(e.message)}</div><p class="note">Run Setup FORGE.bat once, then use the FORGE Start-menu shortcut or Open FORGE.bat. A bookmark cannot start a stopped Windows service. Use the taskbar launcher after restarting Windows or stopping FORGE. Opening index.html directly is not supported.</p></div>`;}

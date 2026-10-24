@@ -101,7 +101,7 @@ def test_fictional_identity_formats(region, kind):
     assert all(row['fictional'] for row in result['rows'])
 
 
-@pytest.mark.parametrize('country,pattern', [('US', r'\d{5}'), ('GB', r'[A-Z]{2}\d \d[A-Z]{2}'), ('CA', r'[A-Z]\d[A-Z] \d[A-Z]\d'), ('DE', r'\d{5}'), ('AU', r'\d{4}'), ('JP', r'\d{3}-\d{4}')])
+@pytest.mark.parametrize('country,pattern', [('US', r'\d{5}'), ('GB', r'[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}'), ('CA', r'[A-Z]\d[A-Z] \d[A-Z]\d'), ('DE', r'\d{5}'), ('AU', r'\d{4}'), ('JP', r'\d{3}-\d{4}')])
 def test_synthetic_country_shaped_addresses(country, pattern):
     result = generate('addresses', {'country': country, 'include_unit': True, 'fields': ['street', 'unit', 'city', 'region', 'postal_code', 'country']})
     assert result['fictional']

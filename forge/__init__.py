@@ -1,2 +1,2 @@
-"""FORGE — Local Production Studio."""
-__version__ = "0.6.0"
+"""FORGE — Scripting Environment Engine."""
+__version__ = "0.7.0"
