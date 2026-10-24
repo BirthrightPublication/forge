@@ -1,8 +1,16 @@
-# FORGE V0.7 candidate validation
+# FORGE validation history
+
+The V0.7.1 startup repair is documented in [V0.7.1-STARTUP-REPAIR.md](V0.7.1-STARTUP-REPAIR.md).
+V0.7.0 was subsequently merged and published at `bab3876878b20da5c2906b85177876844d3279f1`.
+Its tagged release workflow passed 692 Python tests, 387 browser checks, 98 packaging
+tests and 730 native Windows acceptance checks. The published release contains the
+validation receipts. The following records describe its earlier development checks.
+
+## Historical V0.7 candidate validation
 
 Baseline: main `ddd49eb2e10f290708a99bf74de7dc088eff329f`.
 Branch: `development/v0.7-studio-navigation`.
-The existing v0.6.0 release remains published. V0.7 is unmerged and untagged, pending owner review.
+At this development checkpoint, V0.7 was unmerged and untagged, pending owner review.
 
 ## Local evidence
 

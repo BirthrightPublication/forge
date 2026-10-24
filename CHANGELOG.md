@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.7.0 — development candidate, pending owner review
+## 0.7.1 — startup repair candidate, pending owner review
+
+- Wait for all deferred interface extensions before starting browser authorization and rendering. A fast local API could previously render Download Studio too early and report `Cannot read properties of undefined (reading 'description')`.
+- Distinguish interface, engine connection and authorization failures, with recovery instructions appropriate to each. Browser rendering errors no longer direct users to reinstall dependencies.
+- Read the setup banner version from `VERSION.txt` instead of displaying the historical V0.3 label. Keep the running-service guard and all data-preservation contracts.
+- Add delayed-script startup and injected rendering/connection failure browser regressions.
+
+## 0.7.0 — 2026-10-23 (published)
 
 - Unify manual audio/video downloads with persistent Channel Watch and Download History; retain legacy routes, presets and verified media workers.
 - Add saved/pinned/default destinations, stable source folders, content rules, priorities, optional historical imports, live/replay transitions, bounded retries and persistent download identities.
