@@ -37,7 +37,8 @@ def media_url(value):
 def diagnostic(error):
     text = str(error).lower()
     rules = [
-        ('authentication', ('sign in','not a bot','login required','cookies','authentication','members-only','age-restricted'),
+        ('authentication', ('sign in','not a bot','login required','cookies','authentication','members-only','age-restricted',
+                            'unauthorized','http error 401','http 401'),
          'The source requires authentication. Select an authorized local cookies file if supported. Updating yt-dlp does not bypass account or network restrictions.', False),
         ('unavailable', ('private video','video unavailable','has been removed','deleted','not available in your country','copyright'),
          'This media is private, deleted, restricted or unavailable to this connection.', False),
