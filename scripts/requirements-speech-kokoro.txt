@@ -8,13 +8,14 @@ numpy==1.26.4
 soundfile==0.12.1
 spacy==3.8.7
 click==8.1.8
-# Complete official Misaki language frontends. The two data/source-only packages
+# Complete official Misaki language frontends. Three data/source-only packages
 # below are built from reviewed, SHA-256-pinned artifacts by speech_runtime.py.
 setuptools==80.9.0
 wheel==0.45.1
 espeakng-loader==0.2.4
 phonemizer-fork==3.3.2
 num2words==0.5.14
+docopt==0.6.2
 fugashi==1.5.2
 jaconv==0.5.0
 mojimoji==0.0.13

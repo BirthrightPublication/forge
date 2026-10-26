@@ -27,7 +27,7 @@ Misaki configures the library and data supplied by `espeakng-loader` itself.
 - Chinese installs `cn2an==0.5.24`, `jieba==0.42.1`, `ordered-set==4.1.0`,
   `pypinyin==0.55.0` and `pypinyin-dict==0.9.0` for the original Misaki `ZHG2P`.
 
-Native packages require publisher binary wheels. Two packages are published only
+Native packages require publisher binary wheels. Three packages are published only
 as pure-Python/data source archives. Their setup scripts were inspected: they only
 package Python and dictionary files, with no compiler or secondary download.
 The installer retrieves only these exact artifacts, verifies their SHA-256 before
@@ -40,6 +40,12 @@ is enabled for other packages.
 | --- | --- | --- |
 | jieba 0.42.1 | [PyPI source](https://files.pythonhosted.org/packages/c6/cb/18eeb235f833b726522d7ebed54f2278ce28ba9438e3135ab0278d9792a2/jieba-0.42.1.tar.gz) | `055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2` |
 | unidic-lite 1.0.8 | [PyPI source](https://files.pythonhosted.org/packages/55/2b/8cf7514cb57d028abcef625afa847d60ff1ffbf0049c36b78faa7c35046f/unidic-lite-1.0.8.tar.gz) | `db9d4572d9fdd4d00a97949d4b0741ec480ee05a7e7e2e32f547500dae27b245` |
+| docopt 0.6.2 | [PyPI source](https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz) | `49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491` |
+
+The pinned `num2words==0.5.14` requires `docopt>=0.6.2`. Its reviewed MIT-licensed
+argument-parser source is included explicitly because no publisher wheel exists;
+the installer does not backtrack to an older number-normalization package or enable
+unrestricted source builds to hide that dependency failure.
 
 The immutable environment's `forge-frontend-artifacts.json` records source URLs,
 source hashes/sizes, built wheel hashes and build-tool pins. `forge-runtime.json`
@@ -50,6 +56,9 @@ create a new environment fingerprint; prior environments remain intact.
 
 The reviewed source-wheel build and actual Spanish/French/Hindi/Italian/Portuguese,
 Japanese and Chinese phonemization were exercised in a separate Linux environment.
+After building all three approved source wheels, the complete requirements also
+resolved successfully against CPython 3.12 Windows wheel tags and Windows PEP 508
+environment markers. That metadata-resolution check is not native execution.
 That is text-frontend verification, not neural speech or Windows acceptance.
 The opt-in Kokoro acceptance harness adds real offline synthesis with one installed
 official voice per language code when run with `--scope full`. Non-silent output

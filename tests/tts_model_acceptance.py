@@ -236,7 +236,9 @@ class Acceptance:
                 tail = redact((result.stdout + '\n' + result.stderr)[-24000:], self.private_paths)
                 self.receipt['command_failure_tail'] = tail
                 self.log('Installer subprocess failed:\n' + tail)
-                self.annotation(self.engine + ' isolated installation diagnostics', tail[-10000:], error=True)
+                # Check annotations are bounded by GitHub; keep the terminating
+                # pip error visible instead of filling the limit with progress.
+                self.annotation(self.engine + ' isolated installation diagnostics', tail[-3500:], error=True)
                 raise RuntimeError('Isolated runtime command failed; sanitized diagnostics are in acceptance.log.')
             return result.stdout
 
@@ -432,8 +434,9 @@ def main(argv=None):
     output.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(data).free < 12 * 1024**3:
         parser.error('At least 12 GiB of free space is required for isolated speech acceptance.')
+    commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True,timeout=10).strip()
     (data/'.forge-acceptance-owned.json').write_text(json.dumps({'purpose':'FORGE disposable speech acceptance',
-        'engine':args.engine,'source_commit':os.environ.get('GITHUB_SHA','local-acceptance')})+'\n')
+        'engine':args.engine,'source_commit':commit})+'\n')
     return Acceptance(args.engine, data, output, args.scope).run()
 
 

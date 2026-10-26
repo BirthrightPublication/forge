@@ -37,7 +37,8 @@ def run(data,output):
     app.state.store.set('settings',settings)
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True,timeout=10).strip()
     receipt={'source_commit':commit,'platform':sys.platform,
-             'model_inference_tested':True,'device':'cpu','checks':[]}
+             'model_inference_tested':True,'native_windows_execution':os.name=='nt',
+             'physical_gpu_tested':False,'inference_substituted':False,'device':'cpu','checks':[]}
     try:
         with TestClient(app,base_url='http://127.0.0.1:19819',headers={'X-Forge-Token':token}) as client:
             def post(path,body):

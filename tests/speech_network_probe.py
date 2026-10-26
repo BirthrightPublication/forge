@@ -6,9 +6,9 @@ access fails the check; it is never reported as successful model acceptance.
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -78,7 +78,8 @@ def probe(output):
         entries.append(entry)
         if entry['status']!='passed':
             print(f'::error title=Speech publisher access::{engine}: {entry["error_type"]}; HTTP status {entry.get("http_status") or "unavailable"}',flush=True)
-    report={'source_commit':os.environ.get('GITHUB_SHA',''),'platform':sys.platform,
+    commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=Path(__file__).resolve().parents[1],text=True,timeout=10).strip()
+    report={'source_commit':commit,'platform':sys.platform,
             'all_publishers_accessible':all(x['status']=='passed' for x in entries),
             'model_inference_tested':False,'weights_downloaded':False,'entries':entries}
     (output/'publisher-access.json').write_text(json.dumps(report,indent=2)+'\n')

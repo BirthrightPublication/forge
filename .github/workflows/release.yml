@@ -30,6 +30,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       tag: ${{ steps.target.outputs.tag }}
+      speech_required: ${{ steps.target.outputs.speech_required }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -57,6 +58,8 @@ jobs:
               raise SystemExit('The release target must be exactly vMAJOR.MINOR.PATCH.')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f'tag={tag}\n')
+              speech_required = tuple(map(int, tag[1:].split('.'))) >= (0, 8, 0)
+              output.write(f'speech_required={str(speech_required).lower()}\n')
           print('Selected exact tag:', tag)
           PY
 
@@ -292,9 +295,24 @@ jobs:
       tag: ${{ needs.resolve.outputs.tag }}
       build_only: true
 
+  speech:
+    name: Require actual native speech model CPU acceptance
+    needs: resolve
+    if: needs.resolve.outputs.speech_required == 'true'
+    uses: ./.github/workflows/speech-acceptance.yml
+    with:
+      source_ref: refs/tags/${{ needs.resolve.outputs.tag }}
+
   publish:
     name: Publish only the tested assets
-    needs: [resolve, build, windows]
+    needs: [resolve, build, windows, speech]
+    # Historical pre-speech tags may skip the new model gate. New releases must
+    # fail closed on failed/cancelled/skipped actual model acceptance.
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      needs.build.result == 'success' && needs.windows.result == 'success' &&
+      (needs.resolve.outputs.speech_required == 'false' ||
+       (needs.resolve.outputs.speech_required == 'true' && needs.speech.result == 'success'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -304,6 +322,7 @@ jobs:
       cancel-in-progress: false
     env:
       RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+      SPEECH_REQUIRED: ${{ needs.resolve.outputs.speech_required }}
     steps:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
@@ -312,6 +331,12 @@ jobs:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: tested-windows-${{ needs.resolve.outputs.tag }}
+          path: tested/release
+      - name: Download only passed same-run CPU speech acceptance
+        if: needs.resolve.outputs.speech_required == 'true'
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.speech.outputs.evidence_artifact }}
           path: tested/release
       - name: Verify transferred files
         working-directory: tested/release
@@ -333,6 +358,27 @@ jobs:
           archive = Path(f'FORGE-{tag}-windows-x64.zip')
           if hashlib.sha256(archive.read_bytes()).hexdigest() != windows['archive_sha256']:
               raise SystemExit('Windows acceptance evidence does not describe the transferred ZIP.')
+          if os.environ['SPEECH_REQUIRED'] == 'true':
+              speech = json.loads(Path('SPEECH_ACCEPTANCE.json').read_text())
+              evidence = Path('SPEECH_EVIDENCE.zip')
+              if (speech.get('status') != 'passed' or speech.get('source_commit') != legacy['source_commit']
+                      or speech.get('actions_run_id') != os.environ['GITHUB_RUN_ID']
+                      or speech.get('scope') != 'native-windows-cpu-synthetic-speech'
+                      or speech.get('native_windows_execution') is not True or speech.get('device') != 'cpu'
+                      or speech.get('physical_gpu_tested') is not False
+                      or speech.get('full_hardware_acceptance') is not False
+                      or speech.get('inference_substituted') is not False
+                      or speech.get('evidence_archive') != {'name': evidence.name,
+                          'sha256': hashlib.sha256(evidence.read_bytes()).hexdigest()}):
+                  raise SystemExit('Passed actual CPU speech evidence must identify the exact packaged source and this run.')
+              notes = Path('../RELEASE_NOTES.md')
+              with notes.open('a', encoding='utf-8') as output:
+                  output.write('\nActual native Windows CPU Kokoro, Ming, four Bark models, Whisper comparisons '
+                               'and queued speech pipeline evidence is attached. Controlled synthetic fixtures '
+                               'do not establish general comparative accuracy. CUDA, owner hardware and listening '
+                               'acceptance are separate and are not waived by these CPU results.\n')
+          elif os.environ['SPEECH_REQUIRED'] != 'false':
+              raise SystemExit('The speech release gate must explicitly resolve true or false.')
           assets = sorted(path for path in Path('.').iterdir()
                           if path.is_file() and path.name != 'CHECKSUMS.sha256')
           Path('CHECKSUMS.sha256').write_text(''.join(
@@ -377,6 +423,8 @@ jobs:
           repository, tag = os.environ['GITHUB_REPOSITORY'], os.environ['RELEASE_TAG']
           archive = f'FORGE-{tag}-windows-x64.zip'
           required = (archive, archive + '.sha256', f'FORGE-{tag}-windows-x64.validation.json')
+          if os.environ['SPEECH_REQUIRED'] == 'true':
+              required += ('SPEECH_ACCEPTANCE.json', 'SPEECH_EVIDENCE.zip', 'CHECKSUMS.sha256')
           def request(path, destination=None):
               command = ['gh', 'api', '--method', 'GET', f'repos/{repository}/{path}']
               if destination is not None:
@@ -434,7 +482,7 @@ jobs:
           if any((final[name]['id'], final[name]['size'], final[name].get('updated_at')) != identity
                  for name, identity in verified.items()):
               raise SystemExit('Windows release assets changed during verification; publication stopped.')
-          print('Authenticated draft downloads match all three tested Windows assets; exactly one Windows ZIP is present.')
+          print('Authenticated draft downloads match all required tested assets; exactly one Windows ZIP is present.')
           PY
           python3 tested/verify-release-source.py
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false

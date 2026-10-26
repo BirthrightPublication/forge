@@ -390,7 +390,8 @@ def main(argv=None):
         parser.error('Model data and public evidence folders must be separate, non-nested directories.')
     data, output = fresh_folder(data_path), fresh_folder(output_path)
     settings = {'ffmpeg': str(Path(args.ffmpeg).resolve()), 'ffprobe': str(Path(args.ffprobe).resolve())}
-    report = {'schema': 1, 'status': 'failed', 'source_commit': os.getenv('GITHUB_SHA', ''),
+    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True, timeout=10).strip()
+    report = {'schema': 1, 'status': 'failed', 'source_commit': commit,
               'platform': platform.platform(), 'python': platform.python_version(),
               'native_windows_execution': os.name == 'nt', 'device': 'cpu', 'physical_gpu_tested': False,
               'inference_substituted': False, 'results': [], 'failures': [],

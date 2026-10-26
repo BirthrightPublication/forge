@@ -25,16 +25,20 @@ from .core import ROOT, json_write, no_window
 from .model_cache import cache_lock
 from .speech_engines import SPECS, MING_CODE_REVISION, REVISION, _read, _root, environment_python, environment_path
 
-# PyPI publishes these two pure-Python/data-only packages as sdists. Their
+# PyPI publishes these reviewed pure-Python/data-only packages as sdists. Their
 # reviewed setup scripts only package Python/dictionary files. Native extensions
 # still require binary wheels; arbitrary source or compiler builds are forbidden.
 FRONTEND_SOURCES = {
     'jieba': {'version':'0.42.1','filename':'jieba-0.42.1.tar.gz','maximum_bytes':20_000_000,
         'url':'https://files.pythonhosted.org/packages/c6/cb/18eeb235f833b726522d7ebed54f2278ce28ba9438e3135ab0278d9792a2/jieba-0.42.1.tar.gz',
-        'sha256':'055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2'},
+        'sha256':'055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2','license':'MIT'},
     'unidic-lite': {'version':'1.0.8','filename':'unidic-lite-1.0.8.tar.gz','maximum_bytes':48_000_000,
         'url':'https://files.pythonhosted.org/packages/55/2b/8cf7514cb57d028abcef625afa847d60ff1ffbf0049c36b78faa7c35046f/unidic-lite-1.0.8.tar.gz',
-        'sha256':'db9d4572d9fdd4d00a97949d4b0741ec480ee05a7e7e2e32f547500dae27b245'},
+        'sha256':'db9d4572d9fdd4d00a97949d4b0741ec480ee05a7e7e2e32f547500dae27b245',
+        'license':'MIT packaging; UniDic dictionary BSD/GPL/LGPL choice; retain dictionary notices'},
+    'docopt': {'version':'0.6.2','filename':'docopt-0.6.2.tar.gz','maximum_bytes':30_000,
+        'url':'https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz',
+        'sha256':'49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491','license':'MIT'},
 }
 
 
@@ -97,7 +101,7 @@ def _fetch_ming_code(destination):
 
 
 def build_frontend_wheels(python,environment):
-    """Build only two explicitly reviewed data/Python packages in the new env."""
+    """Build only the explicitly reviewed data/Python packages in the new env."""
     environment=Path(environment)
     sources=environment/'frontend-sources';wheels=environment/'frontend-wheels'
     sources.mkdir();wheels.mkdir()
@@ -126,6 +130,7 @@ def build_frontend_wheels(python,environment):
                     raise RuntimeError('The reviewed language wheel contains an unsafe or native payload.')
         records.append({'package':name,'version':spec['version'],'source_url':spec['url'],
                         'source_sha256':spec['sha256'],'source_bytes':len(raw),
+                        'license':spec.get('license','Retain the publisher notices'),
                         'wheel':wheel.name,'wheel_sha256':file_hash(wheel),'native_compilation':False})
     json_write(environment/'forge-frontend-artifacts.json',{'schema':1,'sources':records,
                'build_requirements':{'setuptools':'80.9.0','wheel':'0.45.1'}})

@@ -1,6 +1,16 @@
 name: Native speech model acceptance
 
 on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: Exact approved source tag or commit to execute
+        type: string
+        required: true
+    outputs:
+      evidence_artifact:
+        description: Combined passed native Windows CPU evidence, not GPU acceptance
+        value: ${{ jobs.collect.outputs.evidence_artifact }}
   workflow_dispatch:
   push:
     branches: ['development/v0.8-speech-studio']
@@ -10,6 +20,8 @@ on:
       - tests/tts_model_acceptance.py
       - tests/asr_model_acceptance.py
       - tests/speech_pipeline_acceptance.py
+      - scripts/collect_speech_acceptance.py
+      - tests/test_speech_release_gate.py
       - forge/speech_runtime.py
       - forge/speech_engines.py
       - forge/bark_asr.py
@@ -31,7 +43,16 @@ jobs:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ inputs.source_ref || github.sha }}
           persist-credentials: false
+      - name: Require an exact source tag or commit
+        shell: pwsh
+        env:
+          SOURCE_REF: ${{ inputs.source_ref || github.sha }}
+        run: |
+          if ($env:SOURCE_REF -notmatch '^(?:[a-f0-9]{40}|(?:refs/tags/)?v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$') {
+            throw 'Speech acceptance requires an exact version tag or commit, never a moving branch.'
+          }
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
@@ -69,6 +90,7 @@ jobs:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ inputs.source_ref || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -126,6 +148,7 @@ jobs:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ inputs.source_ref || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -168,3 +191,44 @@ jobs:
           path: ${{ runner.temp }}/kokoro-pipeline-evidence/
           if-no-files-found: warn
           retention-days: 14
+
+  collect:
+    name: Verify combined actual CPU inference evidence
+    needs: [publishers, tts, asr]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      evidence_artifact: ${{ steps.result.outputs.evidence_artifact }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.source_ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Download separate model artifacts without merging receipt filenames
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          # Match only producer artifacts, never a previous combined output.
+          pattern: speech-@(publishers|kokoro|ming|bark-3.0|bark-3.0-plus|bark-3.0-pro|bark-3.0-clean|kokoro-pipeline)-${{ github.run_id }}
+          path: speech-evidence
+          merge-multiple: false
+      - name: Require actual same-source model, comparison and pipeline receipts
+        shell: bash
+        run: |
+          commit=$(git rev-parse HEAD)
+          python scripts/collect_speech_acceptance.py --evidence speech-evidence --output speech-verified --source-commit "$commit" --run-id "$GITHUB_RUN_ID"
+      - name: Transfer only passed CPU evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: speech-verified-${{ github.run_id }}
+          path: |
+            speech-verified/SPEECH_ACCEPTANCE.json
+            speech-verified/SPEECH_EVIDENCE.zip
+          if-no-files-found: error
+          retention-days: 14
+      - id: result
+        name: Export the verified artifact identity
+        shell: bash
+        run: echo "evidence_artifact=speech-verified-$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"
