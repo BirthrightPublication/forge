@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.0 — implementation candidate; model acceptance pending
+## 0.8.0 — CPU release; CUDA experimental
 
 - Carry the V0.7.1 deferred-script startup repair into V0.8 without merging or rewriting its separate PR/history.
 - Add revisioned speech projects, chapters, named speakers, source-preserving markers, reading styles, pronunciation rules, custom expressions and immutable configuration snapshots.
@@ -10,7 +10,8 @@
 - Add safe EPUB/PDF/TXT/Markdown/HTML/SRT/VTT import, reusable verified segment caches, exact silence, incremental chapter assembly, cache-only export and WAV/FLAC/MP3/OPUS/M4B production exports.
 - Add four Bark 3.0 English recognition catalogs with separate runtime, bounded audio chunks and truthful TXT/JSON output; retain Whisper timing, translation and speaker labels.
 - Register speech and effects in the Universal Queue and existing linear Black Scripting. Preserve data/updater contracts.
-- Actual neural model inference, native Windows model installation, physical CUDA acceptance and complete dependency-license review remain pending because publisher downloads are blocked here. This candidate is not release-approved.
+- Native Windows CPU model acceptance passed for original Kokoro Onyx, all language frontends, Ming, all four Bark variants, both Whisper comparisons and the real queued speech pipeline. Release publication requires fresh same-source results.
+- Owner approval on 2026-10-26 excepts only physical GPU acceptance. CUDA is experimental and unverified on owner hardware; all other test gates remain mandatory. See docs/V0.8-RELEASE.md for in-place update and CPU model-install instructions.
 
 ## 0.7.1 — startup repair candidate, pending owner review
 

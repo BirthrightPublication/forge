@@ -263,6 +263,10 @@ jobs:
                    'Results, screenshots, changelog and SHA-256 checksums are attached. The separate Windows validation receipt '
                    'records native updater and installed-app checks with canonical temporary paths. Physical GPU acceptance remains separate.\n\n'
                    f'Validation run: {validation["actions_run"]}\n')
+          if os.environ['RELEASE_TAG'] == 'v0.8.0':
+              notes = (f'FORGE {os.environ["RELEASE_TAG"]}, built from `{commit}`.\n\n'
+                       + Path('docs/V0.8-RELEASE.md').read_text(encoding='utf-8')
+                       + f'\nValidation run: {validation["actions_run"]}\n')
           Path('Build/RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
           PY
       - name: Retain validation evidence even when a check fails
@@ -376,7 +380,8 @@ jobs:
                   output.write('\nActual native Windows CPU Kokoro, Ming, four Bark models, Whisper comparisons '
                                'and queued speech pipeline evidence is attached. Controlled synthetic fixtures '
                                'do not establish general comparative accuracy. CUDA, owner hardware and listening '
-                               'acceptance are separate and are not waived by these CPU results.\n')
+                               'acceptance remain unverified. The owner explicitly excepted physical GPU acceptance '
+                               'for V0.8.0 only; no other failed test is waived. CUDA is experimental.\n')
           elif os.environ['SPEECH_REQUIRED'] != 'false':
               raise SystemExit('The speech release gate must explicitly resolve true or false.')
           assets = sorted(path for path in Path('.').iterdir()
