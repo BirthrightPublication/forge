@@ -227,25 +227,27 @@ class MediaImports:
         return self.snapshot(import_id, limit=request.limit, offset=previous_total)
 
     def selection(self, request):
-        record = self.record(request.import_id)
-        if request.tool is not None:
-            record['tool'] = request.tool
-        if request.options is not None:
-            options = {**record.get('options', {}), **request.options}
-            if not request.options.get('cookies'):
-                options['cookies'] = record.get('options', {}).get('cookies') or record.get('cookies', '')
-            record['options'] = checked_options(record['tool'], options)
-        else:
-            checked_options(record['tool'], record['options'])
-        if request.output is not None:
-            record['output'] = request.output.model_dump()
-        if request.ordering is not None:
-            record['ordering'] = checked_order(request.ordering)
-        if request.playlist_subfolder is not None:
-            record['playlist_subfolder'] = request.playlist_subfolder
-        record['updated'] = time.time()
-        groups = [request.selected_ids or [], request.add_selected_ids, request.remove_selected_ids]
         with self.store.lock, self.store.db:
+            # Autosaves can arrive together. Read the latest settings inside the
+            # same lock as selection changes and the final merged record write.
+            record = self.record(request.import_id)
+            if request.tool is not None:
+                record['tool'] = request.tool
+            if request.options is not None:
+                options = {**record.get('options', {}), **request.options}
+                if not request.options.get('cookies'):
+                    options['cookies'] = record.get('options', {}).get('cookies') or record.get('cookies', '')
+                record['options'] = checked_options(record['tool'], options)
+            else:
+                checked_options(record['tool'], record['options'])
+            if request.output is not None:
+                record['output'] = request.output.model_dump()
+            if request.ordering is not None:
+                record['ordering'] = checked_order(request.ordering)
+            if request.playlist_subfolder is not None:
+                record['playlist_subfolder'] = request.playlist_subfolder
+            record['updated'] = time.time()
+            groups = [request.selected_ids or [], request.add_selected_ids, request.remove_selected_ids]
             for group in groups:
                 for media_id in group:
                     if not self.store.db.execute('SELECT 1 FROM download_import_entries WHERE import_id=? AND media_id=?', (request.import_id, media_id)).fetchone():

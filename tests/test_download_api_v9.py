@@ -1,7 +1,9 @@
 """Real authenticated planning APIs with explicitly simulated provider metadata."""
 import copy
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
+import threading
 
 from fastapi.testclient import TestClient
 import pytest
@@ -102,6 +104,57 @@ def test_unknown_selection_is_atomic_and_new_preview_pages_do_not_select_themsel
     assert client.get('/api/downloads/imports/' + key).json()['selection_count'] == 3
     next_page = preview(client, import_id=key, offset=3)
     assert next_page['selection_count'] == 3 and not any(item['selected'] for item in next_page['entries'])
+
+
+def test_concurrent_field_only_autosaves_keep_destination_order_selection_and_private_auth(api, tmp_path, monkeypatch):
+    client, app, _ = api
+    cookie = tmp_path / 'private-autosave-cookies.txt'
+    cookie.write_text('# Netscape HTTP Cookie File\n')
+    key = preview(client, cookies=str(cookie))['import_id']
+    post(client, 'downloads/import/selection', {'import_id': key, 'add_selected_ids': ['media000001']})
+    service = app.state.download_imports
+    original = service.record
+    first_read, release_first = threading.Event(), threading.Event()
+    gate_lock = threading.Lock()
+    gated = False
+
+    def pause_first_read(import_id):
+        nonlocal gated
+        value = original(import_id)
+        with gate_lock:
+            pause = not gated
+            gated = True
+        if pause:
+            first_read.set()
+            assert release_first.wait(5), 'The test did not release its first autosave.'
+        return value
+
+    monkeypatch.setattr(service, 'record', pause_first_read)
+    destination = str(tmp_path / 'chosen-autosave-folder')
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(client.post, '/api/downloads/import/selection',
+            json={'import_id': key, 'output': {'mode': 'custom', 'directory': destination}})
+        try:
+            assert first_read.wait(5), 'The first request did not read its saved import.'
+            # Check before starting the second request, avoiding timing guesses:
+            # an unlocked implementation lets it finish first and exposes the
+            # stale-write race; the serialized implementation must finish first.
+            acquired = app.state.store.lock.acquire(blocking=False)
+            if acquired:
+                app.state.store.lock.release()
+            second = executor.submit(client.post, '/api/downloads/import/selection',
+                json={'import_id': key, 'ordering': 'longest'})
+            if acquired:
+                assert second.result(timeout=5).status_code == 200
+        finally:
+            release_first.set()
+        assert first.result(timeout=5).status_code == 200
+        assert second.result(timeout=5).status_code == 200
+    saved = original(key)
+    public = client.get('/api/downloads/imports/' + key).json()
+    assert saved['output']['directory'] == destination and saved['ordering'] == 'longest'
+    assert public['selection_count'] == 1 and public['authentication_configured'] is True
+    assert saved['cookies'] == str(cookie) and str(cookie) not in json.dumps(public)
 
 
 def test_playlist_subfolder_is_opt_in_and_restored_selected_settings_survive_restart(api, tmp_path):

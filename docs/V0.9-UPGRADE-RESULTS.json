@@ -10,7 +10,7 @@
   "base_description": "Supplied V0.8 repository-source baseline; publication state recorded separately",
   "candidate_version": "0.9.0",
   "base_sha256": "f01497c68d00b8ad2bdb065bbf44da7127c0ee1ba7de8d13f593b8cb7fcb28b6",
-  "candidate_sha256": "bc07a688928142bbb744eb280d75aad428751344d5e372a0a3c1994f8dc258ad",
+  "candidate_sha256": "838c0d47755a8a90d398bf2b53c9609efbca152be52522e527bbdf89508e940c",
   "protected_files_verified": 21,
   "original_scripts_preserved": 7,
   "table_rows_preserved": {
@@ -29,7 +29,7 @@
     "watch_media": 7,
     "watch_sources": 2
   },
-  "table_snapshot_sha256": "ef0d272ca89667e4f948b04538005f851efd5b771056d3095dfe19db10b2e3c4",
+  "table_snapshot_sha256": "f9bbc1ce44e1b679e33b57339e236153c5932bc775c45a30230b5b87a77cac1d",
   "checks": [
     "Verified source manifests and actual installed updater CLI upgrade/rollback",
     "Populated V0.8 settings, workflows, presets, speech revisions/profiles/effects and watched media preserved",
@@ -45,5 +45,5 @@
   ],
   "base_source_commit": "078d9d5375033cf982e122f0c148433fe4e6760f",
   "base_source_provenance": "Git archive of approved origin/main at the recorded commit; package built with its own release script",
-  "candidate_source_provenance": "V0.9 e090db928754a22779f9b2b162ea53662993525b integrated with approved main; tested archive records exact hashes"
+  "candidate_source_provenance": "V0.9 based on merge 8b9177d9733896434a1b252bfc2d9c8a784f034b with the final atomic playlist-save repair; exact archive hashes recorded"
 }
