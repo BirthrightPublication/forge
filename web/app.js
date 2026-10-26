@@ -62,7 +62,7 @@ const defaults = {
  download_video:{format:'mp4',quality:'best',max_height:0,embed_metadata:true,cookies:''},
  password:{length:24,count:1,upper:true,numbers:true,symbols:'!@#$%^-_=+[]{}?',unicode_chars:false,exclude_ambiguous:true}
 };
-const titles = {workflows:'Workflows',model_download:'Model download',overview:'Overview',queue:'Processing Queue',settings:'Settings',transcribe:'Transcribe',retune:'432Hz Conversion',download_audio:'Audio Download',download_video:'Video Download',metadata:'Metadata Studio',qr:'QR Codes',password:'Passwords'};
+const titles = {workflows:'Workflows',model_download:'Model download',overview:'Overview',queue:'Processing Queue',settings:'Settings',transcribe:'Transcribe',retune:'432Hz Conversion',downloads:'Media Downloads',download_audio:'Media Downloads · Audio',download_video:'Media Downloads · Video',metadata:'Metadata Studio',qr:'QR Codes',password:'Passwords'};
 const mediaViews = ['transcribe','retune','metadata','workflows'];
 function draft(tool=view) {
  if (!drafts[tool]) drafts[tool]={options:structuredClone(defaults[tool]||{}),sources:[],urls:'',output:{mode:mediaViews.includes(tool)?'source':'default',directory:'',subfolder:''}};
@@ -96,7 +96,8 @@ function ready(tool){
  return deps.ffmpeg&&deps.ffprobe;
 }
 function renderNav(){
- $('#workspace-nav').innerHTML=`<button class="nav-item ${view==='settings'?'active':''}" data-view="settings" title="Settings">${icon('settings')}<span class="nav-text">Settings</span></button>`;
+ $('#workspace-nav').innerHTML=`<button class="nav-item ${view==='queue'?'active':''}" data-view="queue" title="Processing Queue">${icon('queue')}<span class="nav-text">Processing Queue</span><span class="counter" aria-hidden="true">${busyJobs().length}</span></button>`;
+ if($('#utility-nav'))$('#utility-nav').innerHTML=`<button class="nav-item ${view==='settings'?'active':''}" data-view="settings" title="Settings">${icon('settings')}<span class="nav-text">Settings</span></button>`;
  $('#tool-nav').innerHTML=Object.keys(defaults).map(v=>`<button class="nav-item ${view===v?'active':''}" data-view="${v}" title="${titles[v]}">${icon(v)}<span class="nav-text">${titles[v]}</span></button>`).join('');
  $$('[data-view]', $('#sidebar')).forEach(b=>b.onclick=()=>navigate(b.dataset.view));
  if($('#crumb'))$('#crumb').textContent=titles[view];
@@ -269,10 +270,12 @@ async function enqueue(){
  capture();const tool=view,d=draft(),button=$('#enqueue'),topButton=$('#enqueue-top');button.disabled=true;if(topButton)topButton.disabled=true;
  try{
   const request={tool,sources:d.sources.map(s=>s.id),urls:d.urls.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),options:d.options,output:d.output};
-  const r=await api('/jobs',request);notify(`${r.jobs.length} job${r.jobs.length===1?'':'s'} added to the universal queue.`);
+  const r=await api('/jobs',request),plans=tool.startsWith('download')&&(r.plans||r.items);
+  const count=Array.isArray(plans)?plans.length:r.jobs.length;
+  notify(Array.isArray(plans)?`${count} download item${count===1?'':'s'} added to Current Download Priority.`:`${count} job${count===1?'':'s'} added to the universal queue.`);
   if(mediaViews.includes(tool))d.sources=[];
   if(tool.startsWith('download'))d.urls='';
-  await refresh(false);navigate('queue');
+  await refresh(false);if(Array.isArray(plans)){if(window.ForgeDownloads?.openPriority)window.ForgeDownloads.openPriority();else navigate('downloads');}else navigate('queue');
  }catch(e){notify(e.message,true);}finally{if(button.isConnected)button.disabled=false;if(topButton?.isConnected)topButton.disabled=false;}
 }
 async function savePreset(){
@@ -297,16 +300,16 @@ function updateQueueList(){
 function bindJobActions(){
  $$('[data-job]').forEach(b=>b.onclick=()=>jobDetail(b.dataset.job));
  $$('[data-cancel]').forEach(b=>b.onclick=async()=>{try{await api(`/jobs/${b.dataset.cancel}/cancel`,{});await refresh();}catch(e){notify(e.message,true);}});
- $$('[data-retry]').forEach(b=>b.onclick=async()=>{try{await api(`/jobs/${b.dataset.retry}/retry`,{});notify('A new retry job was queued.');await refresh();}catch(e){notify(e.message,true);}});
+ $$('[data-retry]').forEach(b=>b.onclick=async()=>{try{await api(`/jobs/${b.dataset.retry}/retry`,{});notify('Retry requested.');await refresh();}catch(e){notify(e.message,true);}});
 }
 async function jobDetail(id){
  const j=state.jobs.find(j=>j.id===id);if(!j)return;
  const dialog=$('#dialog');
- $('#dialog-content').innerHTML=`<h2>${escape(j.label)}</h2><p>${escape(titles[j.tool])} · ${escape(j.status)} · ${when(j.created)}</p><pre>${escape(j.message)}</pre>${j.outputs.length?`<h3>Outputs</h3><div class="outputs">${j.outputs.map((f,i)=>`<div class="output-item"><div class="name">${escape(f.name)}<p style="margin:5px 0 0;font-size:9px">${bytes(f.size)} · ${escape(f.path)}</p></div><button class="secondary" data-reveal="${i}">In Explorer</button>${f.size<10000000?`<button class="secondary" data-save="${i}">Save a copy</button>`:''}</div>`).join('')}</div>`:''}${j.warnings.length?`<h3>Processing notes</h3>${j.warnings.map(w=>`<p>${escape(w)}</p>`).join('')}`:''}${['completed','failed','cancelled','interrupted'].includes(j.status)?'<button class="secondary" id="rerun-job" style="margin-top:17px">Run again as a new job</button>':''}<div id="preview-area"></div>`;
+ $('#dialog-content').innerHTML=`<h2>${escape(j.label)}</h2><p>${escape(titles[j.tool])} · ${escape(j.status)} · ${when(j.created)}</p><pre>${escape(j.message)}</pre>${j.outputs.length?`<h3>Outputs</h3><div class="outputs">${j.outputs.map((f,i)=>`<div class="output-item"><div class="name">${escape(f.name)}<p style="margin:5px 0 0;font-size:9px">${bytes(f.size)} · ${escape(f.path)}</p></div><button class="secondary" data-reveal="${i}">In Explorer</button>${f.size<10000000?`<button class="secondary" data-save="${i}">Save a copy</button>`:''}</div>`).join('')}</div>`:''}${j.warnings.length?`<h3>Processing notes</h3>${j.warnings.map(w=>`<p>${escape(w)}</p>`).join('')}`:''}${['completed','failed','cancelled','interrupted'].includes(j.status)?'<button class="secondary" id="rerun-job" style="margin-top:17px">Run again</button>':''}<div id="preview-area"></div>`;
  if(!dialog.open)dialog.showModal();
  $$('[data-reveal]').forEach(b=>b.onclick=async()=>{try{const r=await api(`/jobs/${id}/reveal/${b.dataset.reveal}`,{});if(!r.opened)notify(r.path);}catch(e){notify(e.message,true);}});
  $$('[data-save]').forEach(b=>b.onclick=async()=>{try{const i=Number(b.dataset.save),r=await api(`/jobs/${id}/outputs/${i}`,undefined,true),u=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=u;a.download=j.outputs[i].name;a.click();setTimeout(()=>URL.revokeObjectURL(u),10000);}catch(e){notify(e.message,true);}});
- $('#rerun-job')?.addEventListener('click',async()=>{try{await api(`/jobs/${id}/retry`,{});dialog.close();notify('A new job was queued.');await refresh();}catch(e){notify(e.message,true);}});
+ $('#rerun-job')?.addEventListener('click',async()=>{try{await api(`/jobs/${id}/retry`,{});dialog.close();notify('Run requested.');await refresh();}catch(e){notify(e.message,true);}});
  if(j.tool==='qr'&&j.outputs.length){try{if(previewURL)URL.revokeObjectURL(previewURL);const r=await api(`/jobs/${id}/outputs/0`,undefined,true);previewURL=URL.createObjectURL(await r.blob());const img=document.createElement('img');img.src=previewURL;img.className='qr-preview';img.alt='Generated QR code';$('#preview-area')?.append(img);}catch{}}
 }
 function renderPassword(){

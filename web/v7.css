@@ -85,3 +85,30 @@ body.compact{--sidebar:72px}
 #dl-presets{background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:8px;font-size:11px;max-width:230px}.birthright-updates{bottom:auto;min-height:260px}.birthright-update-list{max-height:calc(100vh - 350px)}
 
 .watch-identity{display:flex;align-items:center;gap:10px;min-width:0}.watch-identity img{border-radius:50%;object-fit:cover}.watch-identity>svg{width:24px;height:24px;flex:none;color:var(--gold)}
+
+/* V0.9 keeps system controls below the scrollable tool groups. */
+.sidebar-foot #utility-nav{margin:0;padding:0 0 8px;border-bottom:1px solid var(--line)}
+.sidebar-foot #utility-nav .nav-item{width:100%;text-align:left}
+.compact .sidebar-foot #utility-nav .nav-item{width:42px}
+.sidebar .nav-item .counter{margin-left:auto;font-size:9px;min-width:19px;text-align:center}
+.queue3-row.v9-download-job{min-height:98px}
+.queue3-row .v9-queue-thumbnail{display:flex;align-items:center;justify-content:center;width:72px;height:43px;min-width:72px;flex:0 0 72px;overflow:hidden;border:1px solid var(--line);border-radius:5px;background:#20211b;color:var(--gold)}
+.queue3-row .v9-queue-thumbnail img{width:100%;height:100%;object-fit:cover}
+.v9-queue-placeholder>.icon{width:21px;height:21px;opacity:.65}
+.v9-download-job .v4-job-file{gap:10px}
+.v9-download-job .v9-job-source,.v9-download-job .v9-output-directory{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v9-download-job .v4-job-status{margin-top:4px}
+.v9-download-progress .v4-progress-label{align-items:flex-start;line-height:1.4}
+.v9-download-progress .v4-progress-label>span:first-child{min-width:0;overflow-wrap:anywhere}
+.v9-download-progress .v4-progress-label>span:last-child:not(:first-child){flex-shrink:0;color:var(--gold)}
+.v9-download-progress progress{margin:6px 0}
+.v9-download-progress progress:not([value]){opacity:.55}
+.v9-transfer-facts{display:grid;gap:2px;font-size:9px;color:var(--muted);line-height:1.4}
+.v9-transfer-facts small{font-size:9px;overflow-wrap:anywhere}
+.v9-current-transfer{display:block;font-size:9px;color:var(--gold);margin:3px 0}
+.v9-download-detail-identity{display:flex;align-items:center;gap:13px;margin:12px 0}
+.v9-download-detail-identity .v9-queue-thumbnail{width:104px;height:61px;min-width:104px;overflow:hidden;border:1px solid var(--line);border-radius:5px;background:var(--bg)}
+.v9-download-detail-identity .v9-queue-thumbnail img{width:100%;height:100%;object-fit:cover}
+.v9-download-detail-identity strong{font-size:12px;font-weight:400;overflow-wrap:anywhere}
+.v9-download-detail-identity small{display:block;margin-top:6px;font-size:10px;color:var(--muted)}
+.v9-download-details>a.secondary{display:inline-flex;align-items:center;gap:7px;margin:0 0 8px;text-decoration:none}

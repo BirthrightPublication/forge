@@ -122,7 +122,10 @@ async function v4Submit(start){
   const r=await api('/jobs',{tool,sources:d.sources.map(s=>s.id),urls:d.urls.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),options:d.options,output:d.output});
   if(start&&state.settings.queue_paused)await api('/queue',{paused:false});
   if(mediaViews.includes(tool))d.sources=[];if(tool.startsWith('download'))d.urls='';
-  await refresh(false);navigate('queue');notify(`${r.jobs.length} job${r.jobs.length===1?'':'s'} ${start?'submitted; dispatch active':'added to the queue'}.`);
+  const plans=tool.startsWith('download')&&(r.plans||r.items),count=Array.isArray(plans)?plans.length:r.jobs.length;
+  await refresh(false);
+  if(Array.isArray(plans)){if(window.ForgeDownloads?.openPriority)window.ForgeDownloads.openPriority();else navigate('downloads');notify(`${count} download item${count===1?'':'s'} added to Current Download Priority${start?'; scheduling active':''}.`);}
+  else{navigate('queue');notify(`${count} job${count===1?'':'s'} ${start?'submitted; dispatch active':'added to the queue'}.`);}
  }catch(e){notify(e.message,true);}finally{controls.forEach(b=>{if(b.isConnected)b.disabled=false;});}
 }
 const v4CaptureBefore=capture;
@@ -174,7 +177,7 @@ async function v4QueueAction(action,ids){
  if(action==='cancel'&&ids.length>1&&!confirm(`Cancel ${ids.length} selected jobs?`))return;
  try{
   const r=await api('/queue/actions',{action,ids}),results=r.results||[],failures=results.filter(item=>item.ok===false||item.error);
-  notify(failures.length?`${results.length-failures.length} accepted. ${v4SafeLabel(failures[0].error||'Some selected records could not be changed.')}`:`${action==='remove'?'Queue records removed. Physical files kept.':action==='retry'?'Retries added to the queue.':'Queue updated.'}`,Boolean(failures.length));
+  notify(failures.length?`${results.length-failures.length} accepted. ${v4SafeLabel(failures[0].error||'Some selected records could not be changed.')}`:`${action==='remove'?'Queue records removed. Physical files kept.':action==='retry'?'Retries requested.':'Queue updated.'}`,Boolean(failures.length));
   if(!['up','down','first','last'].includes(action))selectedJobs.clear();await refresh();
  }catch(e){notify(e.message,true);}
 }
