@@ -1,5 +1,8 @@
 # Optional; model weights and NVIDIA runtimes are separate.
 faster-whisper==1.2.1
 ctranslate2==4.6.0
+# faster-whisper 1.2.1 passes metadata_errors to av.open; PyAV 19 removed it.
+# 18.1.0 retains the decoder API and supplies Python 3.11+ Windows ABI3 wheels.
+av==18.1.0
 # CTranslate2 4.6 imports pkg_resources, absent from fresh Python 3.12 venvs.
 setuptools==80.9.0
