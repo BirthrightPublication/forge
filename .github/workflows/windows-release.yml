@@ -194,6 +194,8 @@ jobs:
       HF_HUB_DISABLE_TELEMETRY: '1'
       DO_NOT_TRACK: '1'
     steps:
+      - name: Preserve exact source line endings
+        run: git config --global core.autocrlf false
       - name: Check out acceptance tooling at the workflow commit
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
         with:
@@ -240,6 +242,22 @@ jobs:
             python -m pytest -q tests/test_v6_models.py tests/test_v6_maintenance.py tests/test_birthright_update_core.py --junitxml="$env:RUNNER_TEMP/forge-windows-acceptance/v06-maintenance.xml"
             if ($LASTEXITCODE -ne 0) { throw 'Tagged native maintenance contracts failed.' }
           }
+      - name: Verify tagged real downloader execution on Windows
+        shell: pwsh
+        run: |
+          if (Test-Path native-source/tests/test_download_worker_v9.py) {
+            Set-Location native-source
+            python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-downloads.txt
+            if ($LASTEXITCODE -ne 0) { throw 'Tagged downloader dependencies failed.' }
+            if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+              choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
+              if ($LASTEXITCODE -ne 0) { throw 'Tagged downloader media prerequisites failed.' }
+            }
+            python scripts/check_download_acceptance.py --require-windows --output "$env:RUNNER_TEMP/forge-windows-acceptance/downloads-v09"
+            if ($LASTEXITCODE -ne 0) { throw 'Tagged real downloader acceptance failed; publication remains blocked.' }
+            python -c "import json,os; from pathlib import Path; root=Path(os.environ['RUNNER_TEMP'])/'forge-windows-acceptance'; path=root/'windows-acceptance.json'; record=json.loads(path.read_text()); record['download_acceptance']=json.loads((root/'downloads-v09'/'DOWNLOAD_ACCEPTANCE.json').read_text()); path.write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')"
+            if ($LASTEXITCODE -ne 0) { throw 'Native download evidence could not be associated with the installation receipt.' }
+          }
       - name: Retain the native Windows evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
@@ -253,6 +271,7 @@ jobs:
             ${{ runner.temp }}/forge-windows-acceptance/*/stderr.log
             ${{ runner.temp }}/forge-windows-acceptance/*/installed-app-smoke.stdout.log
             ${{ runner.temp }}/forge-windows-acceptance/*/installed-app-smoke.stderr.log
+            ${{ runner.temp }}/forge-windows-acceptance/downloads-v09/
           if-no-files-found: error
           retention-days: 14
 

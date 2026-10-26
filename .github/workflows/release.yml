@@ -210,6 +210,8 @@ jobs:
                   check('browser_v8_check.py', '--output', evidence / 'speech-studio')
               if Path('tests/browser_v7_check.py').is_file():
                   check('browser_v7_check.py', '--output', evidence / 'download-studio')
+              if Path('tests/browser_v9_check.py').is_file():
+                  check('browser_v9_check.py', '--output', evidence / 'media-downloads')
           finally:
               # Retain only explicit test reports and screenshots, never service
               # databases, runtime credentials, model caches or generated values.
@@ -217,7 +219,8 @@ jobs:
                   if path.is_file() and ((path.suffix == '.png' and path.name.startswith(('FORGE-', 'black-scripting-'))) or path.name in {
                           'BROWSER_V0.4_RESULTS.json', 'BROWSER_GENERATORS_RESULTS.json',
                           'BROWSER_V0.5_RESULTS.json', 'BROWSER_V0.5_STUDIO_RESULTS.json', 'browser-results.json', 'BROWSER_V05_RESULTS.json',
-                          'BROWSER_V05_REPORT.json', 'BROWSER_V6_RESULTS.json'}):
+                          'BROWSER_V05_REPORT.json', 'BROWSER_V6_RESULTS.json', 'BROWSER_V09_RESULTS.json',
+                          'BROWSER_V0.9_STUDIO_RESULTS.json', 'BROWSER_V8_RESULTS.json', 'BROWSER_V07_RESULTS.json'}):
                       target = Path('Build/validation/browser') / path.relative_to(evidence)
                       target.parent.mkdir(parents=True, exist_ok=True)
                       shutil.copyfile(path, target)

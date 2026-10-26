@@ -95,6 +95,47 @@ def checkout_commit(path: Path) -> str:
     return result
 
 
+def requires_download_acceptance(tag: str) -> bool:
+    release_names(tag)
+    return tuple(map(int, tag[1:].split('.'))) >= (0, 9, 0)
+
+
+def download_acceptance_summary(value: dict, source_commit: str) -> dict:
+    """Require actual tagged Windows download checks and retain stable evidence.
+
+    Timestamps, machine paths, tool banners and workflow identifiers belong in
+    the complete CI receipt. The release asset keeps only this fixed contract.
+    """
+    require(isinstance(value, dict), 'Required native Windows download acceptance is missing.')
+    require(value.get('status') == 'passed', 'Native Windows download acceptance did not pass.')
+    require(isinstance(source_commit, str) and bool(re.fullmatch(COMMIT_PATTERN, source_commit))
+            and value.get('source_commit') == source_commit,
+            'Native Windows download acceptance belongs to a different source commit.')
+    require(value.get('working_tree_clean') is True, 'Native Windows download acceptance requires a clean checkout.')
+    require(value.get('native_windows_execution') is True and value.get('platform') == 'win32',
+            'Native Windows download acceptance must execute on Windows.')
+    require(value.get('physical_gpu_tested') is False and value.get('live_youtube_tested') is False,
+            'Owned-media download acceptance must not claim GPU or live YouTube verification.')
+    tests, failed, skipped = (value.get(key) for key in ('tests', 'failed', 'skipped'))
+    require(type(tests) is int and tests > 0 and type(failed) is int and failed == 0
+            and type(skipped) is int and skipped == 0,
+            'Native Windows download checks must execute and pass without failures or skips.')
+    cases = value.get('cases')
+    require(isinstance(cases, list) and len(cases) == tests
+            and all(isinstance(case, dict) and isinstance(case.get('name'), str) and case['name'].strip()
+                    and len(case['name']) <= 400 and case.get('status') == 'passed' for case in cases),
+            'Native Windows download evidence has inconsistent or nonpassing test cases.')
+    require(len({case['name'] for case in cases}) == tests,
+            'Native Windows download evidence contains duplicate test cases.')
+    scope = value.get('scope')
+    require(isinstance(scope, str) and scope.strip() and len(scope) <= 2000,
+            'Native Windows download acceptance must declare its tested scope.')
+    return {'status': 'passed', 'source_commit': source_commit, 'working_tree_clean': True,
+            'native_windows_execution': True, 'platform': 'win32', 'tests': tests, 'failed': 0, 'skipped': 0,
+            'cases': [{'name': case['name'], 'status': 'passed'} for case in sorted(cases, key=lambda case: case['name'])],
+            'scope': scope, 'physical_gpu_tested': False, 'live_youtube_tested': False}
+
+
 def record_linux(args):
     archive, _, sha256 = verify_local_assets(args.assets, args.tag)
     require((args.source / 'VERSION.txt').read_text(encoding='utf-8').strip() == args.tag[1:],
@@ -139,6 +180,7 @@ def build_validation(tag: str, directory: Path, linux: dict, windows: dict) -> P
         counts = linux.get(name, {})
         require(counts.get('passed', 0) > 0 and counts.get('failed') == counts.get('errors') == 0,
                 f'The {name} did not pass.')
+    downloads = download_acceptance_summary(windows.get('download_acceptance'), linux['source_commit']) if requires_download_acceptance(tag) else None
     # Stable evidence allows byte-identical reruns. Volatile machine paths,
     # durations, timestamps and Actions run IDs stay in the CI artifacts.
     validation = {'schema_version': 1, 'tag': tag, 'source_commit': linux['source_commit'],
@@ -155,6 +197,8 @@ def build_validation(tag: str, directory: Path, linux: dict, windows: dict) -> P
                   'temporary_directory_policy': 'A separate canonical temporary directory per native test scenario.',
                   'updater_limitations': ['The supplied updater can miscalculate destinations when TEMP uses an 8.3 alias. Use a canonical temporary path.'],
                   'scope': 'Updater install, preservation, rejection cases and real installed-app smoke on Windows x64 with canonical temporary paths. Not a physical GPU or all-codec acceptance claim.'}
+    if downloads is not None:
+        validation['download_acceptance'] = downloads
     path = directory / release_names(tag)[2]
     path.write_text(json.dumps(validation, sort_keys=True, indent=2) + '\n', encoding='utf-8')
     return path
@@ -328,11 +372,18 @@ def verify_existing_validation(value: dict, expected: dict):
             and isinstance(cases, list) and REQUIRED_CASES <= {case.get('name') for case in cases}
             and all(case.get('status') == 'passed' for case in cases),
             'The existing validation record lacks the required native Windows acceptance cases.')
+    if requires_download_acceptance(expected.get('tag', '')):
+        expected_downloads = download_acceptance_summary(expected.get('download_acceptance'), expected['source_commit'])
+        existing_downloads = download_acceptance_summary(value.get('download_acceptance'), expected['source_commit'])
+        require(existing_downloads == expected_downloads,
+                'The existing Windows validation record has different native download evidence; it was not overwritten.')
 
 
 def publish(client, tag: str, directory: Path, validation: Path, *, wait_seconds: int = 600, add_note: bool = True):
     archive, checksum, _ = verify_local_assets(directory, tag)
     proof = read_json(validation)
+    if requires_download_acceptance(tag):
+        download_acceptance_summary(proof.get('download_acceptance'), proof.get('source_commit', ''))
     files = [archive, checksum, validation]
     require(validation.name == release_names(tag)[2], 'Unexpected Windows validation asset name.')
     release = wait_release(client, tag, wait_seconds)

@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.8.0 — implementation candidate; model acceptance pending
+## 0.9.0 — dependent development candidate; verification in progress
+
+- Build on the complete V0.8 candidate at `e2d66c7281107283bc81d3fcd6ebaa0a13118a64`, preserving its separate PR and all speech tools. V0.8 is not yet merged or released.
+- Rename Download Studio to Media Downloads and introduce persistent Current Download Priority with manual-single, playlist and six-level channel scheduling, review approval, deterministic fairness and frozen batch progress.
+- Keep pending discoveries outside the Universal Queue until transactional resource admission; preserve media identities, prior queue associations, approved interruptions and supported transfer state across restart.
+- Add persistent selected-playlist imports, watched-channel destinations, future-only Instant Download controls, compact responsive channel cards and visual thumbnail previews without thumbnail exports.
+- Extend real yt-dlp byte/stage reporting, verified output publication and private crash/retry recovery while retaining FFmpeg, Black Scripting, protected data and external updater compatibility.
+- Stable publication remains subject to dependency review, final automated/native checks and explicit owner approval.
+
+## 0.8.0 — candidate; CPU acceptance passed, CUDA/owner decision pending
 
 - Carry the V0.7.1 deferred-script startup repair into V0.8 without merging or rewriting its separate PR/history.
 - Add revisioned speech projects, chapters, named speakers, source-preserving markers, reading styles, pronunciation rules, custom expressions and immutable configuration snapshots.
@@ -10,7 +19,7 @@
 - Add safe EPUB/PDF/TXT/Markdown/HTML/SRT/VTT import, reusable verified segment caches, exact silence, incremental chapter assembly, cache-only export and WAV/FLAC/MP3/OPUS/M4B production exports.
 - Add four Bark 3.0 English recognition catalogs with separate runtime, bounded audio chunks and truthful TXT/JSON output; retain Whisper timing, translation and speaker labels.
 - Register speech and effects in the Universal Queue and existing linear Black Scripting. Preserve data/updater contracts.
-- Actual neural model inference, native Windows model installation, physical CUDA acceptance and complete dependency-license review remain pending because publisher downloads are blocked here. This candidate is not release-approved.
+- Native Windows CPU Kokoro/Ming/four-Bark/two-Whisper acceptance and real queued speech passed in run `40402290962`, with pinned model notices retained and isolated runtime fixes verified. No GPU runner is configured; CUDA hardware acceptance and the owner's release decision remain pending. This candidate has not been merged, tagged or published.
 
 ## 0.7.1 — startup repair candidate, pending owner review
 
