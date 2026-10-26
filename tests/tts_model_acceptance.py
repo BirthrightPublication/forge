@@ -53,6 +53,7 @@ def redact(value, paths=()):
     for path in sorted((str(p) for p in paths if p), key=len, reverse=True):
         text = text.replace(path, '<acceptance-path>')
     text = re.sub(r'(https?://)[^\s/@]+:[^\s/@]+@', r'\1<redacted>@', text)
+    text = re.sub(r'(https?://[^\s?]+)\?[^\s]+', r'\1?<redacted>', text)
     text = re.sub(r'(?i)([?&](?:token|key|signature|sig|credential)=)[^\s&]+', r'\1<redacted>', text)
     text = re.sub(r'(?i)\b(?:hf_[A-Za-z0-9]{15,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b', '<redacted>', text)
     return text

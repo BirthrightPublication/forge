@@ -94,6 +94,70 @@ def test_bad_publisher_checksum_never_becomes_selected_model(tmp_path, monkeypat
     assert not list(tmp_path.glob('*.download-*'))
 
 
+def _licensing_fixture(tmp_path, *, notice=None, license_file=False, model_card=True):
+    content = {'NOTICE': notice if notice is not None else (
+        'Conway Research changes. NVIDIA and Moondream attribution.\n'
+        'License: https://creativecommons.org/licenses/by/4.0/\n').encode('utf-8')}
+    if model_card:
+        content['README.md'] = b'---\nlicense: cc-by-4.0\n---\nPublished model card.'
+    if license_file:
+        content['LICENSE'] = b'Publisher-provided CC BY 4.0 license text retained exactly.'
+    files = {}
+    for name, raw in content.items():
+        path = tmp_path / name
+        path.write_bytes(raw)
+        files[name] = {'size': len(raw), 'sha256': bark._hash(path)}
+    return files
+
+
+def test_official_notice_only_layout_retains_verified_license_evidence(tmp_path):
+    files = _licensing_fixture(tmp_path)
+    result = bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+    assert result['source'] == 'publisher-model-card-and-notice'
+    assert result['license_files'] == [] and result['license'] == 'CC-BY-4.0'
+    assert result['notice_sha256'] == bark._hash(tmp_path / 'NOTICE')
+    assert result['model_card_sha256'] == bark._hash(tmp_path / 'README.md')
+    assert not (tmp_path / 'LICENSE').exists()
+
+
+def test_publisher_provided_license_is_preserved_and_recorded(tmp_path):
+    files = _licensing_fixture(tmp_path, license_file=True)
+    before = (tmp_path / 'LICENSE').read_bytes()
+    result = bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+    assert result['source'] == 'publisher-license-file-and-notice'
+    assert result['license_files'] == ['LICENSE']
+    assert (tmp_path / 'LICENSE').read_bytes() == before
+
+
+@pytest.mark.parametrize('license_value', [None, 'mit', 'cc-by-nc-4.0', ['cc-by-4.0']])
+def test_missing_or_changed_publisher_license_declaration_stops_install(tmp_path, license_value):
+    files = _licensing_fixture(tmp_path)
+    with pytest.raises(ValueError, match='explicitly declare'):
+        bark._licensing_evidence({'cardData': {'license': license_value}}, tmp_path, files)
+
+
+def test_uninformative_notice_is_not_a_substitute_license_grant(tmp_path):
+    files = _licensing_fixture(tmp_path, notice=b'notice')
+    with pytest.raises(ValueError, match='explicitly reference'):
+        bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+
+
+def test_notice_license_link_must_be_the_exact_license_not_a_prefix(tmp_path):
+    files = _licensing_fixture(tmp_path, notice=(b'License: https://creativecommons.org/licenses/by/4.0/unrelated'))
+    with pytest.raises(ValueError, match='explicitly reference'):
+        bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+
+
+def test_missing_model_card_and_tampered_notice_are_rejected(tmp_path):
+    files = _licensing_fixture(tmp_path, model_card=False)
+    with pytest.raises(ValueError, match='README.md'):
+        bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+    files = _licensing_fixture(tmp_path)
+    (tmp_path / 'NOTICE').write_text('A different declaration cannot replace verified bytes.')
+    with pytest.raises(ValueError, match='unverified: NOTICE'):
+        bark._licensing_evidence({'cardData': {'license': 'cc-by-4.0'}}, tmp_path, files)
+
+
 def test_git_blob_identity_is_also_verified(tmp_path, monkeypatch):
     import io
     data = b'{"version":"synthetic fixture"}'

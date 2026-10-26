@@ -14,6 +14,7 @@ import tarfile
 import tempfile
 import threading
 import time
+from types import MethodType
 import urllib.request
 import uuid
 import venv
@@ -199,9 +200,9 @@ def download_model(request):
         name=item.rfilename;relative=PurePosixPath(name)
         if relative.is_absolute() or '..' in relative.parts or '\\' in name or re.search(r'[:<>|?*\x00-\x1f]',name):raise ValueError('Unsafe publisher model path.')
         if engine=='kokoro':
-            allowed=name in {'config.json','kokoro-v1_0.pth','LICENSE','LICENSE.txt','NOTICE','VOICES.md'} or (name.startswith('voices/') and name.endswith('.pt') and len(relative.parts)==2)
+            allowed=name in {'config.json','kokoro-v1_0.pth','LICENSE','LICENSE.txt','NOTICE','README.md','VOICES.md'} or (name.startswith('voices/') and name.endswith('.pt') and len(relative.parts)==2)
         else:
-            allowed=(len(relative.parts)==1 and (name.endswith(('.json','.safetensors','.onnx','.txt','.jinja')) or name in {'LICENSE','NOTICE'}))
+            allowed=(len(relative.parts)==1 and (name.endswith(('.json','.safetensors','.onnx','.txt','.jinja')) or name in {'LICENSE','NOTICE','README.md'}))
         if allowed:siblings.append(item)
     required={'config.json','kokoro-v1_0.pth','voices/am_onyx.pt'} if engine=='kokoro' else {'config.json','model.safetensors','campplus.onnx','tokenizer.json','tokenizer_config.json'}
     if not required.issubset({item.rfilename for item in siblings}):raise RuntimeError('Publisher model layout is incompatible with this adapter.')
@@ -240,6 +241,31 @@ def blend_tensors(packs,weights,torch):
     if any(tuple(pack.shape)!=shape or not bool(torch.isfinite(pack).all()) for pack in packs):
         raise ValueError('Kokoro voice packs must have identical shapes and finite values.')
     return sum((pack.to(dtype=torch.float32)*weight for pack,weight in zip(packs,weights)),torch.zeros_like(packs[0],dtype=torch.float32))
+
+
+def prepare_ming_cpu(model,torch):
+    """Use matching FP32 weights and reference inputs on the CPU adapter.
+
+    Pinned Ming weights are opened as BF16 by upstream, whose inference contexts
+    are CUDA-only. Its speaker embeddings are FP32, so CPU synthesis otherwise
+    reaches a mismatched Linear operation. The upstream prompt encoder separately
+    forces BF16 audio; adapt that instance method along with the model conversion.
+    This retains the pinned source on disk and does not change the CUDA path.
+    Reference: inclusionAI/Ming-3.0-tts commit 028c1eace193e7acdb256453da89b6e9207e052b;
+    its MIT notice is retained in forge/licenses/Ming-3.0-runtime-LICENSE.txt.
+    """
+    core=model.model
+    core.float()
+    core.llm_dytpe=torch.float32
+
+    def encode_cpu_prompt(instance,prompt_waveform):
+        waveform=prompt_waveform.to(device=instance.device,dtype=torch.float32)
+        length=torch.tensor([waveform.size(1)],dtype=torch.long,device=instance.device)
+        latent,_=instance.audio.encode_latent(waveform,length)
+        return latent
+
+    core.encode_prompt_latent=MethodType(encode_cpu_prompt,core)
+    return model
 
 
 def run_inference(request):
@@ -294,6 +320,7 @@ def run_inference(request):
             from ming_tts import MingTTS
             model=MingTTS(str(path),device='cuda:0' if device=='cuda' else 'cpu',text_normalization=False)
         finally:transformers.AutoTokenizer.from_pretrained=original
+        if device=='cpu':prepare_ming_cpu(model,torch)
         task=value['task'];kwargs={'task':task,'text':text,'output_path':None}
         if task in {'IP','FREEFORM','VOICE_DESIGN'}:kwargs['use_zero_spk_emb']=True
         else:
@@ -324,4 +351,5 @@ def run_inference(request):
             'voice':value.get('voice',''),'voice_revision':value['model_revision'],
             'sample_rate':sample_rate,'duration':len(audio)/sample_rate,'device':device,
             'seed':value['seed'],'task':value['task'],'source_files':receipt['files'].get('voices/'+value.get('voice','')+'.pt',{}),
+            'precision':'float32' if value['engine']=='kokoro' or device=='cpu' else 'bfloat16',
             'text_normalization':'Kokoro language phonemizer' if value['engine']=='kokoro' else 'Source-preserving FORGE text; optional pynini disabled'}

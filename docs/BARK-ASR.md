@@ -104,7 +104,19 @@ pickle loading or decoded pickle cache. These adapted portions retain the CC BY
 4.0 attribution obligation; FORGE's MIT notice does not relicense model weights
 or the adapted loader portions. No endorsement is implied.
 
-Retain the exact selected publisher LICENSE and NOTICE when installing or
-redistributing models. The installer requires those files. Review actual selected
-model cards and all artifact notices before describing commercial distribution
-as approved. The model cards themselves could not be independently fetched here.
+Retain the exact selected publisher licensing documents when installing or
+redistributing models. A native Windows publisher probe confirmed that all four
+official repositories publish a revision-verified `README.md` model card and
+`NOTICE`, with model metadata declaring `cc-by-4.0`; they currently do not publish
+a standalone `LICENSE` or `LICENSE.txt`. Their NOTICE explicitly references the
+CC BY 4.0 URL and retains the NVIDIA/Moondream attribution and Conway changes.
+
+The installer preserves any provided LICENSE file. For the official NOTICE-only
+layout, it requires metadata declaring exactly `cc-by-4.0`, the exact
+`https://creativecommons.org/licenses/by/4.0/` URL in the verified NOTICE, and a
+verified model card. Artifact hashes and the actual licensing source are recorded
+in the installation receipt. No publisher LICENSE file or license grant is
+fabricated. A missing/modified notice or changed metadata license stops
+installation for review. This evidence concerns the selected model's published
+declaration; review the separate runtime/dependency notices as well before
+describing a redistributed bundle as approved.

@@ -9,6 +9,13 @@ on:
       - tests/speech_network_probe.py
       - tests/tts_model_acceptance.py
       - tests/asr_model_acceptance.py
+      - forge/speech_runtime.py
+      - forge/speech_engines.py
+      - forge/bark_asr.py
+      - scripts/speech_runtime.py
+      - scripts/bark_runtime.py
+      - scripts/requirements-speech-*.txt
+      - scripts/requirements-bark.txt
 
 permissions:
   contents: read

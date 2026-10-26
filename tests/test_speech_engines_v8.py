@@ -124,7 +124,7 @@ def test_model_receipt_rechecks_content_and_rejects_paths(tmp_path):
 
 
 def test_download_verifies_all_files_and_keeps_original_onyx(tmp_path,monkeypatch):
-    content={'config.json':b'{}','kokoro-v1_0.pth':b'model data','voices/am_onyx.pt':b'original Onyx','voices/af_extra.pt':b'extra voice'}
+    content={'config.json':b'{}','kokoro-v1_0.pth':b'model data','voices/am_onyx.pt':b'original Onyx','voices/af_extra.pt':b'extra voice','README.md':b'Published model card; license: apache-2.0'}
     class API:
         def model_info(self,repo,revision,files_metadata):
             assert repo=='hexgrad/Kokoro-82M' and files_metadata
@@ -137,6 +137,7 @@ def test_download_verifies_all_files_and_keeps_original_onyx(tmp_path,monkeypatc
     assert result['model_revision']=='c'*40
     model=tmp_path/'models/speech/kokoro'/('c'*40)
     assert (model/'voices/am_onyx.pt').read_bytes()==b'original Onyx'
+    assert (model/'README.md').read_bytes()==content['README.md']
     assert not (tmp_path/'models/speech/selected.json').exists() # no activation before runtime check
     assert runtime.verify_model(model)['publisher_blob_verified']
     runtime.activate(tmp_path,'kokoro','c'*40)
@@ -151,3 +152,32 @@ def test_install_requires_explicit_approval_and_does_not_create_env(tmp_path):
 def test_no_model_or_runtime_is_synthesized_by_missing_dependencies(tmp_path):
     with pytest.raises(RuntimeError,match='Install'):engines.synthesize('hello',{'engine':'kokoro'},tmp_path,tmp_path/'out.wav')
     assert not (tmp_path/'out.wav').exists()
+
+
+def test_ming_cpu_weights_and_reference_waveform_use_matching_fp32():
+    """Adapter compatibility only; real neural inference belongs to native acceptance."""
+    calls=[]
+    class Waveform:
+        def to(self,**kwargs):
+            calls.append(('waveform',kwargs));return self
+        def size(self,dimension):
+            assert dimension==1;return 24000
+    class Core:
+        device='cpu'
+        def __init__(self):
+            self.audio=SimpleNamespace(encode_latent=self.encode)
+        def float(self):
+            calls.append(('model','float32'));return self
+        def encode(self,waveform,length):
+            calls.append(('encode',waveform,length));return 'encoded-latents',None
+    def tensor(value,**kwargs):
+        calls.append(('length',value,kwargs));return 'length-tensor'
+    torch=SimpleNamespace(float32='float32',long='int64',tensor=tensor)
+    model=SimpleNamespace(model=Core())
+    assert runtime.prepare_ming_cpu(model,torch) is model
+    assert model.model.llm_dytpe=='float32'
+    waveform=Waveform()
+    assert model.model.encode_prompt_latent(waveform)=='encoded-latents'
+    assert calls==[('model','float32'),('waveform',{'device':'cpu','dtype':'float32'}),
+                   ('length',[24000],{'dtype':'int64','device':'cpu'}),
+                   ('encode',waveform,'length-tensor')]

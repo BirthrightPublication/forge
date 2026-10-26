@@ -376,7 +376,9 @@ def main(argv=None):
         report['status'] = 'passed'
     except Exception as error:
         if not report['failures']:
-            report['failures'].append({'phase': 'fixture/setup', 'error': sanitized(type(error).__name__ + ': ' + str(error), roots)})
+            failure = {'phase': 'fixture/setup', 'error': sanitized(type(error).__name__ + ': ' + str(error), roots)}
+            report['failures'].append(failure)
+            print('::error title=ASR fixture/setup acceptance::' + failure['error'].replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'), flush=True)
     finally:
         json_write(output / 'ASR_MODEL_ACCEPTANCE.json', report)
     print(json.dumps({'status': report['status'], 'actual_inference_results': len(report['results']), 'failures': len(report['failures'])}), flush=True)

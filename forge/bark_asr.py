@@ -39,6 +39,7 @@ DATA_NAMES = {'model.bark', 'config.json', 'generation_config.json', 'preprocess
               'special_tokens_map.json', 'vocab.json', 'vocab.txt', 'merges.txt', 'LICENSE',
               'LICENSE.txt', 'NOTICE', 'README.md', 'model.safetensors.index.json'}
 MODEL_LIMIT = 8 * 1024**3
+CC_BY_4_URL = 'https://creativecommons.org/licenses/by/4.0/'
 
 
 def _hash(path):
@@ -224,6 +225,47 @@ def _snapshot(repo, revision, destination, *, processor=False, progress=lambda *
     return info['sha'], files
 
 
+def _licensing_evidence(info, directory, files):
+    """Retain real publisher evidence, including NOTICE-only licensed layouts.
+
+    Bark's official repositories declare CC BY 4.0 in the immutable model card
+    and verified NOTICE; they do not currently supply a separate LICENSE file.
+    This validates those publisher declarations without inventing such a file.
+    """
+    card = info.get('cardData')
+    if not isinstance(card, dict) or card.get('license') != 'cc-by-4.0':
+        raise ValueError('Publisher model metadata must explicitly declare cc-by-4.0; review changed licensing before installation.')
+
+    def document(name, limit):
+        metadata = files.get(name)
+        path = Path(directory) / name
+        if (not isinstance(metadata, dict) or path.is_symlink() or not path.is_file()
+                or not 0 < path.stat().st_size <= limit
+                or path.stat().st_size != metadata.get('size')
+                or _hash(path) != metadata.get('sha256')):
+            raise ValueError('Publisher licensing document is missing or unverified: ' + name)
+        try:
+            return path.read_text(encoding='utf-8')
+        except UnicodeError as error:
+            raise ValueError('Publisher licensing document must be UTF-8 text: ' + name) from error
+
+    notice = document('NOTICE', 128 * 1024)
+    licenses = sorted({'LICENSE', 'LICENSE.txt'} & set(files))
+    for name in licenses:
+        document(name, 2 * 1024**2)
+    if not licenses:
+        if not re.search(r'(?<![\w:/.-])' + re.escape(CC_BY_4_URL) + r'(?=$|[\s<>)\]}.,;])', notice):
+            raise ValueError('Publisher NOTICE must explicitly reference the CC BY 4.0 license URL when no LICENSE file is supplied.')
+        document('README.md', 2 * 1024**2)
+    elif 'README.md' in files:
+        document('README.md', 2 * 1024**2)
+    return {'license': 'CC-BY-4.0', 'publisher_metadata_license': card['license'],
+            'source': 'publisher-license-file-and-notice' if licenses else 'publisher-model-card-and-notice',
+            'license_url': CC_BY_4_URL, 'license_files': licenses,
+            'notice_sha256': files['NOTICE']['sha256'],
+            'model_card_sha256': files.get('README.md', {}).get('sha256')}
+
+
 def install(model, data, consent=False, revision='', device='cpu', progress=lambda *a, **k: None):
     if not consent:
         raise ValueError('Explicit approval is required to install a Bark model and its separate environment.')
@@ -253,8 +295,7 @@ def install(model, data, consent=False, revision='', device='cpu', progress=lamb
                 raise ValueError('No supported Bark weights were provided by the publisher.')
             if not (target / 'processor' / 'tokenizer.json').is_file():
                 raise ValueError('Pinned offline Parakeet processor is incomplete.')
-            if 'NOTICE' not in model_files or not {'LICENSE', 'LICENSE.txt'} & set(model_files):
-                raise ValueError('Publisher LICENSE and NOTICE files must accompany the selected Bark model.')
+            licensing = _licensing_evidence(info, target, model_files)
             if not runtime_compatible:
                 identity = uuid.uuid4().hex
                 env = data / 'environments' / 'bark' / identity
@@ -273,7 +314,7 @@ def install(model, data, consent=False, revision='', device='cpu', progress=lamb
             files.update({resolved + '/processor/' + name: value for name, value in processor_files.items()})
             receipt = {'repository': 'ConwayResearch/' + MODELS[model][0], 'revision': resolved,
                        'processor_revision': PROCESSOR_REVISION, 'files': files, 'installed': time.time(),
-                       'inference_verified': False, 'license': 'CC-BY-4.0'}
+                       'inference_verified': False, 'license': licensing['license'], 'licensing_evidence': licensing}
             json_write(base / 'selected.json', receipt)
             return receipt
         except Exception as error:
