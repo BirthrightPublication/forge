@@ -79,11 +79,11 @@ def test_incompatible_native_controls_and_unavailable_engines_fail_closed(option
     with pytest.raises(ValueError):engines.validate_options(options)
 
 
-def test_supported_modes_and_normal_neutral_defaults():
+def test_supported_modes_and_normal_neutral_defaults(tmp_path):
     assert engines.validate_options({'engine':'kokoro','emotion':'neutral'})['voice']=='am_onyx'
     assert engines.validate_options({'engine':'ming','task':'voice','voice':'US_James','emotion':'neutral'})['task']=='IP'
     assert engines.validate_options({'engine':'ming','task':'FREEFORM','instructions':'warm'})['task']=='FREEFORM'
-    assert engines.validate_options({'engine':'ming','task':'BASIC','reference_audio':'/tmp/voice.wav',
+    assert engines.validate_options({'engine':'ming','task':'BASIC','reference_audio':str(tmp_path/'voice.wav'),
         'consent':True,'attribute_speed':'slow','attribute_pitch':'low','attribute_volume':'medium'})['task']=='BASIC'
 
 
