@@ -58,6 +58,18 @@ def probe(output):
             if not notices:
                 raise ValueError('Publisher metadata was readable but no model card or notices could be fetched.')
             entry.update(status='passed',notice_sha256=notices)
+            summary={'engine':engine,'repository':repository,'revision':revision,
+                     'license':entry['license'],'notices':notices}
+            message=json.dumps(summary).replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+            print('::notice title=Verified speech publisher metadata::'+message,flush=True)
+            for name in notices:
+                if name not in {'LICENSE','LICENSE.txt','NOTICE'}:
+                    continue
+                notice=(folder/name).read_text('utf-8',errors='replace')
+                message=json.dumps({'engine':engine,'file':name,'characters':len(notice),
+                                    'text':notice[:30000],'truncated':len(notice)>30000})
+                message=message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+                print('::notice title=Speech publisher license and notice::'+message,flush=True)
         except Exception as error:
             code=getattr(error,'code',None)
             # Do not expose proxies, signed redirects or credential-bearing paths.
