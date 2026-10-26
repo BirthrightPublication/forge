@@ -23,6 +23,8 @@ CLEAN_MEDIA = {'.mp3', '.wav', '.flac', '.m4a', '.mp4', '.mkv', '.mov', '.webm',
 VIDEO = {'.mp4', '.mkv', '.mov', '.webm', '.avi', '.m4v'}
 PRIVACY_TOOLS = {'watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance', 'privacy_verify'}
 TOOLS = {
+    'tts': {'title':'Text-to-Speech','group':'Media','description':'Local voice production, structured dialogue and incremental audiobooks.','accept':['.txt','.md','.html','.htm','.epub','.pdf','.srt','.vtt']},
+    'audio_effects': {'title':'Audio Effects','group':'Media','description':'Non-destructive, ordered audio processing and mastering.','accept':sorted(MEDIA)},
     'transcribe': {'title': 'Transcribe', 'group': 'Media', 'description': 'Local speech recognition with segment and word timing.', 'accept': sorted(MEDIA)},
     'retune': {'title': '432Hz Conversion', 'group': 'Media', 'description': 'Retune audio or video without replacing the original.', 'accept': sorted(MEDIA)},
     'download_audio': {'title': 'Audio Download', 'group': 'Downloads', 'description': 'Download and extract audio from a supplied URL.', 'accept': []},

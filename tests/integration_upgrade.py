@@ -132,6 +132,11 @@ CHECK_STATE = r"""def check_state(store):
     if fixture.get('v7_destination'):
         assert store.get('download_default') == fixture['v7_destination']
         assert store.db.execute('SELECT data FROM watch_media WHERE id=?',('youtube:preserved-fixture',)).fetchone() is not None
+    if fixture.get('v8_project'):
+        row=store.db.execute('SELECT data FROM speech_projects WHERE id=?',(fixture['v8_project']['id'],)).fetchone()
+        assert row and json.loads(row[0])==fixture['v8_project']
+        row=store.db.execute('SELECT data FROM speech_records WHERE kind=? AND id=?',('voices',fixture['v8_voice']['id'])).fetchone()
+        assert row and json.loads(row[0])==fixture['v8_voice']
 """
 
 
@@ -165,6 +170,8 @@ try:
             if tuple(map(int, state['version'].split('.'))) >= (0, 5, 0):
                 expected_tools |= {'watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit',
                                    'privacy_export', 'provenance', 'privacy_verify'}
+            if tuple(map(int,state['version'].split('.'))) >= (0,8,0):
+                expected_tools |= {'tts','audio_effects'}
             assert set(state['tools']) == expected_tools, (set(state['tools']), expected_tools)
             assert state['settings']['concurrency_mode'] == fixture['concurrency_mode']
             assert all(item['enabled'] for item in state['entitlements']['modules'])
@@ -250,6 +257,13 @@ try:
             assert response.status_code == 200, response.text
             app.state.download_studio.put('watch_media','youtube:preserved-fixture',{'key':'youtube:preserved-fixture','status':'archived','title':'Synthetic preserved watch history','discovered':0})
             fixture['v7_destination']=destination
+        if tuple(map(int,state['version'].split('.'))) >= (0,8,0):
+            response=c.post('/api/speech/projects',json={'name':'Preserved speech project','text':'Synthetic manuscript retained through code rollback.'})
+            assert response.status_code==200,response.text
+            fixture['v8_project']=response.json()['project']
+            response=c.post('/api/speech/records/voices',json={'name':'Preserved Onyx favorite','engine':'kokoro','voice':'am_onyx','favorite':True})
+            assert response.status_code==200,response.text
+            fixture['v8_voice']=response.json()['record']
         fixture_path.write_text(json.dumps(fixture), encoding='utf-8')
 finally:
     app.state.store.close()
@@ -402,6 +416,8 @@ def main():
         if 'v5_job_id' in fixture:
             checks.append('Real V0.5 privacy export removes PNG metadata, preserves pixels/source bytes and reports the final published location')
             checks.append('V0.5 media job history and JSON/HTML verification reports survive rollback to the baseline')
+        if fixture.get('v8_project'):
+            checks.append('V0.8 speech project revisions and voice favorites survive code rollback unchanged')
         report = {
             'result': 'passed', 'host': sys.platform,
             'base_version': base_version, 'candidate_version': target_version,

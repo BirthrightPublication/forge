@@ -33,6 +33,8 @@ expected_tools = {'transcribe', 'retune', 'download_audio', 'download_video', 'm
 privacy_tools = ['watermark', 'audio_fingerprint', 'video_fingerprint', 'tracking_audit',
                  'privacy_export', 'provenance', 'privacy_verify'] if version_tuple >= (0, 5, 0) else []
 expected_tools.update(privacy_tools)
+if tuple(map(int,expected_version.split('.'))) >= (0,8,0):
+    expected_tools.update({'tts','audio_effects'})
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--runtime', type=Path, required=True)

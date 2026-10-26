@@ -59,14 +59,28 @@ jobs:
             requirements-core.txt
             requirements-dev.txt
             scripts/requirements-media-privacy.txt
-      - name: Install Python and local media validation dependencies
+      - name: Verify local media validation prerequisites
+        timeout-minutes: 10
+        run: |
+          mkdir -p "$TEST_OUTPUT"
+          media_log="$TEST_OUTPUT/media-prerequisites.txt"
+          trap 'code=$?; tail -n 12 "$media_log" 2>/dev/null | while IFS= read -r line; do line="${line//%/%25}"; echo "::error title=Media prerequisite setup::$line"; done; exit "$code"' ERR
+          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
+            if ! sudo timeout 120 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 ffmpeg fonts-dejavu-core 2>&1 | tee "$media_log"; then
+              source_file="$RUNNER_TEMP/forge-review-ubuntu.sources"
+              printf '%s\n' 'Types: deb' 'URIs: https://archive.ubuntu.com/ubuntu/' 'Suites: noble noble-updates noble-backports' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' '' 'Types: deb' 'URIs: https://security.ubuntu.com/ubuntu/' 'Suites: noble-security' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' > "$source_file"
+              source_options=(-o "Dir::Etc::sourcelist=$source_file" -o Dir::Etc::sourceparts=- -o Acquire::ForceIPv4=true)
+              sudo timeout 180 apt-get update "${source_options[@]}" -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 2>&1 | tee -a "$media_log"
+              sudo timeout 180 apt-get install "${source_options[@]}" --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 ffmpeg fonts-dejavu-core 2>&1 | tee -a "$media_log"
+            fi
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+      - name: Install Python validation dependencies
         timeout-minutes: 8
         run: |
           mkdir -p "$TEST_OUTPUT"
-          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
-            sudo apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
-            sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
-          fi
           python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-dev.txt | tee "$TEST_OUTPUT/dependency-install.txt"
           if [[ -f scripts/requirements-media-privacy.txt ]]; then
             python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r scripts/requirements-media-privacy.txt | tee -a "$TEST_OUTPUT/dependency-install.txt"
@@ -77,13 +91,14 @@ jobs:
       - name: Run the complete Python suite
         run: python -m pytest -q --junitxml="$TEST_OUTPUT/PYTEST.xml" | tee "$TEST_OUTPUT/PYTHON_TEST_RESULTS.txt"
       - name: Install Chromium for V0.7 interface acceptance
-        if: startsWith(github.ref_name, 'development/v0.7-')
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
         run: python -m playwright install --with-deps chromium
       - name: Validate V0.7 interface and address controls
-        if: startsWith(github.ref_name, 'development/v0.7-')
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
         run: |
           python tests/browser_v7_check.py --output "$TEST_OUTPUT/v07-browser"
           python tests/browser_generators_check.py --output "$TEST_OUTPUT/generator-browser"
+          if [[ -f tests/browser_v8_check.py ]]; then python tests/browser_v8_check.py --output "$TEST_OUTPUT/v08-browser"; fi
       - name: Retain Python validation results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
@@ -95,7 +110,7 @@ jobs:
 
   windows-candidate:
     name: Native maintenance and Windows installation acceptance
-    if: startsWith(github.ref_name, 'development/v0.6-') || startsWith(github.ref_name, 'development/v0.7-')
+    if: startsWith(github.ref_name, 'development/v0.6-') || (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
     runs-on: windows-2022
     timeout-minutes: 20
     defaults:
@@ -124,7 +139,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Acceptance dependency verification failed.' }
       - name: Run native process and shared update contracts
         run: |
-          python -m pytest -q tests/test_v6_models.py tests/test_v6_integration.py tests/test_v6_maintenance.py tests/test_birthright_update_core.py tests/test_v7_studio.py --junitxml="$env:RUNNER_TEMP/v06-native.xml"
+          python -m pytest -q tests/test_v6_models.py tests/test_v6_integration.py tests/test_v6_maintenance.py tests/test_birthright_update_core.py tests/test_v7_studio.py tests/test_speech_documents.py tests/test_speech_engines_v8.py --junitxml="$env:RUNNER_TEMP/v06-native.xml"
           if ($LASTEXITCODE -ne 0) {
             if (Test-Path "$env:RUNNER_TEMP/v06-native.xml") {
               [xml]$report = Get-Content "$env:RUNNER_TEMP/v06-native.xml" -Raw

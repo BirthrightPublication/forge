@@ -350,6 +350,7 @@ async function refresh(update=true){
  }catch(e){if(!lastError)notify('Local engine connection lost. Reopen FORGE from its launcher to reconnect.',true);lastError=true;}finally{pollBusy=false;}
 }
 async function boot(){
+ let bootPhase='authorization';
  $('#search-icon').innerHTML=icon('search');$('#queue-top').innerHTML=icon('queue');$('#collapse').innerHTML=icon('chevron');
  $('#home-brand').onclick=e=>{e.preventDefault();navigate(window.ForgeShell?.lastTool()||'downloads');};$('#queue-top').onclick=()=>navigate('queue');$('#dock-open').onclick=()=>navigate('queue');
  $('#collapse').onclick=()=>{document.body.classList.toggle('compact');try{localStorage.setItem('forge-compact',String(document.body.classList.contains('compact')));}catch{}};
@@ -360,12 +361,21 @@ async function boot(){
  document.addEventListener('drop',e=>{e.preventDefault();if(!$('#dropzone')||!$('#dropzone').contains(e.target))notify('Open a file-based tool and drop files into its source box.');});
  try{
   await authorizeBrowser();
+  bootPhase='connection';
   state=await api('/state');
+  bootPhase='interface';
   if(typeof setupV2State==='function')setupV2State(null);
   try{const saved=localStorage.getItem('forge-last-tool');if(saved&&titles[saved]&&!['overview','queue','workflows','settings'].includes(saved))view=saved;}catch{}
   if(window.startSources.length){const r=await api('/sources?ids='+encodeURIComponent(window.startSources.join(',')));view=r.sources.every(s=>/\.(png|jpe?g|webp)$/i.test(s.name))?'metadata':'transcribe';draft().sources=r.sources;}
   renderNav();render();setInterval(()=>refresh(),1800);
- }catch(e){$('#main').innerHTML=`<div class="connection-error">${heading('LOCAL AUTHORIZATION','Authorize this browser once.','After opening the launcher once, bookmarks work across normal tabs in this browser profile.')}<div class="callout">${escape(e.message)}</div><p class="note">Run Setup FORGE.bat once, then use the FORGE Start-menu shortcut or Open FORGE.bat. A bookmark cannot start a stopped Windows service. Use the taskbar launcher after restarting Windows or stopping FORGE. Opening index.html directly is not supported.</p></div>`;}
+ }catch(e){
+  const display=bootPhase==='interface'
+   ? ['INTERFACE','FORGE could not display this page.','The local engine connected, but the interface encountered an error.','Press Ctrl+F5 to reload the interface. If the error continues, report the message below. Setup is not needed to repair a browser rendering error.']
+   : bootPhase==='connection'
+   ? ['LOCAL ENGINE','FORGE could not connect.','The local engine did not return its state.','Open FORGE.bat to reconnect, then reload this page. A bookmark cannot start a stopped Windows service.']
+   : ['LOCAL AUTHORIZATION','Authorize this browser once.','Open FORGE.bat or the FORGE Start-menu shortcut to authorize this browser.','Use the launcher after restarting Windows or stopping FORGE. Opening index.html directly is not supported.'];
+  $('#main').innerHTML=`<div class="connection-error">${heading(...display.slice(0,3))}<div class="callout">${escape(e.message)}</div><p class="note">${escape(display[3])}</p></div>`;
+ }
 }
-// The V0.2 extension calls boot() after its controls are registered.
+// The V0.2 extension schedules boot() after all deferred scripts register.
 

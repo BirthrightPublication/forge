@@ -74,7 +74,7 @@ class QueueManager:
                     break
                 if not self.prepare_dependency(job):
                     continue
-                if job['tool'] == 'transcribe':
+                if job['tool'] == 'transcribe' and job['payload'].get('options',{}).get('engine','whisper')=='whisper':
                     from .cuda_health import recent_failure
                     failure = recent_failure(self.store.data)
                     device = job['payload'].get('options', {}).get('device', 'auto')

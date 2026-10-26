@@ -83,7 +83,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     app.state.port = port
     app.state.manager = manager
     app.state.entitlements = EntitlementService()
-    manager.require_feature = lambda tool: require_feature(app, 'transcribe' if tool == 'model_download' else tool)
+    manager.require_feature = lambda tool: require_feature(app, 'transcribe' if tool == 'model_download' else 'tts' if tool=='speech_install' else tool)
     app.state.shutdown = None
 
     @app.middleware('http')
@@ -140,7 +140,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
-                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js'}:
+                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','speech_v8.js','speech_v8.css'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -271,7 +271,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
         entries = []
         comparison_sources = []
         references = []
-        if body.tool in {'transcribe','retune','metadata'} | PRIVACY_TOOLS:
+        if body.tool in {'transcribe','retune','metadata','tts','audio_effects'} | PRIVACY_TOOLS:
             if not body.sources:
                 raise ValueError('Add at least one source file.')
             for id in dict.fromkeys(body.sources):
@@ -464,4 +464,6 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount_catalog(app,store,manager)
     from .download_studio import mount as mount_download_studio
     mount_download_studio(app,store,manager)
+    from .speech_api import mount as mount_speech
+    mount_speech(app,store,manager,destination)
     return app

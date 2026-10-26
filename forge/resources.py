@@ -38,6 +38,10 @@ def primary_resource(job):
     options = job.get('payload', {}).get('options', {})
     if tool.startswith('download') or tool == 'model_download':
         return 'network'
+    if tool == 'speech_install':
+        return 'network'
+    if tool == 'tts' and options.get('device','cpu') != 'cpu':
+        return 'gpu'
     if tool == 'transcribe' and job.get('payload', {}).get('resolved_device', options.get('device', 'auto')) != 'cpu':
         # If CUDA is unavailable the worker may fall back to CPU. Keep one
         # conservative inference lane rather than assume GPU memory is known.
@@ -54,7 +58,7 @@ def required_resources(job):
     resource = primary_resource(job)
     result = {resource}
     if job['tool'] in {'retune', 'download_audio', 'download_video', 'model_download',
-                       'watermark', 'privacy_export'} | MEDIA_ANALYSIS:
+                       'watermark', 'privacy_export','tts','audio_effects','speech_install'} | MEDIA_ANALYSIS:
         result.add('disk')
     if job['tool'] == 'watermark':
         # Overlay/audio filters and CPU fallback still consume a CPU lane.
@@ -63,6 +67,9 @@ def required_resources(job):
 
 
 def model_budget_mb(job):
+    if job['tool'] == 'tts':
+        engine = job.get('payload',{}).get('options',{}).get('engine','kokoro')
+        return {'kokoro':2000,'ming':6000,'ming-0.5b':6000,'ming-tiny':24000}.get(engine,12000)
     if job['tool'] == 'watermark':
         return ENCODER_MEMORY_MB
     options = job.get('payload', {}).get('options', {})

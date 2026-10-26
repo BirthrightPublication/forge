@@ -1,6 +1,26 @@
 # Changelog
 
-## 0.7.0 — development candidate, pending owner review
+## 0.8.0 — CPU release; CUDA experimental
+
+- Carry the V0.7.1 deferred-script startup repair into V0.8 without merging or rewriting its separate PR/history.
+- Add revisioned speech projects, chapters, named speakers, source-preserving markers, reading styles, pronunciation rules, custom expressions and immutable configuration snapshots.
+- Add original Kokoro Onyx and complete installed voice inventories, normalized compatible embedding blends, searchable/favorite/pinned voice profiles, and task-exclusive Ming 0.5b adapters.
+- Add opt-in model/environment installation with pinned revisions, verified artifacts, isolated CPU/CUDA environments and recoverable model quarantine. Tiny and Qwen remain unavailable where no verified runtime exists.
+- Add 31 actual ordered DSP effects, region processing, bypass/A-B comparison, measured waveforms, real preview/export renders and preserved originals.
+- Add safe EPUB/PDF/TXT/Markdown/HTML/SRT/VTT import, reusable verified segment caches, exact silence, incremental chapter assembly, cache-only export and WAV/FLAC/MP3/OPUS/M4B production exports.
+- Add four Bark 3.0 English recognition catalogs with separate runtime, bounded audio chunks and truthful TXT/JSON output; retain Whisper timing, translation and speaker labels.
+- Register speech and effects in the Universal Queue and existing linear Black Scripting. Preserve data/updater contracts.
+- Native Windows CPU model acceptance passed for original Kokoro Onyx, all language frontends, Ming, all four Bark variants, both Whisper comparisons and the real queued speech pipeline. Release publication requires fresh same-source results.
+- Owner approval on 2026-10-26 excepts only physical GPU acceptance. CUDA is experimental and unverified on owner hardware; all other test gates remain mandatory. See docs/V0.8-RELEASE.md for in-place update and CPU model-install instructions.
+
+## 0.7.1 — startup repair candidate, pending owner review
+
+- Wait for all deferred interface extensions before starting browser authorization and rendering. A fast local API could previously render Download Studio too early and report `Cannot read properties of undefined (reading 'description')`.
+- Distinguish interface, engine connection and authorization failures, with recovery instructions appropriate to each. Browser rendering errors no longer direct users to reinstall dependencies.
+- Read the setup banner version from `VERSION.txt` instead of displaying the historical V0.3 label. Keep the running-service guard and all data-preservation contracts.
+- Add delayed-script startup and injected rendering/connection failure browser regressions.
+
+## 0.7.0 — 2026-10-23 (published)
 
 - Unify manual audio/video downloads with persistent Channel Watch and Download History; retain legacy routes, presets and verified media workers.
 - Add saved/pinned/default destinations, stable source folders, content rules, priorities, optional historical imports, live/replay transitions, bounded retries and persistent download identities.

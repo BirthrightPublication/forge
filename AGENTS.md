@@ -44,3 +44,12 @@
 - Keep source authentication paths local and omit them from public API snapshots and ordinary presets. Never package cookies or resume caches. Generated addresses remain memory-only; options-only locks/presets must not store generated values.
 - A managed update is not complete when files are copied. Verify a fresh import and the new process identity, installation root, runtime version and health version before recording completion. Keep old-version/foreign-root launcher guards and native stale-bytecode/restart tests.
 - Run `tests/browser_v7_check.py`, the existing browser regression harnesses, local HTTP downloader tests, upgrade/rollback and native Windows acceptance before proposing a V0.7 release. Distinguish offline source fixtures from live platform tests. Owner review remains required before merge/tag/publication.
+
+## V0.8 speech production
+
+- Keep original Kokoro voice IDs and tensors, including am_onyx; never substitute a different voice under the Onyx name. Native embedding blending requires compatible engine, language and revision.
+- Treat model-native emotions, natural-language delivery, reference synthesis and acoustic DSP as distinct capabilities. Reject unsupported task combinations and never speak internal document markers.
+- Snapshot project/preset/model/runtime revisions and permitted reference hashes for queued work. Preserve original documents/audio and content-addressed completed segments across retries and upgrades.
+- Optional model installs require explicit approval and isolated immutable environments. Never install PyTorch over the existing Whisper environment or execute downloaded model-host Python/pickle payloads.
+- Preserve text-only Bark output until alignment is actually validated. Do not invent timestamps or advertise English-only recognition as multilingual.
+- Run the speech API/browser/DSP/import/store/adapter tests alongside regressions. Distinguish synthetic speech orchestration fixtures from actual neural inference and GPU/Windows acceptance. V0.8 remains blocked for final release while those acceptance checks and model/license review are pending.

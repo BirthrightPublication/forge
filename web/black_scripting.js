@@ -25,7 +25,7 @@ function blackButton(id,label,symbol,extra='') {
 function blackCaptureOptions() {
  const root=$('#black-node-options');if(!root||!blackEditor)return;
  const options=blackEditor.node.options;
- if(window.ForgePrivacy?.captureOptions&&blackTools.slice(2,-1).includes(blackEditor.node.tool)){
+ if(window.ForgePrivacy?.captureOptions&&['watermark','audio_fingerprint','video_fingerprint','tracking_audit','privacy_export','provenance','privacy_verify'].includes(blackEditor.node.tool)){
   window.ForgePrivacy.captureOptions(root,blackEditor.node.tool,options);return;
  }
  Object.entries(options).forEach(([key,old])=>{

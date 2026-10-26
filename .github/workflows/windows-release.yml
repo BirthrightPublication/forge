@@ -49,6 +49,7 @@ jobs:
     outputs:
       tag: ${{ steps.target.outputs.tag }}
       build_only: ${{ steps.target.outputs.build_only }}
+      speech_required: ${{ steps.target.outputs.speech_required }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6; Node 24
         with:
@@ -78,6 +79,8 @@ jobs:
               raise SystemExit('The exact release tag must be vMAJOR.MINOR.PATCH.')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f'tag={tag}\nbuild_only={os.environ["BUILD_ONLY"]}\n')
+              speech_required = tuple(map(int, tag[1:].split('.'))) >= (0, 8, 0)
+              output.write(f'speech_required={str(speech_required).lower()}\n')
           print('Selected existing source tag:', tag)
           PY
 
@@ -296,10 +299,27 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  speech:
+    name: Require actual CPU speech acceptance before standalone publication
+    needs: resolve
+    # The main release caller runs its own same-source model gate. Do not
+    # duplicate the large model downloads in its build-only Windows subworkflow.
+    if: needs.resolve.outputs.build_only == 'false' && needs.resolve.outputs.speech_required == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/speech-acceptance.yml
+    with:
+      source_ref: refs/tags/${{ needs.resolve.outputs.tag }}
+
   publish_existing:
     name: Append verified assets to an existing published release
-    needs: [resolve, build, windows, finalize]
-    if: needs.resolve.outputs.build_only != 'true'
+    needs: [resolve, build, windows, finalize, speech]
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      needs.resolve.outputs.build_only == 'false' && needs.build.result == 'success' &&
+      needs.windows.result == 'success' && needs.finalize.result == 'success' &&
+      (needs.resolve.outputs.speech_required == 'false' ||
+       (needs.resolve.outputs.speech_required == 'true' && needs.speech.result == 'success'))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -309,6 +329,7 @@ jobs:
       cancel-in-progress: false
     env:
       RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+      SPEECH_REQUIRED: ${{ needs.resolve.outputs.speech_required }}
     steps:
       # No application source is checked out in this write-enabled job.
       - name: Check out only the tested publisher helper
@@ -331,6 +352,33 @@ jobs:
         with:
           name: windows-acceptance-${{ needs.resolve.outputs.tag }}
           path: native
+      - name: Download passed same-run CPU model evidence for standalone publication
+        if: needs.resolve.outputs.speech_required == 'true'
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.speech.outputs.evidence_artifact }}
+          path: speech
+      - name: Require model evidence for this exact tested package source
+        if: needs.resolve.outputs.speech_required == 'true'
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          linux = json.loads(Path('linux/linux-validation.json').read_text())
+          speech = json.loads(Path('speech/SPEECH_ACCEPTANCE.json').read_text())
+          evidence = Path('speech/SPEECH_EVIDENCE.zip')
+          if (speech.get('status') != 'passed' or speech.get('source_commit') != linux['source_commit']
+                  or speech.get('actions_run_id') != os.environ['GITHUB_RUN_ID']
+                  or speech.get('scope') != 'native-windows-cpu-synthetic-speech'
+                  or speech.get('native_windows_execution') is not True or speech.get('device') != 'cpu'
+                  or speech.get('physical_gpu_tested') is not False
+                  or speech.get('full_hardware_acceptance') is not False
+                  or speech.get('inference_substituted') is not False
+                  or speech.get('evidence_archive') != {'name': evidence.name,
+                      'sha256': hashlib.sha256(evidence.read_bytes()).hexdigest()}):
+              raise SystemExit('Standalone Windows publication requires passed actual CPU model evidence for the exact tested source and run.')
+          print('Matched actual CPU model evidence; CUDA and owner hardware remain separate acceptance.')
+          PY
       - name: Compare, append and download-verify without replacing historical assets
         env:
           GH_TOKEN: ${{ github.token }}

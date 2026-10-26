@@ -1,14 +1,14 @@
 # FORGE — Scripting Environment Engine
 
-**V0.7.0 development candidate · Download Studio, Channel Watch and Birthright Updates · Windows 11**
+**V0.8.0 · CPU release; CUDA experimental · Speech Intelligence & Audio Production · Windows 11**
 
-FORGE runs local production tools in your browser. V0.7 unifies audio/video downloads, adds persistent channel monitoring and saved destinations, refines the compact sidebar and Black Scripting mode toggle, and provides individually copyable synthetic address fields. Managed updates verify the newly started backend before reporting success.
+FORGE runs local production tools in your browser. V0.8 adds a unified speech writing workspace, voice profiles and Kokoro blends, capability-aware Ming adapters, non-destructive audio effects, incremental audiobook assembly and optional Bark recognition. Existing downloads, Whisper, privacy tools, queue and verified updates remain available.
 
-This branch is a review candidate, not a published V0.7 release. The current published release is [v0.6.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.6.0). See the [V0.7 operations and architecture guide](docs/V0.7-OPERATIONS.md), [validation report](docs/TEST_REPORT.md), and [shared update contract](docs/BIRTHRIGHT_UPDATE_CORE.md). Owner approval is required before merging, tagging and publishing V0.7.
+V0.8.0 is approved for CPU-validated publication, subject to all final release checks. CUDA is experimental and unverified on owner hardware. See [release and installation guidance](docs/V0.8-RELEASE.md), [actual native model evidence](docs/V0.8-NATIVE-SPEECH-ACCEPTANCE.md), [engine contracts and licenses](docs/V0.8-SPEECH-ENGINES.md), [audio effects](docs/AUDIO-EFFECTS.md), [audiobook assembly](docs/SPEECH-BOOKS.md), and [Bark recognition](docs/BARK-ASR.md).
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Published Windows releases contain exactly one `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` and its `.zip.sha256` companion, with application files under `app/`. A legacy offline ZIP is retained separately. Release packages are GitHub assets, never source files. The V0.7 candidate uses `FORGE-v0.7.0-windows-x64.zip` and legacy `FORGE-v0.7.zip`; these become release assets only after final approval and passing release gates.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Published Windows releases contain exactly one `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` and its `.zip.sha256` companion, with application files under `app/`. A legacy offline ZIP is retained separately. Release packages are GitHub assets, never source files. The V0.8 candidate uses `FORGE-v0.8.0-windows-x64.zip` and legacy `FORGE-v0.8.zip`; these become release assets only after final approval and passing release gates.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
@@ -18,7 +18,7 @@ Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules,
 
 **For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 
-Save the intact legacy ZIP for the approved release (currently `FORGE-v0.6.zip`) in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
+Save the intact legacy ZIP for the approved release (currently `FORGE-v0.7.zip`) in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 

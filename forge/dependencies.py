@@ -20,8 +20,8 @@ ENGINES = {
 # PyPI wheels only. Updates stay inside these reviewed requirements; app releases
 # carry changes to the compatibility contract, not arbitrary latest-version installs.
 PACKAGES = {
-    'core': [('fastapi', 'fastapi'), ('uvicorn', 'uvicorn'), ('pillow', 'PIL'), ('qrcode', 'qrcode'), ('psutil', 'psutil')],
-    'transcription': [('faster-whisper', 'faster_whisper'), ('ctranslate2', 'ctranslate2')],
+    'core': [('fastapi', 'fastapi'), ('uvicorn', 'uvicorn'), ('pillow', 'PIL'), ('qrcode', 'qrcode'), ('psutil', 'psutil'), ('pypdf','pypdf')],
+    'transcription': [('faster-whisper', 'faster_whisper'), ('ctranslate2', 'ctranslate2'), ('av','av'), ('setuptools','pkg_resources')],
     'downloads': [('yt-dlp', 'yt_dlp')], 'speakers': [('pyannote.audio', 'pyannote.audio')],
     'media-privacy': [('c2pa-python', 'c2pa')],
 }
@@ -70,6 +70,9 @@ def inspect(settings, root=ROOT):
             name, sep, version = req.partition('==')
             if sep:
                 compatible &= any(p['package'] == name and p['version'] == version for p in packages)
+        # An importable package outside the reviewed version contract needs the
+        # same controlled repair path as a missing package. Discovery is read-only.
+        repairable = not compatible
         if compatible and engine != 'speakers':
             try:
                 modules = ','.join(module for _, module in PACKAGES[engine])

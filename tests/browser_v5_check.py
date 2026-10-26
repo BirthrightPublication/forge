@@ -23,6 +23,7 @@ import uuid
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--chromium', default=shutil.which('chromium'))
@@ -160,7 +161,8 @@ try:
             page.wait_for_function('()=>state!==null');page.evaluate("navigate('overview')");page.wait_for_selector('.tool-card')
             check('Authorization clears temporary launch credentials',
                   page.evaluate('()=>token===""&&launchTicket===""&&location.hash===""'))
-            check('Overview exposes all eighteen tools', page.locator('.tool-card').count() == 18)
+            from forge.core import TOOLS
+            check('Overview exposes all registered tools', page.locator('.tool-card').count() == len(TOOLS))
             check('Media Privacy has one ordinary sidebar entry',
                   page.locator('#media-privacy-open').count() == 1 and
                   page.locator('#tool-nav [data-view="watermark"],#tool-nav [data-view="provenance"]').count() == 0)
