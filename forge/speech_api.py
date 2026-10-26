@@ -68,7 +68,7 @@ def mount(app, store, manager, destination):
         options=value.setdefault('options',{})
         for key in ('engine','voice','master_chain'):
             if key in value:
-                options['master_effects' if key=='master_chain' else key]=value.pop(key)
+                options.setdefault('master_effects' if key=='master_chain' else key,value.pop(key))
         return {'project':library.save_project(value)}
 
     @app.get('/api/speech/records/{kind}')

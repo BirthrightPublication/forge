@@ -202,6 +202,16 @@ def test_waveform_and_preview_accept_only_registered_source_references(api,tmp_p
     assert client.post('/api/speech/effects',json={'source_id':sid,'preview':True,'preview_seconds':31}).status_code==400
 
 
+def test_project_save_preserves_current_master_effects_over_legacy_empty_chain(api):
+    client,app=api
+    chain=[{'type':'gain','params':{'db':-3}}]
+    response=client.post('/api/speech/projects',json={'name':'Master chain','text':'Synthetic narration.',
+                         'options':{'engine':'kokoro','voice':'am_onyx','master_effects':chain},'master_chain':[]})
+    assert response.status_code==200,response.text
+    saved=response.json()['project']
+    assert client.get('/api/speech/projects/'+saved['id']).json()['options']['master_effects']==chain
+
+
 def test_tts_and_effects_are_registered_in_linear_black_scripting_and_resource_lanes(api,tmp_path):
     client,app=api;text=tmp_path/'test-owned-script.txt';text.write_text('Synthetic narration.')
     sid=registered(client,text)
