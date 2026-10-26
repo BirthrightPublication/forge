@@ -4,7 +4,7 @@
 
 FORGE runs local production tools in your browser. V0.8 adds a unified speech writing workspace, voice profiles and Kokoro blends, capability-aware Ming adapters, non-destructive audio effects, incremental audiobook assembly and optional Bark recognition. Existing downloads, Whisper, privacy tools, queue and verified updates remain available.
 
-This branch is an implementation candidate with outstanding neural-model acceptance, not a published V0.8 release. The current published release is [v0.7.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.7.0). See [validation and limitations](docs/V0.8-VALIDATION.md), [engine contracts and licenses](docs/V0.8-SPEECH-ENGINES.md), [audio effects](docs/AUDIO-EFFECTS.md), [audiobook assembly](docs/SPEECH-BOOKS.md), and [Bark recognition](docs/BARK-ASR.md). Owner review and approval remain required before merge/tag/publication.
+This branch is an implementation candidate with outstanding neural-model acceptance, not a published V0.8 release. The current published release is [v0.7.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.7.0). See [validation and limitations](docs/V0.8-VALIDATION.md), [actual native model evidence](docs/V0.8-NATIVE-SPEECH-ACCEPTANCE.md), [engine contracts and licenses](docs/V0.8-SPEECH-ENGINES.md), [audio effects](docs/AUDIO-EFFECTS.md), [audiobook assembly](docs/SPEECH-BOOKS.md), and [Bark recognition](docs/BARK-ASR.md). Owner review and approval remain required before merge/tag/publication.
 
 ## Source and releases
 

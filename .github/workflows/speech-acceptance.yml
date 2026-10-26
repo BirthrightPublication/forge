@@ -9,6 +9,7 @@ on:
       - tests/speech_network_probe.py
       - tests/tts_model_acceptance.py
       - tests/asr_model_acceptance.py
+      - tests/speech_pipeline_acceptance.py
       - forge/speech_runtime.py
       - forge/speech_engines.py
       - forge/bark_asr.py
@@ -16,6 +17,7 @@ on:
       - scripts/bark_runtime.py
       - scripts/requirements-speech-*.txt
       - scripts/requirements-bark.txt
+      - requirements-transcription.txt
 
 permissions:
   contents: read
@@ -132,18 +134,37 @@ jobs:
       - name: Install application acceptance dependencies
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 -r requirements-core.txt
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 -r requirements-core.txt httpx==0.28.1
           if ($LASTEXITCODE -ne 0) { throw 'Application acceptance dependencies failed.' }
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'Verified FFmpeg acceptance installation failed.' }
+          }
       - name: Install and exercise the actual isolated speech engine
         shell: pwsh
         run: |
           python tests/tts_model_acceptance.py --engine '${{ matrix.engine }}' --data "$env:RUNNER_TEMP/${{ matrix.engine }}-models" --output "$env:RUNNER_TEMP/${{ matrix.engine }}-evidence" --scope full --allow-model-downloads
           if ($LASTEXITCODE -ne 0) { throw 'Real speech installation or synthesis failed; publication remains blocked.' }
+      - name: Exercise actual speech through the application queue
+        if: matrix.engine == 'kokoro'
+        shell: pwsh
+        run: |
+          python tests/speech_pipeline_acceptance.py --data "$env:RUNNER_TEMP/kokoro-models" --output "$env:RUNNER_TEMP/kokoro-pipeline-evidence"
+          if ($LASTEXITCODE -ne 0) { throw 'Actual application speech pipeline failed; publication remains blocked.' }
       - name: Preserve synthetic audio and acceptance receipts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: speech-${{ matrix.engine }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/${{ matrix.engine }}-evidence/
+          path: |
+            ${{ runner.temp }}/${{ matrix.engine }}-evidence/
           if-no-files-found: error
+          retention-days: 14
+      - name: Preserve actual queued speech evidence
+        if: always() && matrix.engine == 'kokoro'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: speech-kokoro-pipeline-${{ github.run_id }}
+          path: ${{ runner.temp }}/kokoro-pipeline-evidence/
+          if-no-files-found: warn
           retention-days: 14

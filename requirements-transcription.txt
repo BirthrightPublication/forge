@@ -1,3 +1,5 @@
 # Optional; model weights and NVIDIA runtimes are separate.
 faster-whisper==1.2.1
 ctranslate2==4.6.0
+# CTranslate2 4.6 imports pkg_resources, absent from fresh Python 3.12 venvs.
+setuptools==80.9.0

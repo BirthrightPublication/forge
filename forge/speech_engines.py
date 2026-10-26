@@ -37,12 +37,14 @@ MING_TASKS = {
 }
 SPECS = {
  'kokoro': {'id':'kokoro','label':'Kokoro-82M','repository':'hexgrad/Kokoro-82M',
+            'approved_revision':'f3ff3571791e39611d31c381e3a41a3af07b4987',
             'license':'Apache-2.0 (model weights); separate phonemizer/runtime obligations',
             'requirements':'scripts/requirements-speech-kokoro.txt', 'planning_memory_mb':1800,
             'languages':list(dict.fromkeys(v[0] for v in LANGUAGES.values())),
             'tasks':['TTS'], 'capabilities':{'blend':True,'native_emotion':False,'instructions':False,
                         'reference':False,'voice_design':False,'paralinguistic':False,'offline':True}},
  'ming': {'id':'ming','label':'Ming-3.0-tts-0.5b','repository':'inclusionAI/Ming-3.0-tts-0.5b',
+          'approved_revision':'8d66b70a00f05ad183fa8a863b4ce609fc83cbc0',
           'license':'MIT upstream code; verify checkpoint LICENSE and NOTICE before distribution',
           'requirements':'scripts/requirements-speech-ming.txt', 'planning_memory_mb':6500,
           'languages':['en','zh','de','es','fr','ko','ja'], 'tasks':list(MING_TASKS),
@@ -154,13 +156,17 @@ def _voice_readiness(data,voice):
     language=voice['language']
     available=bool(voice['installed'] and runtime.get('import_tested'))
     reason='Install the isolated model and runtime first.'
-    if voice['engine']=='kokoro':
-        if language in {'ja','zh'}:
+    if voice['engine']=='kokoro' and runtime.get('import_tested'):
+        if language=='en':
+            available &= bool(frontend.get('en'))
+            if not frontend.get('en'):reason='Repair the isolated English phonemizer before synthesis.'
+        elif language in {'ja','zh'}:
             available &= bool(frontend.get(language))
-            if not frontend.get(language):reason='This language needs an optional Misaki frontend that has not been installed and validated.'
+            if not frontend.get(language):reason='Repair the isolated '+language+' phonemizer before synthesis.'
         elif language!='en':
-            available &= bool(frontend.get('espeak'))
-            if not frontend.get('espeak'):reason='Install and validate eSpeak-NG for this language in the isolated runtime.'
+            supported=bool(frontend.get(language,frontend.get('espeak',False)))
+            available &= supported
+            if not supported:reason='Repair the isolated language frontend for this voice.'
     voice['synthesis_ready']=available
     voice['availability_reason']='' if available else reason
     return voice

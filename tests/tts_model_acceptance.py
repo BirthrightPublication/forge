@@ -144,7 +144,8 @@ class Acceptance:
 
     def publisher(self):
         repo = engines.SPECS[self.engine]['repository']
-        url = 'https://huggingface.co/api/models/' + repo + '?blobs=true'
+        approved=engines.SPECS[self.engine]['approved_revision']
+        url = 'https://huggingface.co/api/models/' + repo + '/revision/' + approved + '?blobs=true'
         with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'FORGE-model-acceptance'}), timeout=30) as response:
             data = response.read(4_000_001)
         if len(data) > 4_000_000:
@@ -153,6 +154,8 @@ class Acceptance:
         revision = metadata.get('sha', '')
         if not isinstance(revision, str) or not engines.REVISION.fullmatch(revision):
             raise ValueError('Publisher did not return an immutable model revision.')
+        if revision!=approved:
+            raise ValueError('Publisher returned a revision different from the approved acceptance target.')
         card = metadata.get('cardData') or {}
         result = {'repository': repo, 'revision': revision, 'license': card.get('license'),
                   'license_name': card.get('license_name'), 'license_link': card.get('license_link'),
@@ -327,9 +330,27 @@ class Acceptance:
                    same_pcm_sha256=repeated['sha256'] == first['sha256'])
         self.check('Original voice embedding remains unchanged after synthesis and blending', digest(source) == before,
                    source_voice_sha256=before)
+        if self.scope=='full':
+            self.check('Original British benchmark voice is present', 'bm_george' in ids)
+            british_audio,british_metadata,british=self.synthesize('acceptance-reference-british',REFERENCE_TEXT,
+                {'voice':'bm_george','task':'TTS','language':'en','seed':1234},offline=True)
+            (self.output/'acceptance-reference-british.txt').write_text(REFERENCE_TEXT+'\n',encoding='utf-8')
+            british_reference={**reference,'audio_sha256':british['sha256'],'voice':'bm_george',
+                               'provider_accent':'British','audio':british_audio.name}
+            (self.output/'acceptance-reference-british.json').write_text(json.dumps(british_reference,indent=2)+'\n')
+            samples={'a':('en','The window is open.'),'b':('en','The window is open.'),
+                     'e':('es','La ventana está abierta.'),'f':('fr','La fenêtre est ouverte.'),
+                     'h':('hi','खिड़की खुली है।'),'i':('it','La finestra è aperta.'),
+                     'p':('pt','A janela está aberta.'),'j':('ja','窓が開いています。'),'z':('zh','窗户开着。')}
+            for code,(language,text) in samples.items():
+                voice=next((item['id'] for item in inventory if item['id'].startswith(code) and item.get('synthesis_ready')),None)
+                self.check('An installed ready official voice exists for Kokoro language code '+code,bool(voice))
+                self.synthesize('kokoro-language-'+code,text,{'voice':voice,'task':'TTS','language':language,'seed':1234},offline=True)
+        else:
+            self.receipt['pending'].append('All nine official Kokoro language-code synthesis smoke checks')
         self.receipt['verified_voice_inventory_count'] = len(ids)
-        self.receipt['pending'] = ['Pronunciation/listening quality review', 'Non-English optional frontend acceptance',
-                                   'Physical CUDA inference and memory acceptance']
+        self.receipt['pending'].extend(['Pronunciation/listening quality review',
+                                       'Physical CUDA inference and memory acceptance'])
 
     def ming(self):
         self.install()
@@ -411,6 +432,8 @@ def main(argv=None):
     output.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(data).free < 12 * 1024**3:
         parser.error('At least 12 GiB of free space is required for isolated speech acceptance.')
+    (data/'.forge-acceptance-owned.json').write_text(json.dumps({'purpose':'FORGE disposable speech acceptance',
+        'engine':args.engine,'source_commit':os.environ.get('GITHUB_SHA','local-acceptance')})+'\n')
     return Acceptance(args.engine, data, output, args.scope).run()
 
 

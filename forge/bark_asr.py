@@ -31,6 +31,15 @@ MODELS = {
     'bark-3.0-pro': ('Underdog-Bark-3.0-Pro', 'Bark 3.0 Pro', False),
     'bark-3.0-clean': ('Underdog-Bark-3.0-Clean', 'Bark 3.0 Clean', True),
 }
+# Immutable publisher snapshots exercised by the V0.8 native acceptance run.
+# Advanced explicitly approved installs may select another full commit; ordinary
+# installs never track a moving publisher branch.
+APPROVED_REVISIONS = {
+    'bark-3.0': '85db2ad18ab41e534a222ee253c29191d77ed919',
+    'bark-3.0-plus': 'd4fab2f8b95681e5ad3cfb4e8c5f4e0c009b3deb',
+    'bark-3.0-pro': '4b5c51e04aa8d16dda9ecdff71bc29f7360149e4',
+    'bark-3.0-clean': '6d34ed8639b2b9a33e764acf06748519bbb950cf',
+}
 REVISION = re.compile(r'^[0-9a-f]{40}$')
 PROCESSOR_REPO = 'nvidia/parakeet-tdt-0.6b-v3'
 PROCESSOR_REVISION = '541d1f99c6b0c3cd0b11a95167540bb8edefd82b'
@@ -103,12 +112,12 @@ def catalog(data):
         result.append({'id': model, 'model': model, 'engine': 'bark', 'label': title,
                        'repository': 'ConwayResearch/' + repo, 'language': 'en',
                        'installed': bool(cached and runtime), 'cached': cached, 'runtime_installed': bool(runtime),
-                       'revision': receipt.get('revision', ''), 'non_verbatim': clean,
+                       'revision': receipt.get('revision', ''), 'available_revision': APPROVED_REVISIONS[model], 'non_verbatim': clean,
                        'download_bytes': sum(f.get('size', 0) for f in receipt.get('files', {}).values()) or None,
                        'capabilities': {'transcribe': True, 'languages': ['en'], 'translate': False,
                                         'timestamps': False, 'diarization': False, 'devices': ['cpu', 'cuda']},
                        'inference_verified': False,
-                       'license': 'CC-BY-4.0; retain publisher LICENSE and NOTICE',
+                       'license': 'CC-BY-4.0; retain publisher model card/NOTICE and any LICENSE',
                        'note': 'Separate optional runtime. Download size is not working RAM/VRAM. '
                                + ('Clean rewrites fillers and is non-verbatim.' if clean else 'Text-only; use Whisper for timing, translation or speaker labels.')})
     return result
@@ -158,7 +167,9 @@ def _permitted(name, *, processor=False):
 
 
 def _publisher_info(repo, revision):
-    url = 'https://huggingface.co/api/models/' + repo + '/revision/' + quote(revision or 'main', safe='') + '?blobs=true'
+    if not REVISION.fullmatch(revision or ''):
+        raise ValueError('Publisher metadata lookup requires an immutable model revision.')
+    url = 'https://huggingface.co/api/models/' + repo + '/revision/' + quote(revision, safe='') + '?blobs=true'
     with urlopen(Request(url, headers={'User-Agent': 'FORGE Bark model installer'}), timeout=15) as response:
         raw = response.read(16 * 1024**2 + 1)
     if len(raw) > 16 * 1024**2:
@@ -166,6 +177,8 @@ def _publisher_info(repo, revision):
     info = json.loads(raw)
     if not isinstance(info, dict) or not isinstance(info.get('sha'), str) or not isinstance(info.get('siblings'), list):
         raise ValueError('Publisher metadata is invalid.')
+    if info['sha'] != revision:
+        raise ValueError('Publisher did not return the requested immutable model revision.')
     return info
 
 
@@ -271,6 +284,7 @@ def install(model, data, consent=False, revision='', device='cpu', progress=lamb
         raise ValueError('Explicit approval is required to install a Bark model and its separate environment.')
     if model not in MODELS or revision and not REVISION.fullmatch(revision):
         raise ValueError('Unknown Bark model or invalid revision.')
+    revision = revision or APPROVED_REVISIONS[model]
     if device not in ('cpu', 'cuda'):
         raise ValueError('Approve a CPU or CUDA 12.8 runtime installation.')
     data = Path(data)
@@ -278,7 +292,7 @@ def install(model, data, consent=False, revision='', device='cpu', progress=lamb
     with cache_lock(data / 'models' / 'bark' / '.install.lock', progress):
         runtime_state = _read(data / 'models' / 'bark' / 'runtime.json')
         runtime_compatible = bool(runtime_python(data)) and (device == 'cpu' or runtime_state.get('device') == 'cuda')
-        if _verified(data, model, rehash=True) and runtime_compatible and (not revision or _receipt(data, model)['revision'] == revision):
+        if _verified(data, model, rehash=True) and runtime_compatible and _receipt(data, model)['revision'] == revision:
             return {**_receipt(data, model), 'cached': True, 'inference_verified': False}
         if os.getenv('HF_HUB_OFFLINE', '').lower() in ('1', 'true', 'yes'):
             raise RuntimeError('Bark installation needs a connection. Existing verified models remain available offline.')
@@ -286,8 +300,8 @@ def install(model, data, consent=False, revision='', device='cpu', progress=lamb
             # Resolve immutable identities before touching any existing runtime.
             info = _publisher_info('ConwayResearch/' + MODELS[model][0], revision)
             resolved = info['sha']
-            if not REVISION.fullmatch(resolved):
-                raise ValueError('Publisher revision is not immutable.')
+            if resolved != revision:
+                raise ValueError('Publisher did not return the requested immutable model revision.')
             target = base / resolved
             resolved, model_files = _snapshot('ConwayResearch/' + MODELS[model][0], resolved, target, progress=progress)
             _, processor_files = _snapshot(PROCESSOR_REPO, PROCESSOR_REVISION, target / 'processor', processor=True, progress=progress)

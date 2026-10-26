@@ -21,7 +21,7 @@ ENGINES = {
 # carry changes to the compatibility contract, not arbitrary latest-version installs.
 PACKAGES = {
     'core': [('fastapi', 'fastapi'), ('uvicorn', 'uvicorn'), ('pillow', 'PIL'), ('qrcode', 'qrcode'), ('psutil', 'psutil'), ('pypdf','pypdf')],
-    'transcription': [('faster-whisper', 'faster_whisper'), ('ctranslate2', 'ctranslate2')],
+    'transcription': [('faster-whisper', 'faster_whisper'), ('ctranslate2', 'ctranslate2'), ('setuptools','pkg_resources')],
     'downloads': [('yt-dlp', 'yt_dlp')], 'speakers': [('pyannote.audio', 'pyannote.audio')],
     'media-privacy': [('c2pa-python', 'c2pa')],
 }

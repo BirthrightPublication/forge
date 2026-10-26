@@ -59,14 +59,28 @@ jobs:
             requirements-core.txt
             requirements-dev.txt
             scripts/requirements-media-privacy.txt
-      - name: Install Python and local media validation dependencies
+      - name: Verify local media validation prerequisites
+        timeout-minutes: 10
+        run: |
+          mkdir -p "$TEST_OUTPUT"
+          media_log="$TEST_OUTPUT/media-prerequisites.txt"
+          trap 'code=$?; tail -n 12 "$media_log" 2>/dev/null | while IFS= read -r line; do line="${line//%/%25}"; echo "::error title=Media prerequisite setup::$line"; done; exit "$code"' ERR
+          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
+            if ! sudo timeout 120 apt-get install --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 ffmpeg fonts-dejavu-core 2>&1 | tee "$media_log"; then
+              source_file="$RUNNER_TEMP/forge-review-ubuntu.sources"
+              printf '%s\n' 'Types: deb' 'URIs: https://archive.ubuntu.com/ubuntu/' 'Suites: noble noble-updates noble-backports' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' '' 'Types: deb' 'URIs: https://security.ubuntu.com/ubuntu/' 'Suites: noble-security' 'Components: main restricted universe multiverse' 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' > "$source_file"
+              source_options=(-o "Dir::Etc::sourcelist=$source_file" -o Dir::Etc::sourceparts=- -o Acquire::ForceIPv4=true)
+              sudo timeout 180 apt-get update "${source_options[@]}" -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 2>&1 | tee -a "$media_log"
+              sudo timeout 180 apt-get install "${source_options[@]}" --no-install-recommends -y -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 ffmpeg fonts-dejavu-core 2>&1 | tee -a "$media_log"
+            fi
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+      - name: Install Python validation dependencies
         timeout-minutes: 8
         run: |
           mkdir -p "$TEST_OUTPUT"
-          if ! command -v ffmpeg || ! command -v ffprobe || [[ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf ]]; then
-            sudo apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30
-            sudo apt-get install --no-install-recommends -y ffmpeg fonts-dejavu-core
-          fi
           python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-dev.txt | tee "$TEST_OUTPUT/dependency-install.txt"
           if [[ -f scripts/requirements-media-privacy.txt ]]; then
             python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r scripts/requirements-media-privacy.txt | tee -a "$TEST_OUTPUT/dependency-install.txt"

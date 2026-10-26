@@ -5,18 +5,22 @@ python tests/asr_model_acceptance.py --data <new-dir> --output <new-dir> \
     --audio acceptance-reference.wav --reference acceptance-reference.txt \
     --fixture-manifest acceptance-reference.json --allow-model-downloads
 
-Only a harness-owned synthetic recording is accepted. Reports compare production
-FORGE pipelines on that one fixture, not human/accent/noise quality or GPU speed.
+Only harness-owned synthetic recordings are accepted. Reports compare production
+FORGE pipelines on clean/repeated speech, controlled Gaussian noise and an optional
+provider-labeled British voice; they do not establish human/accent-corpus quality
+or GPU speed.
 """
 from __future__ import annotations
 
 import argparse
+from array import array
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import platform
+import random
 import re
 import shutil
 import subprocess
@@ -192,6 +196,83 @@ def fixture(audio, reference, manifest, output, settings):
     }
 
 
+def noisy_fixture(audio, output, settings, *, snr_db=20, seed=805730):
+    """Create reproducible additive noise; measure the actual quantized SNR.
+
+    The same gain is applied to clean signal and noise if needed to avoid clipping.
+    Original source bytes are retained; no neural synthesis is substituted.
+    """
+    if isinstance(snr_db, bool) or not isinstance(snr_db, (int, float)) or not math.isfinite(snr_db) or not 5 <= snr_db <= 40:
+        raise ValueError('The controlled noise SNR must be 5–40 dB.')
+    output = Path(output)
+    canonical, destination = output / 'noise-source-private.wav', output / 'acceptance-noisy.wav'
+    if canonical.exists() or destination.exists():
+        raise ValueError('Noise fixture outputs must be new files.')
+    try:
+        subprocess.run([settings['ffmpeg'], '-nostdin', '-v', 'error', '-n', '-protocol_whitelist', 'file,pipe',
+                        '-i', str(audio), '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', str(canonical)],
+                       check=True, timeout=180, capture_output=True)
+        with wave.open(str(canonical), 'rb') as stream:
+            if stream.getnchannels() != 1 or stream.getsampwidth() != 2 or stream.getframerate() != 16000 or not 0 < stream.getnframes() <= 16000 * 120:
+                raise ValueError('Controlled noise input must be bounded 16 kHz mono PCM.')
+            samples = array('h', stream.readframes(stream.getnframes()))
+        if sys.byteorder != 'little':
+            samples.byteswap()
+        signal_power = sum(float(value) ** 2 for value in samples) / len(samples)
+        if signal_power <= 1:
+            raise ValueError('Controlled noise needs a non-silent speech fixture.')
+        rng = random.Random(seed)
+        noise = [rng.gauss(0, 1) for _ in samples]
+        raw_noise_power = sum(value * value for value in noise) / len(noise)
+        noise_scale = math.sqrt(signal_power / raw_noise_power) / (10 ** (snr_db / 20))
+        peak = max(abs(value + noise_scale * perturbation) for value, perturbation in zip(samples, noise))
+        gain = min(1, 32760 / peak) if peak else 1
+        clean = [round(value * gain) for value in samples]
+        mixed = array('h', (round((value + noise_scale * perturbation) * gain) for value, perturbation in zip(samples, noise)))
+        measured_signal = sum(float(value) ** 2 for value in clean)
+        measured_noise = sum(float(noisy - value) ** 2 for noisy, value in zip(mixed, clean))
+        measured_snr = 10 * math.log10(measured_signal / measured_noise)
+        if abs(measured_snr - snr_db) > .1 or any(abs(value) >= 32767 for value in mixed):
+            raise ValueError('The quantized noise fixture did not meet its measured SNR/no-clipping contract.')
+        if sys.byteorder != 'little':
+            mixed.byteswap()
+        with wave.open(str(destination), 'wb') as stream:
+            stream.setparams((1, 2, 16000, len(mixed), 'NONE', 'not compressed'))
+            stream.writeframes(mixed.tobytes())
+        return destination, {'kind': 'deterministic additive Gaussian noise', 'seed': seed,
+                             'target_snr_db': snr_db, 'measured_snr_db': measured_snr,
+                             'clean_global_gain': gain, 'audio_sha256': digest(destination),
+                             'source_audio_sha256': digest(audio), 'clipped_samples': 0,
+                             'scope': 'Controlled synthetic noise, not a real background-noise corpus'}
+    finally:
+        canonical.unlink(missing_ok=True)
+
+
+def british_fixture(audio, reference, primary_info, settings):
+    """Verify an optional real provider-labeled British voice of the same prose."""
+    from forge.worker import probe, duration
+    audio = Path(audio)
+    candidate = audio.with_name(audio.stem + '-british' + audio.suffix)
+    manifest = candidate.with_suffix('.json')
+    if not candidate.exists() and not manifest.exists():
+        return None, {'status': 'unavailable', 'reason': 'No provider-labeled British fixture was generated.'}
+    if not candidate.is_file() or not manifest.is_file():
+        raise ValueError('British fixture audio and its provenance manifest must both be supplied.')
+    source = json.loads(manifest.read_text(encoding='utf-8'))
+    if (source.get('engine') != 'kokoro' or source.get('voice') != 'bm_george'
+            or source.get('audio_sha256') != digest(candidate)
+            or source.get('reference_sha256') != digest(reference)
+            or source.get('model_revision') != primary_info['tts_model_revision']):
+        raise ValueError('British fixture must retain verified bm_george audio, the same reference and pinned model revision.')
+    seconds = duration(probe(candidate, settings))
+    if not math.isfinite(seconds) or not 2 <= seconds <= 120:
+        raise ValueError('British fixture duration is outside the bounded acceptance range.')
+    return candidate, {'status': 'available', 'engine': 'kokoro', 'voice': 'bm_george',
+                       'model_revision': source['model_revision'], 'audio_sha256': source['audio_sha256'],
+                       'reference_sha256': source['reference_sha256'], 'duration_seconds': seconds,
+                       'scope': 'Provider-labeled British synthetic voice; not human accent generalization'}
+
+
 def prepare_whisper(data, output, roots):
     path = data / 'environments' / 'acceptance-whisper'
     venv.EnvBuilder(with_pip=True).create(path)
@@ -259,8 +340,11 @@ def worker(request):
     json_write(request['result'], result)
 
 
-def run_child(python, engine, model, audio, data, output, settings, *, long=False, download_only=False):
-    key = engine + '-' + model + ('-download' if download_only else '-long' if long else '-short')
+def run_child(python, engine, model, audio, data, output, settings, *, long=False, download_only=False, scope=None):
+    scope = scope or ('long' if long else 'short')
+    if not re.fullmatch(r'[a-z0-9-]{1,60}', scope):
+        raise ValueError('Acceptance scope must be a simple registered label.')
+    key = engine + '-' + model + ('-download' if download_only else '-' + scope)
     folder = output / key
     folder.mkdir()
     request_path, result_path = folder / 'request.json', folder / 'result.json'
@@ -310,13 +394,23 @@ def main(argv=None):
               'platform': platform.platform(), 'python': platform.python_version(),
               'native_windows_execution': os.name == 'nt', 'device': 'cpu', 'physical_gpu_tested': False,
               'inference_substituted': False, 'results': [], 'failures': [],
-              'limits': ['Only one clean synthetic English voice is tested.',
-                         'No human/accent/background-noise corpus or owner hardware is measured.',
+              'limits': ['Clean/repeated synthetic English speech and a controlled noise variant are tested.',
+                         'A provider-labeled British synthetic voice is tested only when its verified fixture is supplied.',
+                         'No human/accent/real-background-noise corpus or owner hardware is measured.',
                          'Results do not establish comparative general accuracy or GPU support.']}
     roots = (data, output, ROOT, Path.home())
     try:
         reference, long_audio, long_reference, fixture_info = fixture(args.audio.resolve(), args.reference.resolve(), args.fixture_manifest.resolve(), output, settings)
         report['fixture'] = fixture_info
+        noisy_audio, noise_info = noisy_fixture(args.audio.resolve(), output, settings)
+        report['controlled_noise_fixture'] = noise_info
+        british_audio, british_info = british_fixture(args.audio.resolve(), args.reference.resolve(), fixture_info, settings)
+        report['synthetic_british_fixture'] = british_info
+        cases = [('short', False, args.audio.resolve(), reference),
+                 ('long-repeated', True, long_audio, long_reference),
+                 ('noise-20db', False, noisy_audio, reference)]
+        if british_audio:
+            cases.append(('synthetic-british', False, british_audio, reference))
         from forge import bark_asr
         catalog = bark_asr.catalog(data)
         if {v['id'] for v in catalog} != {'bark-3.0', 'bark-3.0-plus', 'bark-3.0-pro', 'bark-3.0-clean'}:
@@ -342,10 +436,10 @@ def main(argv=None):
                     installed = run_child(python, engine, model, args.audio.resolve(), data, output, settings, download_only=True)
                 install_seconds = time.monotonic() - started
                 phase = 'offline inference'
-                for is_long, audio, expected in [(False, args.audio.resolve(), reference), (True, long_audio, long_reference)]:
-                    result = run_child(python, engine, model, audio, data, output, settings, long=is_long)
+                for scope, is_long, audio, expected in cases:
+                    result = run_child(python, engine, model, audio, data, output, settings, long=is_long, scope=scope)
                     rates = measured_wer(expected, result['text'])
-                    item = {'engine': engine, 'model': model, 'scope': 'long-repeated' if is_long else 'short',
+                    item = {'engine': engine, 'model': model, 'scope': scope,
                             'installation_seconds': install_seconds,
                             'model_revision': result.get('model_revision', installed.get('revision')),
                             'reference_words': len(expected.split()), 'hypothesis': result['text'],

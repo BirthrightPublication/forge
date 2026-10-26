@@ -16,12 +16,26 @@ import threading
 import time
 from types import MethodType
 import urllib.request
+from urllib.parse import urlsplit
 import uuid
 import venv
+import zipfile
 
 from .core import ROOT, json_write, no_window
 from .model_cache import cache_lock
 from .speech_engines import SPECS, MING_CODE_REVISION, REVISION, _read, _root, environment_python, environment_path
+
+# PyPI publishes these two pure-Python/data-only packages as sdists. Their
+# reviewed setup scripts only package Python/dictionary files. Native extensions
+# still require binary wheels; arbitrary source or compiler builds are forbidden.
+FRONTEND_SOURCES = {
+    'jieba': {'version':'0.42.1','filename':'jieba-0.42.1.tar.gz','maximum_bytes':20_000_000,
+        'url':'https://files.pythonhosted.org/packages/c6/cb/18eeb235f833b726522d7ebed54f2278ce28ba9438e3135ab0278d9792a2/jieba-0.42.1.tar.gz',
+        'sha256':'055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2'},
+    'unidic-lite': {'version':'1.0.8','filename':'unidic-lite-1.0.8.tar.gz','maximum_bytes':48_000_000,
+        'url':'https://files.pythonhosted.org/packages/55/2b/8cf7514cb57d028abcef625afa847d60ff1ffbf0049c36b78faa7c35046f/unidic-lite-1.0.8.tar.gz',
+        'sha256':'db9d4572d9fdd4d00a97949d4b0741ec480ee05a7e7e2e32f547500dae27b245'},
+}
 
 
 def file_hash(path,algorithm='sha256'):
@@ -82,6 +96,42 @@ def _fetch_ming_code(destination):
     json_write(Path(destination)/'forge-upstream.json',{'repository':'inclusionAI/Ming-3.0-tts','revision':MING_CODE_REVISION,'git_blob_verified':True})
 
 
+def build_frontend_wheels(python,environment):
+    """Build only two explicitly reviewed data/Python packages in the new env."""
+    environment=Path(environment)
+    sources=environment/'frontend-sources';wheels=environment/'frontend-wheels'
+    sources.mkdir();wheels.mkdir()
+    _command([python,'-m','pip','install','--disable-pip-version-check','--only-binary=:all:',
+              'setuptools==80.9.0','wheel==0.45.1'])
+    records=[]
+    for name,spec in FRONTEND_SOURCES.items():
+        request=urllib.request.Request(spec['url'],headers={'User-Agent':'FORGE approved frontend installer'})
+        with urllib.request.urlopen(request,timeout=60) as response:
+            if urlsplit(response.geturl()).hostname!='files.pythonhosted.org':
+                raise RuntimeError('Unexpected language-data publisher redirect.')
+            raw=response.read(spec['maximum_bytes']+1)
+        if len(raw)>spec['maximum_bytes'] or hashlib.sha256(raw).hexdigest()!=spec['sha256']:
+            raise RuntimeError('Language-data source integrity verification failed.')
+        archive=sources/spec['filename'];archive.write_bytes(raw)
+        _command([python,'-m','pip','wheel','--disable-pip-version-check','--no-deps',
+                  '--no-build-isolation','--wheel-dir',wheels,archive],timeout=300)
+        expected=name.replace('-','_')+'-'+spec['version']+'-'
+        matches=[path for path in wheels.iterdir() if path.name.startswith(expected) and path.name.endswith('-none-any.whl')]
+        if len(matches)!=1:raise RuntimeError('The reviewed language package did not build a pure-Python wheel.')
+        wheel=matches[0]
+        with zipfile.ZipFile(wheel) as contents:
+            for member in contents.infolist():
+                relative=PurePosixPath(member.filename)
+                if relative.is_absolute() or '..' in relative.parts or '\\' in member.filename or relative.suffix.lower() in {'.exe','.dll','.pyd','.so','.dylib'}:
+                    raise RuntimeError('The reviewed language wheel contains an unsafe or native payload.')
+        records.append({'package':name,'version':spec['version'],'source_url':spec['url'],
+                        'source_sha256':spec['sha256'],'source_bytes':len(raw),
+                        'wheel':wheel.name,'wheel_sha256':file_hash(wheel),'native_compilation':False})
+    json_write(environment/'forge-frontend-artifacts.json',{'schema':1,'sources':records,
+               'build_requirements':{'setuptools':'80.9.0','wheel':'0.45.1'}})
+    return wheels
+
+
 def install_engine(engine,data,*,consent=False,revision='',progress=lambda *a,**k:None,device='cpu'):
     if engine not in {'kokoro','ming'}:raise ValueError(SPECS.get(engine,{}).get('unavailable_reason','Unknown engine.'))
     if consent is not True:raise ValueError('Approve this model and isolated runtime download before installing.')
@@ -107,11 +157,13 @@ def install_engine(engine,data,*,consent=False,revision='',progress=lambda *a,**
             venv.EnvBuilder(with_pip=True).create(staging)
             python=staging/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
             progress(0,'Installing pinned speech dependencies',stage='Speech runtime installation')
+            frontend_wheels=build_frontend_wheels(python,staging) if engine=='kokoro' else None
             if device=='cuda':
                 wheels=['torch==2.6.0+cu124']+(['torchaudio==2.6.0+cu124'] if engine=='ming' else [])
                 _command([python,'-m','pip','install','--disable-pip-version-check','--timeout','30','--retries','1','--only-binary=:all:',
                           '--index-url','https://download.pytorch.org/whl/cu124',*wheels])
             _command([python,'-m','pip','install','--disable-pip-version-check','--timeout','30','--retries','1','--only-binary=:all:',
+                      *(['--find-links',frontend_wheels] if frontend_wheels else []),
                       '-r',ROOT/SPECS[engine]['requirements']])
             _command([python,'-m','pip','check'])
             if engine=='ming':_fetch_ming_code(staging/'upstream')
@@ -121,11 +173,16 @@ def install_engine(engine,data,*,consent=False,revision='',progress=lambda *a,**
             # Ming import must execute against the staged upstream directory.
             if engine=='ming':smoke='import sys;sys.path.insert(0,'+repr(str(staging/'upstream'))+');from ming_tts import MingTTS'
             _command([python,'-c',smoke],timeout=120)
+            frontends=_language_frontends(python) if engine=='kokoro' else {}
+            if engine=='kokoro' and not all(frontends.get('codes',{}).get(code,False) for code in 'abefhipjz'):
+                missing=' '.join(code for code in 'abefhipjz' if not frontends.get('codes',{}).get(code,False))
+                raise RuntimeError('Kokoro language frontend validation failed for: '+missing+'. Existing model environments were preserved.')
             json_write(staging/'forge-runtime.json',{'engine':engine,'python':sys.version.split()[0],
                        'requirements_sha256':file_hash(ROOT/SPECS[engine]['requirements']),
                        'upstream_revision':MING_CODE_REVISION if engine=='ming' else 'PyPI kokoro==0.9.4',
                        'installed':time.time(),'device':device,'import_tested':True,'inference_tested':False,
-                       'language_frontends':_language_frontends(python) if engine=='kokoro' else {}})
+                       'language_frontends':frontends,
+                       'frontend_artifacts':_read(staging/'forge-frontend-artifacts.json') if engine=='kokoro' else {}})
             # Each dependency/code fingerprint has its own immutable environment.
             # Existing environments remain available for jobs and rollback.
             staging.rename(stable)
@@ -145,13 +202,33 @@ def select_environment(data,engine,path):
 
 
 def _language_frontends(python):
-    code="""import ctypes.util,importlib.util,json,os
-result={'en':bool(importlib.util.find_spec('en_core_web_sm')),
-        'ja':bool(importlib.util.find_spec('fugashi')) and bool(importlib.util.find_spec('jaconv')),
-        'zh':bool(importlib.util.find_spec('pypinyin')) and bool(importlib.util.find_spec('jieba')),
-        'espeak':bool(ctypes.util.find_library('espeak-ng') or ctypes.util.find_library('espeak') or os.environ.get('PHONEMIZER_ESPEAK_LIBRARY'))}
-print(json.dumps(result))"""
-    try:return json.loads(_command([python,'-c',code],timeout=30))
+    # Importing misaki.espeak configures the bundled espeakng-loader library and
+    # data paths. ctypes.find_library alone misses that working Windows backend.
+    code="""import importlib.metadata,json,os
+os.environ['HF_HUB_OFFLINE']='1'
+os.environ['TRANSFORMERS_OFFLINE']='1'
+from kokoro import KPipeline
+samples={'a':('en','The window is open.'),'b':('en','The window is open.'),
+ 'e':('es','La ventana está abierta.'),'f':('fr','La fenêtre est ouverte.'),
+ 'h':('hi','खिड़की खुली है।'),'i':('it','La finestra è aperta.'),
+ 'p':('pt','A janela está aberta.'),'j':('ja','窓が開いています。'),'z':('zh','窗户开着。')}
+result={'en':True,'codes':{},'errors':{},'method':'Real offline phonemization through original KPipeline(model=False)'}
+for code,(language,text) in samples.items():
+ try:
+  pipeline=KPipeline(lang_code=code,repo_id='hexgrad/Kokoro-82M',model=False)
+  chunks=list(pipeline(text))
+  ready=bool(chunks and any(item.phonemes.strip() for item in chunks))
+  result['codes'][code]=ready
+  result[language]=bool(result.get(language,True) and ready)
+ except Exception as error:
+  result['codes'][code]=False;result[language]=False;result['errors'][code]=type(error).__name__
+result['espeak']=all(result['codes'].get(code,False) for code in 'efhip')
+result['packages']={}
+for name in ['misaki','espeakng-loader','phonemizer-fork','pyopenjtalk-plus','fugashi','jaconv','mojimoji','unidic-lite','cn2an','jieba','ordered-set','pypinyin','pypinyin-dict']:
+ try:result['packages'][name]=importlib.metadata.version(name)
+ except importlib.metadata.PackageNotFoundError:result['packages'][name]='missing'
+print(json.dumps(result,ensure_ascii=False))"""
+    try:return json.loads(_command([python,'-c',code],timeout=120).splitlines()[-1])
     except (ValueError,RuntimeError):return {}
 
 
@@ -184,9 +261,11 @@ def download_model(request):
     """Runs in the isolated environment where huggingface_hub is installed."""
     from huggingface_hub import HfApi, hf_hub_download
     engine=request['engine'];repo=SPECS[engine]['repository'];data=Path(request['data'])
-    info=HfApi().model_info(repo,revision=request.get('revision') or 'main',files_metadata=True)
+    requested=request.get('revision') or SPECS[engine]['approved_revision']
+    info=HfApi().model_info(repo,revision=requested,files_metadata=True)
     revision=info.sha
     if not REVISION.fullmatch(revision or ''):raise RuntimeError('Publisher did not return an immutable revision.')
+    if revision!=requested:raise RuntimeError('Publisher returned a different revision than the approved model request.')
     destination=_root(data)/engine/revision
     if (destination/'forge-receipt.json').exists():
         # Complete snapshots are immutable even during repair. A corrupt snapshot
@@ -287,7 +366,7 @@ def run_inference(request):
         language=value['language']
         if language in {'ja','zh'} and not frontends.get(language):
             raise RuntimeError('The optional phonemizer for this language has not been installed and validated.')
-        if language not in {'en','ja','zh'} and not frontends.get('espeak'):
+        if language not in {'en','ja','zh'} and not frontends.get(language,frontends.get('espeak',False)):
             raise RuntimeError('This Kokoro language needs an installed, validated eSpeak-NG runtime.')
         from kokoro import KModel, KPipeline
         model=KModel(repo_id=SPECS['kokoro']['repository'],config=str(path/'config.json'),model=str(path/'kokoro-v1_0.pth')).to(device).eval()

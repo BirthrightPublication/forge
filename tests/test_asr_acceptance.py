@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 import shutil
 import struct
@@ -76,3 +77,66 @@ def test_download_approval_and_non_nested_artifact_paths_are_required(tmp_path):
         harness.main(required)
     with pytest.raises(SystemExit):
         harness.main([*required, '--allow-model-downloads', '--ffmpeg', sys.executable, '--ffprobe', sys.executable])
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='Actual FFmpeg fixture mechanics required')
+@pytest.mark.parametrize('amplitude', [12000, 31000])
+def test_controlled_noise_is_reproducible_measured_and_does_not_clip_or_replace_source(tmp_path, amplitude):
+    audio = tmp_path / 'clean.wav'
+    samples = [round(amplitude * math.sin(2 * math.pi * 310 * n / 16000)) for n in range(16000 * 2)]
+    with wave.open(str(audio), 'wb') as stream:
+        stream.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
+        stream.writeframes(struct.pack('<' + 'h' * len(samples), *samples))
+    original = harness.digest(audio)
+    first, second = tmp_path / 'first', tmp_path / 'second'
+    first.mkdir(); second.mkdir()
+    settings = {'ffmpeg': shutil.which('ffmpeg'), 'ffprobe': shutil.which('ffprobe')}
+    noisy, evidence = harness.noisy_fixture(audio, first, settings)
+    replay, repeated = harness.noisy_fixture(audio, second, settings)
+    assert noisy.read_bytes() == replay.read_bytes()
+    assert evidence['seed'] == repeated['seed'] and evidence['target_snr_db'] == 20
+    assert evidence['measured_snr_db'] == pytest.approx(20, abs=.1)
+    assert evidence['clipped_samples'] == 0 and harness.digest(audio) == original
+    assert not (first / 'noise-source-private.wav').exists()
+    with wave.open(str(noisy), 'rb') as stream:
+        assert stream.getparams()[:3] == (1, 2, 16000)
+        data = struct.unpack('<' + 'h' * stream.getnframes(), stream.readframes(stream.getnframes()))
+    assert len(data) == len(samples) and max(map(abs, data)) < 32767
+    clean = [round(value * evidence['clean_global_gain']) for value in samples]
+    actual_snr = 10 * math.log10(sum(v * v for v in clean) / sum((a - b) ** 2 for a, b in zip(data, clean)))
+    assert actual_snr == pytest.approx(evidence['measured_snr_db'], abs=1e-9)
+    if amplitude == 31000:
+        assert evidence['clean_global_gain'] < 1
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='Actual FFmpeg fixture mechanics required')
+def test_optional_british_fixture_binds_provider_voice_reference_and_model_identity(tmp_path):
+    # This verifies provenance mechanics only; test tones are never submitted to
+    # ASR or counted as neural voice/recognition acceptance.
+    audio = tmp_path / 'acceptance-reference.wav'
+    reference = tmp_path / 'acceptance-reference.txt'
+    reference.write_text('Shared synthetic reference prose with known ordering.')
+    primary = {'tts_model_revision': 'a' * 40}
+    settings = {'ffmpeg': shutil.which('ffmpeg'), 'ffprobe': shutil.which('ffprobe')}
+    candidate, evidence = harness.british_fixture(audio, reference, primary, settings)
+    assert candidate is None and evidence['status'] == 'unavailable'
+    british = tmp_path / 'acceptance-reference-british.wav'
+    with wave.open(str(british), 'wb') as stream:
+        stream.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
+        stream.writeframes(struct.pack('<h', 1000) * 16000 * 3)
+    manifest = british.with_suffix('.json')
+    values = {'engine': 'kokoro', 'voice': 'bm_george', 'audio_sha256': harness.digest(british),
+              'reference_sha256': harness.digest(reference), 'model_revision': 'a' * 40}
+    manifest.write_text(json.dumps(values))
+    candidate, evidence = harness.british_fixture(audio, reference, primary, settings)
+    assert candidate == british and evidence['voice'] == 'bm_george' and evidence['status'] == 'available'
+    for invalid in [{'voice': 'am_onyx'}, {'reference_sha256': 'f' * 64}, {'model_revision': 'b' * 40}]:
+        manifest.write_text(json.dumps({**values, **invalid}))
+        with pytest.raises(ValueError, match='verified bm_george'):
+            harness.british_fixture(audio, reference, primary, settings)
+
+
+def test_scope_labels_cannot_escape_evidence_directory(tmp_path):
+    with pytest.raises(ValueError, match='simple registered label'):
+        harness.run_child(sys.executable, 'bark', 'bark-3.0', tmp_path / 'audio.wav', tmp_path / 'data',
+                          tmp_path / 'evidence', {}, scope='../outside')

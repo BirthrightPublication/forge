@@ -19,6 +19,9 @@ def test_family_and_capability_catalog_is_offline(tmp_path, monkeypatch):
     assert all(not v['installed'] and v['download_bytes'] is None for v in entries)
     assert all(v['capabilities']['languages'] == ['en'] and not v['capabilities']['timestamps'] for v in entries)
     assert [v['id'] for v in entries if v['non_verbatim']] == ['bark-3.0-clean']
+    assert {v['id']:v['available_revision'] for v in entries} == bark.APPROVED_REVISIONS
+    assert set(bark.APPROVED_REVISIONS) == set(bark.MODELS)
+    assert all(bark.REVISION.fullmatch(v) for v in bark.APPROVED_REVISIONS.values())
 
 
 @pytest.mark.parametrize('override', [
@@ -54,6 +57,57 @@ def test_offline_install_preserves_existing_data(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match='connection'):
         bark.install('bark-3.0', tmp_path, consent=True)
     assert (tmp_path / 'private.txt').read_text() == 'owner data'
+
+
+@pytest.mark.parametrize('model', list(bark.MODELS))
+def test_default_install_selects_approved_commit_before_any_artifact_download(tmp_path, monkeypatch, model):
+    monkeypatch.delenv('HF_HUB_OFFLINE', raising=False)
+    calls=[]
+    def publisher(repo, revision):
+        calls.append((repo,revision))
+        return {'sha':revision,'siblings':[]}
+    def boundary(repo, revision, destination, **kwargs):
+        assert revision==bark.APPROVED_REVISIONS[model]
+        raise RuntimeError('Synthetic artifact boundary; no inference or download performed.')
+    monkeypatch.setattr(bark,'_publisher_info',publisher)
+    monkeypatch.setattr(bark,'_snapshot',boundary)
+    with pytest.raises(RuntimeError,match='Synthetic artifact boundary'):
+        bark.install(model,tmp_path,consent=True)
+    assert calls==[('ConwayResearch/'+bark.MODELS[model][0],bark.APPROVED_REVISIONS[model])]
+    assert not (tmp_path/'environments').exists()
+
+
+def test_advanced_approved_commit_is_retained_and_publisher_cannot_substitute_sha(tmp_path, monkeypatch):
+    monkeypatch.delenv('HF_HUB_OFFLINE', raising=False)
+    requested='f'*40
+    calls=[]
+    def changed(repo,revision):
+        calls.append(revision)
+        return {'sha':'a'*40,'siblings':[]}
+    monkeypatch.setattr(bark,'_publisher_info',changed)
+    monkeypatch.setattr(bark,'_snapshot',lambda *a,**k:pytest.fail('Different publisher revision must fail before artifact writes'))
+    with pytest.raises(ValueError,match='requested immutable'):
+        bark.install('bark-3.0',tmp_path,revision=requested,consent=True)
+    assert calls==[requested]
+    assert not list((tmp_path/'models'/'bark'/'bark-3.0').glob('*'))
+
+
+def test_publisher_metadata_request_is_exact_and_never_accepts_a_moving_branch(monkeypatch):
+    import io
+    requested=bark.APPROVED_REVISIONS['bark-3.0-pro'];urls=[]
+    def opened(request,**kwargs):
+        urls.append(request.full_url)
+        return io.BytesIO(json.dumps({'sha':requested,'siblings':[]}).encode())
+    monkeypatch.setattr(bark,'urlopen',opened)
+    assert bark._publisher_info('ConwayResearch/Underdog-Bark-3.0-Pro',requested)['sha']==requested
+    assert urls==['https://huggingface.co/api/models/ConwayResearch/Underdog-Bark-3.0-Pro/revision/'+requested+'?blobs=true']
+    for value in ('','main','v3'):
+        with pytest.raises(ValueError,match='immutable'):
+            bark._publisher_info('ConwayResearch/Underdog-Bark-3.0-Pro',value)
+    assert len(urls)==1
+    monkeypatch.setattr(bark,'urlopen',lambda *a,**k:io.BytesIO(json.dumps({'sha':'0'*40,'siblings':[]}).encode()))
+    with pytest.raises(ValueError,match='requested immutable'):
+        bark._publisher_info('ConwayResearch/Underdog-Bark-3.0-Pro',requested)
 
 
 @pytest.mark.parametrize('name', ['loader.py', 'model.pt', 'model.pkl', 'model.pickle', 'sub/model.safetensors', '../model.bark', 'native.dll'])

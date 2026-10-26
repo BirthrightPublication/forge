@@ -2,6 +2,8 @@
 import hashlib
 import json
 import sys
+import io
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -133,7 +135,7 @@ def test_download_verifies_all_files_and_keeps_original_onyx(tmp_path,monkeypatc
         assert revision=='c'*40
         path=Path(local_dir)/filename;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(content[filename]);return str(path)
     monkeypatch.setitem(sys.modules,'huggingface_hub',SimpleNamespace(HfApi=API,hf_hub_download=download))
-    result=runtime.download_model({'engine':'kokoro','data':str(tmp_path),'revision':''})
+    result=runtime.download_model({'engine':'kokoro','data':str(tmp_path),'revision':'c'*40})
     assert result['model_revision']=='c'*40
     model=tmp_path/'models/speech/kokoro'/('c'*40)
     assert (model/'voices/am_onyx.pt').read_bytes()==b'original Onyx'
@@ -147,6 +149,21 @@ def test_download_verifies_all_files_and_keeps_original_onyx(tmp_path,monkeypatc
 def test_install_requires_explicit_approval_and_does_not_create_env(tmp_path):
     with pytest.raises(ValueError,match='Approve'):runtime.install_engine('kokoro',tmp_path)
     assert not (tmp_path/'environments').exists()
+
+
+def test_default_model_revision_is_pinned_and_metadata_substitution_is_rejected(tmp_path,monkeypatch):
+    requested=[]
+    class API:
+        def model_info(self,repo,revision,files_metadata):
+            requested.append(revision)
+            return SimpleNamespace(sha='0'*40,siblings=[])
+    def unexpected_download(**kwargs):
+        raise AssertionError('Substituted metadata must be rejected before downloading.')
+    monkeypatch.setitem(sys.modules,'huggingface_hub',SimpleNamespace(HfApi=API,hf_hub_download=unexpected_download))
+    with pytest.raises(RuntimeError,match='different revision'):
+        runtime.download_model({'engine':'kokoro','data':str(tmp_path),'revision':''})
+    assert requested==[engines.SPECS['kokoro']['approved_revision']]
+    assert not (tmp_path/'models/speech/kokoro'/('0'*40)).exists()
 
 
 def test_no_model_or_runtime_is_synthesized_by_missing_dependencies(tmp_path):
@@ -181,3 +198,62 @@ def test_ming_cpu_weights_and_reference_waveform_use_matching_fp32():
     assert calls==[('model','float32'),('waveform',{'device':'cpu','dtype':'float32'}),
                    ('length',[24000],{'dtype':'int64','device':'cpu'}),
                    ('encode',waveform,'length-tensor')]
+
+
+def test_language_readiness_uses_validated_bundled_frontend_not_system_lookup(tmp_path):
+    directory=engines.environment_path(tmp_path,'kokoro')
+    directory.mkdir(parents=True)
+    (directory/'forge-runtime.json').write_text(json.dumps({'import_tested':True,
+        'language_frontends':{'en':True,'fr':True,'hi':False,'ja':True,'zh':True,'espeak':False}}))
+    def voice(identifier):
+        return engines._voice_readiness(tmp_path,engines._voice(identifier,'kokoro',installed=True))
+    assert voice('am_onyx')['synthesis_ready']
+    assert voice('ff_siwis')['synthesis_ready'] # bundled library, not ctypes.find_library
+    assert voice('jf_alpha')['synthesis_ready']
+    assert voice('zf_xiaobei')['synthesis_ready']
+    assert not voice('hf_alpha')['synthesis_ready']
+
+
+def test_language_probe_performs_offline_g2p_for_every_official_code(monkeypatch):
+    def command(args,timeout):
+        code=args[-1]
+        assert "KPipeline(lang_code=code,repo_id='hexgrad/Kokoro-82M',model=False)" in code
+        assert "os.environ['HF_HUB_OFFLINE']='1'" in code
+        assert all("'"+key+"'" in code for key in 'abefhipjz')
+        assert timeout==120
+        return 'a library diagnostic\n'+json.dumps({'en':True,'ja':True,'zh':True,'espeak':True})
+    monkeypatch.setattr(runtime,'_command',command)
+    assert runtime._language_frontends('isolated-python')['ja'] is True
+
+
+@pytest.mark.parametrize('tamper,native_payload',[(False,False),(True,False),(False,True)])
+def test_reviewed_frontend_sources_require_pinned_hash_and_pure_wheel(tmp_path,monkeypatch,tamper,native_payload):
+    content=b'reviewed pure-Python fixture source'
+    identity=hashlib.sha256(content).hexdigest()
+    monkeypatch.setattr(runtime,'FRONTEND_SOURCES',{'test-data':{'version':'1.0','filename':'test-data-1.0.tar.gz',
+        'maximum_bytes':1000,'url':'https://files.pythonhosted.org/fixture.tar.gz','sha256':identity}})
+    class Response(io.BytesIO):
+        def geturl(self):return 'https://files.pythonhosted.org/fixture.tar.gz'
+    monkeypatch.setattr(runtime.urllib.request,'urlopen',lambda request,timeout:Response(content+b'changed' if tamper else content))
+    commands=[]
+    def command(args,**kwargs):
+        commands.append(args)
+        if 'wheel' in args and '--wheel-dir' in args:
+            assert '--no-deps' in args and '--no-build-isolation' in args
+            folder=args[args.index('--wheel-dir')+1]
+            with zipfile.ZipFile(folder/'test_data-1.0-py3-none-any.whl','w') as output:
+                output.writestr('module.pyd' if native_payload else 'test_data/__init__.py',b'fixture')
+        return ''
+    monkeypatch.setattr(runtime,'_command',command)
+    if tamper or native_payload:
+        with pytest.raises(RuntimeError,match='integrity|native'):
+            runtime.build_frontend_wheels('python',tmp_path)
+        assert not (tmp_path/'forge-frontend-artifacts.json').exists()
+        if tamper:assert not any('--wheel-dir' in args for args in commands)
+    else:
+        result=runtime.build_frontend_wheels('python',tmp_path)
+        assert result==tmp_path/'frontend-wheels'
+        receipt=json.loads((tmp_path/'forge-frontend-artifacts.json').read_text())
+        assert receipt['sources'][0]['source_sha256']==identity
+        assert receipt['sources'][0]['native_compilation'] is False
+        assert receipt['build_requirements']=={'setuptools':'80.9.0','wheel':'0.45.1'}

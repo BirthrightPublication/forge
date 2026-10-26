@@ -78,3 +78,18 @@ def test_diagnostics_redact_private_paths_tokens_and_url_credentials():
     for secret in ['test-models', 'secret', 'privatevalue', 'hf_' + 'a' * 30]:
         assert secret not in result
     assert '<acceptance-path>' in result and '<redacted>' in result
+
+
+def test_real_pipeline_refuses_existing_database_and_unmarked_model_directories(tmp_path):
+    pipeline_spec=importlib.util.spec_from_file_location('speech_pipeline_harness',Path(__file__).with_name('speech_pipeline_acceptance.py'))
+    pipeline=importlib.util.module_from_spec(pipeline_spec)
+    pipeline_spec.loader.exec_module(pipeline)
+    data=tmp_path/'existing';data.mkdir()
+    sentinel=data/'forge.sqlite3';sentinel.write_bytes(b'Preserve existing data')
+    with pytest.raises(ValueError,match='existing FORGE database'):
+        pipeline.run(data,tmp_path/'evidence')
+    assert sentinel.read_bytes()==b'Preserve existing data'
+    unmarked=tmp_path/'unmarked';unmarked.mkdir()
+    with pytest.raises(ValueError,match='disposable speech acceptance harness'):
+        pipeline.run(unmarked,tmp_path/'evidence')
+    assert not (tmp_path/'evidence').exists()
