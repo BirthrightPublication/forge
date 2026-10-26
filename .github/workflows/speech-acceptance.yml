@@ -1,0 +1,42 @@
+name: Native speech model acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['development/v0.8-speech-studio']
+    paths:
+      - .github/workflows/speech-acceptance.yml
+      - tests/speech_network_probe.py
+      - tests/tts_model_acceptance.py
+      - tests/asr_model_acceptance.py
+
+permissions:
+  contents: read
+
+jobs:
+  publishers:
+    name: Verify native Windows publisher access
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Read immutable model metadata and publisher notices
+        shell: pwsh
+        run: |
+          python tests/speech_network_probe.py --output "$env:RUNNER_TEMP/speech-publishers"
+          if ($LASTEXITCODE -ne 0) { throw 'Model publisher access failed; inference and publication must remain blocked.' }
+      - name: Preserve publisher access evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: speech-publishers-${{ github.run_id }}
+          path: ${{ runner.temp }}/speech-publishers/
+          if-no-files-found: error
+          retention-days: 14
