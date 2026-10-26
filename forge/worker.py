@@ -448,7 +448,23 @@ def run(payload: dict):
             expected = selected.get('source_stat')
             if expected and {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns} != expected:
                 raise RuntimeError('An asset or comparison file changed after being queued. Select the inputs again.')
-        if tool=='model_download':
+        if tool=='speech_install':
+            if options.get('engine')=='bark':
+                from .bark_asr import install
+                result=install(options.get('model','bark-3.0-pro'),data,consent=options.get('consent',False),revision=options.get('revision',''),device=options.get('device','cpu'),progress=progress)
+            else:
+                from .speech_engines import install
+                result=install(options['engine'],data,consent=options.get('consent',False),revision=options.get('revision',''),device=options.get('device','cpu'),progress=progress)
+            report=stage_dir/'speech-install.json'
+            json_write(report,result)
+            files=[report]
+        elif tool=='tts':
+            from .speech_books import process
+            files,warnings=process(payload,stage_dir,data)
+        elif tool=='audio_effects':
+            from .audio_effects import process
+            files,warnings=process(source,stage_dir,options,settings)
+        elif tool=='model_download':
             if not options.get('consent'):raise RuntimeError('Model download consent is required.')
             os.environ['HF_HUB_DISABLE_TELEMETRY']='1'
             from .model_cache import ensure_model
@@ -488,7 +504,11 @@ def run(payload: dict):
                                     'remaining': remaining, 'capabilities': capabilities(source.suffix), 'limitations': warnings})
                 files.append(report)
         elif tool == 'transcribe':
-            files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
+            if options.get('engine')=='bark':
+                from .bark_asr import transcribe as bark_transcribe
+                files,warnings=bark_transcribe(source,stage_dir,safe_name(source.stem)+'_transcript',options,data,settings)
+            else:
+                files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
         elif tool in {'download_audio','download_video'}:
             import hashlib
             from .model_cache import cache_lock

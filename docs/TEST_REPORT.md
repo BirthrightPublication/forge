@@ -1,5 +1,7 @@
 # FORGE validation history
 
+V0.8 implementation and pending model acceptance are recorded in [V0.8-VALIDATION.md](V0.8-VALIDATION.md).
+
 The V0.7.1 startup repair is documented in [V0.7.1-STARTUP-REPAIR.md](V0.7.1-STARTUP-REPAIR.md).
 V0.7.0 was subsequently merged and published at `bab3876878b20da5c2906b85177876844d3279f1`.
 Its tagged release workflow passed 692 Python tests, 387 browser checks, 98 packaging

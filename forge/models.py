@@ -11,7 +11,8 @@ class Output(Strict):
     subfolder: str = Field('', max_length=80)
 
 class Transcribe(Strict):
-    model: Literal['tiny','base','small','medium','large-v3','large-v3-turbo'] = 'large-v3'
+    engine: Literal['whisper','bark'] = 'whisper'
+    model: Literal['tiny','base','small','medium','large-v3','large-v3-turbo','bark-3.0','bark-3.0-plus','bark-3.0-pro','bark-3.0-clean'] = 'large-v3'
     device: Literal['auto','cpu','cuda'] = 'auto'
     language: str = Field('', max_length=8, pattern=r'^([a-z]{2,3})?$')
     task: Literal['transcribe','translate'] = 'transcribe'
@@ -36,6 +37,12 @@ class Transcribe(Strict):
 
     @model_validator(mode='after')
     def speaker_bounds(self):
+        bark_model=self.model.startswith('bark-')
+        if (self.engine=='bark') != bark_model:
+            raise ValueError('Select a model belonging to the selected transcription engine.')
+        if self.engine=='bark':
+            from .bark_asr import validate_options
+            validate_options(self.model_dump())
         if self.min_speakers > self.max_speakers:
             raise ValueError('Minimum speakers cannot exceed maximum speakers.')
         if self.diarization and not self.diarization_model:
@@ -141,7 +148,7 @@ class Password(Strict):
 class JobRequest(Strict):
     tool: Literal['transcribe','retune','metadata','qr','download_audio','download_video',
                   'watermark','audio_fingerprint','video_fingerprint','tracking_audit',
-                  'privacy_export','provenance','privacy_verify']
+                  'privacy_export','provenance','privacy_verify','tts','audio_effects']
     sources: list[str] = Field(default_factory=list, max_length=500)
     reference_sources: list[str] = Field(default_factory=list, max_length=20)
     urls: list[str] = Field(default_factory=list, max_length=100)
@@ -184,6 +191,8 @@ class Preset(Strict):
 
 OPTION_MODELS = {'transcribe': Transcribe, 'retune': Retune, 'metadata': Metadata,
                  'qr': QR, 'download_audio': Download, 'download_video': Download}
+from .speech_options import SpeechOptions, EffectsOptions
+OPTION_MODELS.update(tts=SpeechOptions, audio_effects=EffectsOptions)
 
 # New options live beside their processors; legacy model/API names stay stable.
 from .watermark import WatermarkOptions
@@ -206,7 +215,7 @@ class BatchAction(Strict):
     action: Literal['cancel','retry']
 
 class WorkflowStep(Strict):
-    tool: Literal['retune','metadata','transcribe']
+    tool: Literal['retune','metadata','transcribe','tts','audio_effects']
     options: dict = Field(default_factory=dict)
 
 class Workflow(Strict):

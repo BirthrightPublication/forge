@@ -20,7 +20,8 @@ def test_catalog_matches_registry_and_entitlements(client):
     assert response.status_code == 200
     body = response.json()
     assert set(body['tools']) == PRIVACY_TOOLS
-    assert len(TOOLS) == 18
+    assert len(TOOLS) == 20
+    assert {'tts','audio_effects'} <= set(TOOLS)
     assert all(value['schema']['additionalProperties'] is False for value in body['tools'].values())
     state = client.get('/api/state').json()
     assert set(TOOLS) <= {item['key'] for item in state['entitlements']['modules'] if item['enabled']}

@@ -1,0 +1,10 @@
+# Isolated optional runtime. Never install into FORGE's main/Whisper environment.
+torch==2.6.0
+kokoro==0.9.4
+misaki[en]==0.9.4
+transformers==4.46.3
+huggingface-hub==0.36.2
+numpy==1.26.4
+soundfile==0.12.1
+spacy==3.8.7
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl

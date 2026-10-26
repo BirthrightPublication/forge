@@ -29,7 +29,7 @@ class OperationNode(Strict):
     node_version: Literal[1] = 1
     tool: Literal['retune', 'metadata', 'transcribe', 'watermark', 'audio_fingerprint',
                   'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance',
-                  'privacy_verify']
+                  'privacy_verify','tts','audio_effects']
     enabled: bool = True
     options: dict = Field(default_factory=dict)
     preset_name: str = Field('', max_length=80)
@@ -180,7 +180,7 @@ def mount(app, store, manager, destination):
                     ext = operation_plan.get('output_suffix', ext)
                     disclosures = operation_plan.get('disclosures', [])
                     assets[node.id] = operation_plan.get('asset_snapshots', [])
-                if node.tool == 'retune':
+                if node.tool in {'retune','tts','audio_effects'}:
                     ext = '.' + node.options['format']
                 output_formats = ['.' + fmt for fmt in node.options['formats']] if node.tool == 'transcribe' else [ext]
                 steps.append({'node_id': node.id, 'step': index, 'tool': node.tool,

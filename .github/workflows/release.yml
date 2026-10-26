@@ -203,6 +203,8 @@ jobs:
                   check('browser_v5_check.py', '--output', evidence / 'media-privacy', '--allow-test-writes')
               if Path('tests/browser_v6_check.py').is_file():
                   check('browser_v6_check.py', '--output', evidence / 'birthright-updates')
+              if Path('tests/browser_v8_check.py').is_file():
+                  check('browser_v8_check.py', '--output', evidence / 'speech-studio')
               if Path('tests/browser_v7_check.py').is_file():
                   check('browser_v7_check.py', '--output', evidence / 'download-studio')
           finally:
