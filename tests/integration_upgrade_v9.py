@@ -1,7 +1,7 @@
 """Populated V0.8 candidate -> V0.9 upgrade and code-only rollback.
 
-Every write is restricted to a NEW disposable directory. The baseline is the
-supplied V0.8 development candidate, not a claimed published/stable release.
+Every write is restricted to a NEW disposable directory. The supplied V0.8
+repository-source baseline's publication state is recorded separately.
 Actual updater, API, QR and PNG privacy processing run on the host OS. YouTube
 metadata is an explicit local fixture and external network access is forbidden.
 This does not execute the external PowerShell updater or neural speech models.
@@ -420,7 +420,7 @@ def main(argv=None):
     report = {'result': 'passed', 'host': sys.platform, 'native_windows_execution': os.name == 'nt',
         'external_powershell_updater_executed': False, 'neural_models_executed': False, 'live_youtube_tested': False,
         'metadata_scope': 'Explicit local fixture; external network blocked',
-        'base_version': base_manifest['version'], 'base_description': 'Supplied V0.8 development candidate; no stable publication claim',
+        'base_version': base_manifest['version'], 'base_description': 'Supplied V0.8 repository-source baseline; publication state recorded separately',
         'candidate_version': candidate_manifest['version'], 'base_sha256': original.digest(base),
         'candidate_sha256': original.digest(candidate), 'protected_files_verified': len(protected),
         'original_scripts_preserved': sum(path.startswith('original_scripts/') for path in original_code),

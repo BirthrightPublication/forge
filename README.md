@@ -4,7 +4,7 @@
 
 FORGE runs local production tools in your browser. V0.9 adds persistent download planning, priority scheduling, selected playlists and compact Channel Watch cards. It retains the complete V0.8 speech workspace, voice profiles and Kokoro blends, Ming adapters, audio effects, audiobook assembly and optional Bark recognition. Whisper, privacy tools, Black Scripting and verified updates remain available.
 
-This branch depends on the unmerged V0.8 candidate `e2d66c7281107283bc81d3fcd6ebaa0a13118a64` ([PR #8](https://github.com/BirthrightPublication/forge/pull/8)); it preserves that branch and its history. V0.8 passed native Windows CPU model acceptance in run [40402290962](https://github.com/BirthrightPublication/forge/actions/runs/40402290962). CUDA hardware validation and its release decision remain outstanding. The published release remains [v0.7.0](https://github.com/BirthrightPublication/forge/releases/tag/v0.7.0). V0.9 is a development candidate requiring owner review before merge, tag or publication. See [V0.9 architecture and verification](docs/V0.9-MEDIA-DOWNLOADS.md) and the existing [speech engines](docs/V0.8-SPEECH-ENGINES.md), [effects](docs/AUDIO-EFFECTS.md), [audiobook](docs/SPEECH-BOOKS.md), and [Bark](docs/BARK-ASR.md) guides.
+This branch integrates approved V0.8 source `078d9d5375033cf982e122f0c148433fe4e6760f` from `main` after [PR #8](https://github.com/BirthrightPublication/forge/pull/8) merged. Development began at its tested `e2d66c7` checkpoint and preserved all subsequent approved changes. CUDA remains experimental and unverified; the V0.8 owner exception applies only to V0.8. V0.9 requires separate owner review before merge, tag or publication. See [V0.9 architecture and verification](docs/V0.9-MEDIA-DOWNLOADS.md), [V0.8 approved release guidance](docs/V0.8-RELEASE.md), and [the latest published release](https://github.com/BirthrightPublication/forge/releases/latest).
 
 ## Source and releases
 
@@ -18,7 +18,7 @@ Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules,
 
 **For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 
-Save the intact legacy ZIP for the approved release (currently `FORGE-v0.7.zip`) in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
+Save the intact legacy ZIP for the approved release (`FORGE-vX.Y.zip` from its release assets) in **`B:\Forge\Build`**, without extracting it. Use the accompanying standalone **`Update FORGE.bat`** in **`B:\Forge`**. Finish or cancel active/queued work, then double-click the BAT and press Enter to update. Use the named release asset and its checksums, rather than GitHub's automatically generated source ZIP.
 
 The updater finds an installation directly in that directory or one extracted `FORGE*` child folder. It refuses to guess between multiple installations. It preserves the active folder and virtual environment rather than moving or recreating them. **Do not extract a second active copy beside the first one.**
 

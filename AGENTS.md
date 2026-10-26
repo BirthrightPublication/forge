@@ -52,11 +52,11 @@
 - Snapshot project/preset/model/runtime revisions and permitted reference hashes for queued work. Preserve original documents/audio and content-addressed completed segments across retries and upgrades.
 - Optional model installs require explicit approval and isolated immutable environments. Never install PyTorch over the existing Whisper environment or execute downloaded model-host Python/pickle payloads.
 - Preserve text-only Bark output until alignment is actually validated. Do not invent timestamps or advertise English-only recognition as multilingual.
-- Run the speech API/browser/DSP/import/store/adapter tests alongside regressions. Distinguish synthetic speech orchestration fixtures from actual neural inference and GPU/Windows acceptance. V0.8 remains blocked for final release while those acceptance checks and model/license review are pending.
+- Run the speech API/browser/DSP/import/store/adapter tests alongside regressions. Distinguish synthetic speech orchestration fixtures from actual neural inference and GPU/Windows acceptance. The V0.8 CPU release approval and its narrowly scoped physical GPU exception are recorded in docs/V0.8-RELEASE.md; all other release gates remain mandatory, and later releases require separate approval.
 
 ## V0.9 media planning
 
-- V0.9 starts from V0.8 candidate `e2d66c7281107283bc81d3fcd6ebaa0a13118a64`, not from the older main branch. Keep its review branch/history intact. Until V0.8 is approved and merged, use a clearly dependent V0.9 PR; starting V0.9 does not authorize either release.
+- V0.9 began at V0.8 candidate `e2d66c7281107283bc81d3fcd6ebaa0a13118a64`, then integrated approved main commit `078d9d5375033cf982e122f0c148433fe4e6760f` after PR #8 merged. Preserve all approved V0.8 source, experimental CUDA labels and history. V0.9 requires separate owner approval; the V0.8 GPU exception is not a blanket exception for future releases.
 - Keep one persistent canonical media plan across manual links, playlists and watched sources. Pending/review media does not create a worker or an executable queue record. Admission and job association must commit atomically only after real resource capacity is available.
 - Waiting manual singles outrank manual playlists, which outrank watched-channel work. Preserve all six channel priorities, deterministic fair turns, authoritative per-source ordering, Unknown-last metadata and active-job snapshots. Explicit Black Scripting graphs retain their dependency records.
 - Preserve existing channels, media identities, jobs/history, source associations, private credentials, speech projects, environments and partial transfer caches. Migration is additive and idempotent. Legacy completion labels alone are not verified output evidence.
