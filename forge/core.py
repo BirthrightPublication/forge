@@ -197,9 +197,15 @@ class Store:
         if not self.get('settings'):
             self.set('settings', {**DEFAULTS, 'default_output': str(Path.home() / 'FORGE Exports')})
         with self.lock:
+            stopped_ids = [row[0] for row in self.db.execute("SELECT id FROM jobs WHERE status IN ('running','cancelling','finalizing')")]
+            previous_pause = self.settings()['queue_paused']
             interrupted = self.db.execute("UPDATE jobs SET status='interrupted', message='Service stopped. Retry restarts this job; existing outputs are kept.', updated=? WHERE status IN ('running','cancelling','finalizing')", (time.time(),)).rowcount
             self.db.commit()
             if interrupted:
+                # Preserve user pauses. Only the application may later release
+                # this safety pause after reconciling every interrupted plan.
+                self.set('queue_restart_pause', {'automatic': not previous_pause or bool(self.get('queue_shutdown_resume', False)),
+                                                'interrupted_ids': stopped_ids})
                 settings = self.settings()
                 settings['queue_paused'] = True
                 self.set('settings', settings)
@@ -296,7 +302,7 @@ class Store:
             rows = self.db.execute("""SELECT jobs.*, job_meta.value AS _meta
                 FROM jobs LEFT JOIN job_meta USING(id)
                 WHERE status IN ('queued','running','cancelling','finalizing','failed','blocked','interrupted')
-                OR jobs.id IN (SELECT id FROM jobs ORDER BY created DESC LIMIT ?)
+                OR (jobs.status!='planned' AND jobs.id IN (SELECT id FROM jobs WHERE status!='planned' ORDER BY created DESC LIMIT ?))
                 ORDER BY jobs.created DESC""", (limit,)).fetchall()
         return [self._decode(row) for row in rows]
 
@@ -310,7 +316,11 @@ class Store:
             self.db.commit()
 
     def update_meta(self, id: str, **fields):
-        allowed={'priority','rank','batch_id','workflow_name','depends_on','step','steps','resource','started','finished','execution_seconds','stage_seconds','eta_seconds','speed','stage','progress_measured'}
+        allowed={'priority','rank','batch_id','workflow_name','depends_on','step','steps','resource','started','finished','execution_seconds','stage_seconds','eta_seconds','speed','stage','progress_measured',
+                 'downloaded_bytes','total_bytes','speed_bps','download_speed_bps','elapsed_seconds',
+                 'transfer_stage','stage_progress','progress_scope','stream_index','stream_count',
+                 'resume_supported','resumed','error_code','error_retryable','cancel_intent',
+                 'media_preview','plan_id','thumbnail','title','channel','source_name','source_url'}
         if not set(fields)<=allowed:
             raise ValueError('Invalid job metadata update.')
         with self.lock:
