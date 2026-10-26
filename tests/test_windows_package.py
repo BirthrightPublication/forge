@@ -40,6 +40,7 @@ def source(tmp_path):
     root = tmp_path / 'source'
     for relative in package.REQUIRED_FILES | {
         'docs/BUILD.md', 'docs/history/v0.4/README.md', 'tests/test_saved.py',
+        'docs/previews/old.png', 'docs/screenshots/v0.7/old.png',
         'original_scripts/example.py', 'Update FORGE.bat', 'scripts/Update-Application.ps1',
         'forge/data/private.txt', 'web/settings/preferences.json', 'Run Tests.bat',
         'pytest.ini', 'requirements-dev.txt', 'requirements-transcription.txt',
@@ -91,6 +92,11 @@ def test_build_preserves_tagged_application_bytes_and_filters_protected_files(so
     assert 'app/scripts/update.py' in files
     assert 'app/scripts/install_optional.ps1' in files
     assert 'app/requirements-transcription.txt' in files
+    assert 'app/docs/BUILD.md' in files
+    assert 'app/web/assets/icon.svg' in files
+    for historical in ('docs/previews/old.png', 'docs/screenshots/v0.7/old.png'):
+        assert 'app/' + historical not in files
+        assert (source / historical).read_text() == 'fixture content\n'
     assert not any(package.excluded(name[4:]) for name in files)
     for name, data in files.items():
         if name != 'app/release-manifest.json':
@@ -178,7 +184,8 @@ def test_validator_requires_exact_windows_asset_name(archive, filename):
         package.validate_archive(renamed)
 
 
-@pytest.mark.parametrize('relative', ['forge/app.py', 'original_scripts/example.py', 'tests/test_saved.py'])
+@pytest.mark.parametrize('relative', ['forge/app.py', 'original_scripts/example.py', 'tests/test_saved.py',
+                                     'docs/previews/old.png', 'docs/screenshots/v0.7/old.png'])
 def test_source_hash_verification_includes_excluded_files(source, relative):
     (source / relative).write_text('# changed source\n')
     with pytest.raises(package.PackageError, match='Source manifest hash mismatch'):
@@ -269,6 +276,8 @@ def test_duplicate_manifest_keys_rejected(source):
 
 @pytest.mark.parametrize('name', [
     'app/forge/Data/private.txt', 'app/docs/history/release.md', 'app/Update FORGE.bat',
+    'app/docs/previews/old.png', 'app/docs/screenshots/v0.7/old.png',
+    'app/docs/PrEvIeWs/old.png', 'app/docs/ScReEnShOtS/v0.7/old.png',
     'app/scripts/Update-Application.ps1', 'app/original_scripts/script.py',
     'app/tests/test_example.py', 'app/forge/models/model.onnx', 'app/forge/private.sqlite',
     'app/forge/.env.production', 'app/web/settings.json', 'app/Run Tests.bat',

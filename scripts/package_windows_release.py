@@ -122,6 +122,7 @@ def excluded(relative: str) -> bool:
     path = PurePosixPath(relative)
     parts = [part.casefold() for part in path.parts]
     return (relative in DEVELOPMENT_FILES or parts[0] in {'tests', 'original_scripts'}
+            or (len(parts) >= 2 and parts[0] == 'docs' and parts[1] in {'previews', 'screenshots'})
             or any(part in PROTECTED_COMPONENTS for part in parts)
             or any(part in PRIVATE_FILES or part.startswith(('.env.', '.forge-')) for part in parts)
             or path.suffix.casefold() in EXCLUDED_SUFFIXES
