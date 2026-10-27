@@ -90,15 +90,16 @@ jobs:
           command -v ffprobe
       - name: Run the complete Python suite
         run: python -m pytest -q --junitxml="$TEST_OUTPUT/PYTEST.xml" | tee "$TEST_OUTPUT/PYTHON_TEST_RESULTS.txt"
-      - name: Install Chromium for V0.7 interface acceptance
-        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
+      - name: Install Chromium for interface acceptance
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-'))
         run: python -m playwright install --with-deps chromium
       - name: Validate V0.7 interface and address controls
-        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-'))
         run: |
           python tests/browser_v7_check.py --output "$TEST_OUTPUT/v07-browser"
           python tests/browser_generators_check.py --output "$TEST_OUTPUT/generator-browser"
           if [[ -f tests/browser_v8_check.py ]]; then python tests/browser_v8_check.py --output "$TEST_OUTPUT/v08-browser"; fi
+          if [[ -f tests/browser_v9_check.py ]]; then python tests/browser_v9_check.py --output "$TEST_OUTPUT/v09-browser"; fi
       - name: Retain Python validation results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
@@ -110,7 +111,7 @@ jobs:
 
   windows-candidate:
     name: Native maintenance and Windows installation acceptance
-    if: startsWith(github.ref_name, 'development/v0.6-') || (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-'))
+    if: startsWith(github.ref_name, 'development/v0.6-') || startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-')
     runs-on: windows-2022
     timeout-minutes: 20
     defaults:
@@ -165,6 +166,17 @@ jobs:
           $archive = Join-Path $env:RUNNER_TEMP "v06-package/FORGE-v$version-windows-x64.zip"
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/v06-windows-acceptance" -PythonExecutable (Get-Command python).Source
           if ($LASTEXITCODE -ne 0) { throw 'Unchanged updater acceptance failed.' }
+      - name: Verify real V0.9 Windows downloads and interruption recovery
+        if: startsWith(github.ref_name, 'development/v0.9-')
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-downloads.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Required downloader installation failed.' }
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'Required native media prerequisites failed.' }
+          }
+          python scripts/check_download_acceptance.py --require-windows --output "$env:RUNNER_TEMP/v09-download-acceptance"
+          if ($LASTEXITCODE -ne 0) { throw 'Real native download acceptance failed; skipped media cases are not accepted.' }
       - name: Retain native acceptance results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -175,6 +187,7 @@ jobs:
             ${{ runner.temp }}/v06-package/
             ${{ runner.temp }}/v06-windows-acceptance/windows-acceptance.json
             ${{ runner.temp }}/v06-windows-acceptance/*/installed-app-smoke.json
+            ${{ runner.temp }}/v09-download-acceptance/
           if-no-files-found: warn
 
   draft:
@@ -244,11 +257,21 @@ jobs:
               print('The development branch advanced; its newer validation run will handle review creation.')
               raise SystemExit(0)
           existing = gh('List existing pull requests', 'pr', 'list', '--repo', repository_name,
-                        '--base', 'main', '--head', branch, '--state', 'all', '--json', 'url',
+                        '--head', branch, '--state', 'all', '--json', 'url',
                         '--jq', '.[0].url // empty')
           if existing:
               print('A PR already exists for this branch: ' + existing)
               raise SystemExit(0)
+
+          base = 'main'
+          if branch.startswith('development/v0.9-'):
+              dependency = 'development/v0.8-speech-studio'
+              ahead = gh('Verify V0.8 dependency', 'api',
+                         f'repos/{repository_name}/compare/main...{quote(dependency, safe="")}', '--jq', '.ahead_by')
+              if not ahead.isdigit():
+                  fail('Verify V0.8 dependency', 'GitHub returned no valid ancestry comparison.')
+              if int(ahead):
+                  base = dependency
 
           repository = os.environ['GITHUB_SERVER_URL'] + '/' + repository_name
           branch_url = repository + '/tree/' + quote(branch, safe='/')
@@ -269,7 +292,7 @@ jobs:
           except OSError as error:
               fail('Write draft description', str(error))
           created = gh('Create draft pull request', 'pr', 'create', '--repo', repository_name,
-                       '--draft', '--base', 'main', '--head', branch,
+                       '--draft', '--base', base, '--head', branch,
                        '--title', title, '--body-file', str(body_file))
           print('Created draft PR: ' + created)
           PYCODE

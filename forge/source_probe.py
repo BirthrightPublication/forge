@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import shutil
 import sys
@@ -66,11 +67,17 @@ def normalized(info):
         return None
     thumbs = info.get('thumbnails') or []
     thumb = info.get('thumbnail') or (thumbs[-1].get('url','') if thumbs else '')
+    def metric(value, *, zero=True):
+        return value if type(value) in (int,float) and math.isfinite(value) and value >= (0 if zero else 1e-12) else None
     return {'id':identity,'url':url[:8000],'title':str(info.get('title') or identity)[:400],
-            'type':classify(info),'published':info.get('timestamp') or info.get('release_timestamp'),
+            'type':classify(info),'published':metric(info.get('timestamp') or info.get('release_timestamp'),zero=False),
             'upload_date':str(info.get('upload_date') or '')[:8],
-            'duration':info.get('duration'),'thumbnail':thumb if str(thumb).startswith('https://') else '',
+            'duration':metric(info.get('duration'),zero=False),
+            'view_count':metric(info.get('view_count')),
+            'thumbnail':str(thumb)[:8000] if str(thumb).startswith('https://') else '',
             'channel_id':str(info.get('channel_id') or ''),
+            'channel':str(info.get('channel') or info.get('uploader') or '')[:400],
+            'handle':str(info.get('uploader_id') or '')[:160] if str(info.get('uploader_id') or '').startswith('@') else '',
             'availability':info.get('availability') or 'unknown'}
 
 
@@ -84,7 +91,7 @@ def probe(request):
     watch = request.get('watch',False)
     url = youtube_source(request['url']) if watch else media_url(request['url'])
     limit = max(1,min(200,int(request.get('limit',100))))
-    offset = max(0,min(10000,int(request.get('offset',0))))
+    offset = max(0,min(1_000_000,int(request.get('offset',0))))
     class Quiet:
         def debug(self,*args): pass
         def info(self,*args): pass
@@ -129,21 +136,25 @@ def probe(request):
         entries=list({item['id']:item for item in entries}.values())
         entries.sort(key=lambda item:item.get('published') or 0,reverse=True)
     else: flatten(info)
-    source_id = str(info.get('id') if '/playlist?' in url else info.get('channel_id') or info.get('id') or '')
+    is_playlist=info.get('_type') in {'playlist','multi_video'} and not tab_results or '/playlist?' in url
+    source_id = str(info.get('id') if is_playlist else info.get('channel_id') or info.get('id') or '')
     if watch and not re.fullmatch(r'[A-Za-z0-9_-]{1,160}',source_id):
         raise ValueError('The source did not provide a stable identity.')
     # Missing totals remain unknown. playlist_count describes the extractor's
     # selected source, not necessarily every video ever uploaded by the channel.
     source_thumb=info.get('thumbnail') or ((info.get('thumbnails') or [{}])[-1].get('url',''))
-    count=info.get('playlist_count') if not tab_results else None
+    public_count=info.get('channel_video_count')
+    count=public_count if type(public_count) is int and public_count>=0 else info.get('playlist_count') if not tab_results else None
     formats=[]
     for f in (info.get('formats') or [])[:200]:
         formats.append({key:f.get(key) for key in ('format_id','ext','height','width','vcodec','acodec','filesize','format_note')})
     return {'platform':'youtube' if 'youtube' in (info.get('extractor_key') or '').lower() or watch else str(info.get('extractor_key') or 'generic'),
-            'source_id':source_id,'url':url,'title':str(info.get('channel') or info.get('title') or source_id)[:400],
+            'source_id':source_id,'url':url,'title':str((info.get('title') if is_playlist else info.get('channel')) or info.get('title') or source_id)[:400],
+            'handle':str(info.get('uploader_id') or '')[:160] if str(info.get('uploader_id') or '').startswith('@') else '',
+            'is_playlist':bool(is_playlist),
             'thumbnail':str(source_thumb) if str(source_thumb).startswith('https://') else '',
-            'reported_count':count if isinstance(count,int) and count>=0 else None,
-            'reported_count_scope':'Selected source, as reported by the extractor',
+            'reported_count':count if type(count) is int and count>=0 else None,
+            'reported_count_scope':'Public channel video count, as reported by the extractor' if count is public_count and type(public_count) is int else 'Selected source, as reported by the extractor',
             'entries':entries,'formats':formats,'offset':offset,'limit':limit,'has_more':len(entries)>=limit,
             'checked':time.time()}
 

@@ -3,6 +3,7 @@ import contextlib
 import copy
 import uuid
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -42,6 +43,7 @@ class QueueManager:
         self.maintenance_pending = False
         self.repair_pending = False
         self.require_feature = None  # Optional server-owned entitlement boundary.
+        self.download_planner = None
         self.active: dict[str, subprocess.Popen] = {}
         self.threads: list[threading.Thread] = []
         self.stop_event = threading.Event()
@@ -64,6 +66,9 @@ class QueueManager:
                 self.store.set('queue_error', 'The dispatcher encountered an error. Restart FORGE and review interrupted jobs.')
 
     def dispatch_once(self):
+        # Verification may hash/probe files, so it stays outside scheduler locks.
+        if self.download_planner is not None:
+            self.download_planner.reconcile()
         metrics = self.monitor.sample(self.store.data)
         with self.lock:
             settings = self.store.settings()
@@ -85,7 +90,7 @@ class QueueManager:
                     job['payload']['resolved_device'] = resolved
                     self.store.update_payload(job['id'], job['payload'])
                 active_jobs = [self.store.job(id) for id in self.active]
-                state = admission_state(settings, active_jobs, metrics)
+                state = self.capacity_state(settings, active_jobs, metrics)
                 reason = admission_reason(job, active_jobs, state)
                 if reason:
                     if job['message'] != reason:
@@ -93,16 +98,39 @@ class QueueManager:
                     continue
                 # Dependency resolution may have refreshed the worker's source.
                 self.launch(self.store.job(job['id']))
+            if self.download_planner is not None and not self.maintenance_pending:
+                # There is no second waiting execution queue. A plan obtains a
+                # processing record only at resource admission, then launches
+                # before this lock is released. Active jobs are never preempted.
+                for _ in range(5):
+                    if self.stop_event.is_set():
+                        break
+                    def can_admit(candidate):
+                        current = [self.store.job(id) for id in self.active]
+                        capacity = self.capacity_state(settings, current, metrics)
+                        return not admission_reason(candidate, current, capacity)
+                    selected = self.download_planner.admit_one(can_admit)
+                    if selected is None:
+                        break
+                    self.launch(selected)
             self.threads = [thread for thread in self.threads if thread.is_alive()]
             if self.store.get('queue_error'):
                 self.store.set('queue_error', None)
+
+    def capacity_state(self, settings, active_jobs, metrics):
+        state = admission_state(settings, active_jobs, metrics)
+        checks = getattr(self.download_planner, 'verification_count', 0) if self.download_planner is not None else 0
+        reservations = getattr(self.download_planner, 'verification_reservations', checks) if self.download_planner is not None else 0
+        state['usage']['disk'] += reservations
+        state['media_verification_count'] = checks
+        return state
 
     def status(self):
         metrics = self.monitor.sample(self.store.data)
         with self.lock:
             settings = self.store.settings()
             active_jobs = [self.store.job(id) for id in self.active]
-            state = admission_state(settings, active_jobs, metrics)
+            state = self.capacity_state(settings, active_jobs, metrics)
             counts = dict.fromkeys(('queued', 'running', 'finalizing', 'cancelling', 'failed', 'blocked', 'interrupted', 'cancelled', 'completed'), 0)
             with self.store.lock:
                 counts.update({row[0]: row[1] for row in self.store.db.execute('SELECT status, COUNT(*) FROM jobs GROUP BY status')})
@@ -224,11 +252,27 @@ class QueueManager:
                     if event.get('kind') == 'progress' and status == 'running':
                         clock.enter(str(event.get('stage') or 'Processing')[:200])
                         value = event.get('progress', 0)
-                        if isinstance(value, (int, float)):
+                        if type(value) in (int, float) and math.isfinite(value):
                             self.store.update_job(id, progress=max(0, min(99, value)), message=str(event.get('message', ''))[:2000])
                             eta=event.get('eta_seconds')
-                            if not isinstance(eta,(int,float)) or eta<0 or eta>10**9: eta=None
-                            self.store.update_meta(id,eta_seconds=eta,speed=str(event.get('speed',''))[:100],stage=str(event.get('stage',event.get('message','')))[:200],progress_measured=event.get('progress_measured') is True)
+                            if type(eta) not in (int,float) or not math.isfinite(eta) or eta<0 or eta>10**9: eta=None
+                            meta = {'eta_seconds':eta,'speed':str(event.get('speed',''))[:100],
+                                    'stage':str(event.get('stage',event.get('message','')))[:200],
+                                    'progress_measured':event.get('progress_measured') is True}
+                            for field in ('downloaded_bytes','total_bytes','speed_bps','elapsed_seconds','stage_progress','stream_index','stream_count'):
+                                if field in {'downloaded_bytes','total_bytes'} and field not in event:
+                                    continue
+                                number = event.get(field)
+                                meta[field] = number if type(number) in (int,float) and math.isfinite(number) and 0 <= number <= 10**18 else None
+                            if meta.get('stage_progress') is not None and meta['stage_progress'] > 100:
+                                meta['stage_progress'] = None
+                            meta['download_speed_bps'] = meta.get('speed_bps')
+                            for field in ('transfer_stage','progress_scope'):
+                                meta[field] = str(event.get(field) or '')[:100]
+                            for field in ('resume_supported','resumed'):
+                                if field in event:
+                                    meta[field] = event[field] is True
+                            self.store.update_meta(id, **meta)
                     elif event.get('kind') == 'finalizing' and status == 'running':
                         clock.enter('Publishing')
                         self.store.update_job(id, status='finalizing', progress=96, message='Publishing verified outputs')
@@ -237,6 +281,8 @@ class QueueManager:
                         result = event
                     elif event.get('kind') == 'error':
                         error = str(event.get('message', 'Processing failed.'))
+                        self.store.update_meta(id,error_code=str(event.get('error_code') or '')[:80],
+                                               error_retryable=event.get('error_retryable') is True)
             code = p.wait()
             reader.join(timeout=2)
             manifest = self.store.data / 'work' / id / 'result.json'
@@ -297,8 +343,10 @@ class QueueManager:
             if j['status'] == 'finalizing':
                 raise ValueError('This job is publishing finished files. Cancellation is closed at this final step.')
             if j['status'] == 'queued':
+                self.store.update_meta(id, cancel_intent='user')
                 self.store.update_job(id, status='cancelled', message='Cancelled before processing.')
             elif j['status'] == 'running':
+                self.store.update_meta(id, cancel_intent='user')
                 self.store.update_job(id, status='cancelling', message='Stopping worker and child processes')
                 p = self.active.get(id)
                 if p:
@@ -308,7 +356,13 @@ class QueueManager:
 
     def retry(self, id: str):
         with self.lock:
-            return self._retry_selection([self.store.job(id)])[0]
+            job = self.store.job(id)
+            plan_id = job['payload'].get('download_plan_id')
+            if plan_id and self.download_planner is not None:
+                self._retry_selection([job], validate_only=True)
+                result = self.download_planner.action([plan_id], 'retry')
+                return {'plan': result['items'][0], 'queued': False}
+            return self._retry_selection([job])[0]
 
     def reorder(self, id: str, direction: str):
         with self.lock:
@@ -336,7 +390,7 @@ class QueueManager:
         for rank, id in enumerate(ids):
             self.store.update_meta(id, rank=rank)
 
-    def _retry_selection(self, originals):
+    def _retry_selection(self, originals, *, validate_only=False):
         self.check_accepting()
         self.check_features(originals)
         if any(job['status'] not in TERMINAL or job['id'] in self.active for job in originals):
@@ -354,6 +408,9 @@ class QueueManager:
                 raise ValueError('The Black Scripting dependency graph contains a cycle.')
             for job in ready:
                 payload = copy.deepcopy(job['payload'])
+                if job['tool'].startswith('download'):
+                    payload['resume_key'] = payload.get('resume_key') or payload.get('watch_media') or job['id']
+                    payload['resume_from_job'] = job['id']
                 parent = payload.get('depends_on')
                 if parent and parent not in selected and self.store.job(parent)['status'] != 'completed':
                     raise ValueError('Select the unfinished parent step too, or retry the entire Black Scripting group.')
@@ -371,6 +428,8 @@ class QueueManager:
                 planned.append((job, payload))
                 seen.add(job['id'])
                 pending.remove(job)
+        if validate_only:
+            return planned
         mapping = {}
         result = []
         for job, payload in planned:
@@ -395,8 +454,14 @@ class QueueManager:
         ids = list(dict.fromkeys(ids))
         with self.lock:
             originals = [self.store.job(id) for id in ids]
+            plans = []
             if action == 'retry':
-                jobs = self._retry_selection(originals)
+                self._retry_selection(originals, validate_only=True)
+                linked = [job for job in originals if job['payload'].get('download_plan_id') and self.download_planner is not None]
+                if linked:
+                    plans = self.download_planner.action(list(dict.fromkeys(job['payload']['download_plan_id'] for job in linked)), 'retry')['items']
+                remaining = [job for job in originals if job not in linked]
+                jobs = self._retry_selection(remaining) if remaining else []
             elif action == 'remove':
                 if any(job['status'] not in TERMINAL or job['id'] in self.active for job in originals):
                     raise ValueError('Only stopped, terminal queue records can be removed. Cancel pending work first.')
@@ -420,7 +485,7 @@ class QueueManager:
             else:
                 self._reorder_selection(ids, action)
                 jobs = [self.store.job(id) for id in ids]
-            return {'ok': True, 'action': action, 'ids': ids, 'jobs': [public_job(job) for job in jobs]}
+            return {'ok': True, 'action': action, 'ids': ids, 'jobs': [public_job(job) for job in jobs], 'plans': plans}
 
     def retry_batch(self, batch_id: str):
         with self.lock:
@@ -442,3 +507,5 @@ class QueueManager:
             self.kill(p)
         for t in self.threads:
             t.join(timeout=6)
+        if self.download_planner is not None:
+            self.download_planner.close()

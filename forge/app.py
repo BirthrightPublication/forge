@@ -140,7 +140,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
-                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','speech_v8.js','speech_v8.css'}:
+                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','downloads_v9.css','speech_v8.js','speech_v8.css'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -257,6 +257,10 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     @app.post('/api/jobs')
     def enqueue(body: JobRequest):
         require_feature(app, body.tool)
+        if body.tool.startswith('download_'):
+            from .download_plan_api import ImportSubmit
+            return app.state.download_imports.submit(ImportSubmit(tool=body.tool, urls=body.urls,
+                options=body.options, output=body.output))
         if body.reference_sources and body.tool not in {'audio_fingerprint','video_fingerprint'}:
             raise ValueError('Saved fingerprint references apply to the fingerprint labs only.')
         try:
@@ -347,13 +351,17 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
 
     @app.post('/api/jobs/{id}/retry')
     def retry(id: str):
-        return public_job(manager.retry(id))
+        result = manager.retry(id)
+        return result if 'plan' in result else public_job(result)
 
     @app.post('/api/queue')
     def queue(body: QueueAction):
         settings = store.settings()
         settings['queue_paused'] = body.paused
         store.set('settings', settings)
+        store.set('queue_pause_explicit', body.paused)
+        store.set('queue_restart_pause', None)
+        store.set('queue_shutdown_resume', False)
         return {'paused':body.paused}
 
     @app.post('/api/settings')
@@ -434,11 +442,12 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     @app.post('/api/shutdown')
     def shutdown():
         settings = store.settings()
+        store.set('queue_shutdown_resume', not settings['queue_paused'] and not store.get('queue_pause_explicit', False))
         settings['queue_paused'] = True
         store.set('settings', settings)
         if app.state.shutdown:
             app.state.shutdown()
-        return {'ok':True, 'message':'Service stopping; unfinished jobs require a retry.'}
+        return {'ok':True, 'message':'Service stopping; approved media plans and supported partial transfers are retained.'}
 
     from .v2_api import mount
     mount(app,store,manager,sessions,destination,token)
@@ -463,7 +472,14 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     from .update_catalog import mount as mount_catalog
     mount_catalog(app,store,manager)
     from .download_studio import mount as mount_download_studio
+    from .download_plans import DownloadPlanner
+    manager.download_planner = DownloadPlanner(store, manager)
+    app.state.download_planner = manager.download_planner
     mount_download_studio(app,store,manager)
+    from .download_plan_api import mount as mount_download_planning, restore_queue_after_restart
+    mount_download_planning(app,store,manager)
+    manager.download_planner.recover()
+    restore_queue_after_restart(store,manager.download_planner)
     from .speech_api import mount as mount_speech
     mount_speech(app,store,manager,destination)
     return app

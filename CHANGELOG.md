@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 — Media Downloads 2.0; approved for publication
+
+- Preserve the complete V0.8 implementation and integrate approved main source `078d9d5375033cf982e122f0c148433fe4e6760f`, including its experimental CUDA labels and release guidance. V0.9 retains its own review and release requirements.
+- Rename Download Studio to Media Downloads and introduce persistent Current Download Priority with manual-single, playlist and six-level channel scheduling, review approval, deterministic fairness and frozen batch progress.
+- Keep pending discoveries outside the Universal Queue until transactional resource admission; preserve media identities, prior queue associations, approved interruptions and supported transfer state across restart.
+- Add persistent selected-playlist imports, watched-channel destinations, future-only Instant Download controls, compact responsive channel cards and visual thumbnail previews without thumbnail exports.
+- Extend real yt-dlp byte/stage reporting, verified output publication and private crash/retry recovery while retaining FFmpeg, Black Scripting, protected data and external updater compatibility.
+- Preserve independent playlist destination and ordering choices during concurrent autosaves; retain selected media and private authentication settings.
+- Owner approval authorizes merge, tag and Windows updater publication after all final tagged-source release checks pass. Publication status and exact source/run evidence belong to the GitHub Release; see docs/V0.9-RELEASE.md for the existing PowerShell update command and recovery guidance.
+
 ## 0.8.0 — CPU release; CUDA experimental
 
 - Carry the V0.7.1 deferred-script startup repair into V0.8 without merging or rewriting its separate PR/history.

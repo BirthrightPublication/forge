@@ -1,4 +1,10 @@
-"""V0.7 browser acceptance with a disposable server and explicit synthetic source metadata."""
+"""V0.7 shared-shell regressions against the running FORGE version.
+
+V0.9 intentionally moves navigation and replaces download history with persistent
+planning. The earlier startup, privacy, draft, destination, metadata, update and
+Black Scripting contracts remain exercised through the actual DOM and API.
+YouTube metadata is an explicit offline fixture, never a live-platform claim.
+"""
 import argparse
 import json
 import secrets
@@ -17,6 +23,13 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from forge import __version__
 from forge.app import create_app
+
+V9=tuple(int(part) for part in __version__.split('.')) >= (0,9,0)
+DOWNLOAD_NAME='Media Downloads' if V9 else 'Download Studio'
+SETTINGS_SELECTOR='#utility-nav [data-view="settings"]' if V9 else '#workspace-nav [data-view="settings"]'
+CHANNEL_SELECTOR='.dl-channel-card' if V9 else '.watch-source'
+UPLOAD_SELECTOR='.dl-upload-row' if V9 else '.watch-media tbody tr'
+INITIAL_MEDIA_STATE='review' if V9 else 'skipped'
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output',type=Path,required=True)
@@ -65,16 +78,21 @@ with tempfile.TemporaryDirectory(prefix='forge-v7-browser-') as temp:
             assert startup_error.count()==0,startup_error.inner_text()
             check('Delayed extension loads without a false authorization error')
             page.wait_for_selector('#dl-urls')
-            check('Download Studio is the working landing page',page.locator('h1').inner_text()=='Download Studio')
+            check(DOWNLOAD_NAME+' is the working landing page',page.locator('h1').inner_text()==DOWNLOAD_NAME)
             check('Icon-first sidebar defaults to compact',page.locator('body').evaluate("e=>e.classList.contains('compact')"))
-            check('No Overview, Queue or duplicate Environment sidebar entry',page.locator('#sidebar [data-view="overview"],#sidebar [data-view="queue"],#environment-button').count()==0)
-            check('Settings occupies workspace navigation',page.locator('#workspace-nav [data-view="settings"]').count()==1)
+            if V9:
+                check('No Overview or duplicate Environment sidebar entry',page.locator('#sidebar [data-view="overview"],#environment-button').count()==0)
+                check('Processing Queue occupies its swapped workspace position',page.locator('#workspace-nav [data-view="queue"]').count()==1 and page.locator('#sidebar [data-view="queue"]').count()==1)
+                check('Settings occupies its swapped utility position',page.locator(SETTINGS_SELECTOR).count()==1 and page.locator('#sidebar [data-view="settings"]').count()==1)
+            else:
+                check('No Overview, Queue or duplicate Environment sidebar entry',page.locator('#sidebar [data-view="overview"],#sidebar [data-view="queue"],#environment-button').count()==0)
+                check('Settings occupies workspace navigation',page.locator(SETTINGS_SELECTOR).count()==1)
             check('Header breadcrumb removed',page.locator('.breadcrumb').count()==0)
             page.locator('#collapse').click()
             check('Brand subtitle comes from running version','SCRIPTING ENVIRONMENT ENGINE' in page.locator('.brand-words').inner_text() and page.locator('#brand-version').inner_text().startswith('V'))
             page.locator('#collapse').click()
             page.wait_for_timeout(350)  # Allow the sidebar's width transition to settle.
-            settings=page.locator('#workspace-nav [data-view="settings"]');settings.hover()
+            settings=page.locator(SETTINGS_SELECTOR);settings.hover()
             page.wait_for_selector('#navigation-tooltip:not([hidden])')
             check('Tooltip names the actual tool outside the sidebar',page.locator('#navigation-tooltip').inner_text()=='Settings' and page.locator('#navigation-tooltip').bounding_box()['x']>=page.locator('#sidebar').bounding_box()['width'])
             sidebar=page.locator('#sidebar').bounding_box();engine=page.locator('.local-mark').bounding_box()
@@ -91,16 +109,25 @@ with tempfile.TemporaryDirectory(prefix='forge-v7-browser-') as temp:
             check('Black Scripting mode hides sidebar',not page.locator('#sidebar').is_visible())
             check('Black Scripting has explicit exit state','Exit Black Scripting' in page.locator('#black-scripting-launcher').inner_text())
             page.locator('#black-scripting-launcher').click();page.wait_for_selector('#dl-urls')
-            check('Exiting restores Download Studio draft',page.locator('#dl-urls').input_value().endswith('synthetic'))
+            check('Exiting restores '+DOWNLOAD_NAME+' draft',page.locator('#dl-urls').input_value().endswith('synthetic'))
             page.locator('[data-download-tab="watch"]').click();page.locator('#watch-add').click()
             page.locator('#watch-url').fill('https://www.youtube.com/@synthetic');page.locator('#watch-save').click()
-            page.wait_for_selector('.watch-source')
-            check('Channel registration displays persistent source','Synthetic Channel' in page.locator('.watch-source').inner_text())
-            check('Unreported totals remain unknown','Unknown' in page.locator('.watch-stats').inner_text())
+            page.wait_for_selector(CHANNEL_SELECTOR)
+            check('Channel registration displays persistent source','Synthetic Channel' in page.locator(CHANNEL_SELECTOR).inner_text())
+            if V9:
+                page.locator(CHANNEL_SELECTOR+' .dl-channel-details > summary').click()
+                check('Unreported totals remain unknown','Unknown' in page.locator(CHANNEL_SELECTOR+' .dl-channel-details').inner_text())
+                page.locator(CHANNEL_SELECTOR+' .dl-channel-details > summary').click()
+            else:
+                check('Unreported totals remain unknown','Unknown' in page.locator('.watch-stats').inner_text())
             check('Default future-only registration never backfills',app.state.store.jobs()==[])
             page.screenshot(path=str(output/'channel-watch.png'),full_page=True)
-            page.locator('[data-watch-media]').click();page.wait_for_selector('.watch-media tbody tr')
-            check('Historical media remains independently reviewable','skipped' in page.locator('.watch-media').inner_text())
+            page.locator('[data-watch-media]').click();page.wait_for_selector(UPLOAD_SELECTOR)
+            if V9:
+                check('Historical media remains independently reviewable','Review required' in page.locator(UPLOAD_SELECTOR).inner_text() and app.state.download_studio.media()[0]['status']==INITIAL_MEDIA_STATE)
+                check('Unapproved historical discovery remains outside processing queue',app.state.store.jobs()==[] and app.state.download_planner.get_media('youtube:fixture0001')['state']=='review')
+            else:
+                check('Historical media remains independently reviewable','skipped' in page.locator('.watch-media').inner_text())
             page.evaluate("navigate('addresses')");page.wait_for_selector('#generator-generate');page.locator('#generator-generate').click()
             page.wait_for_selector('.address-record');check('Form-ready default address has six fields',page.locator('.address-field input').count()==6)
             street=page.locator('.address-field input').first.input_value()
@@ -138,7 +165,7 @@ with tempfile.TemporaryDirectory(prefix='forge-v7-browser-') as temp:
             page.wait_for_selector('#maintenance-banner')
             check('Pending maintenance is visible outside Updates','waiting' in page.locator('#maintenance-banner').inner_text())
             page.locator('#maintenance-banner button').click();page.wait_for_selector('#maintenance-banner',state='detached')
-            check('Pending request cancels without removing queued/history data',not app.state.manager.maintenance_pending and app.state.download_studio.media()[0]['status']=='skipped')
+            check('Pending request cancels without removing queued/history data',not app.state.manager.maintenance_pending and app.state.download_studio.media()[0]['status']==INITIAL_MEDIA_STATE)
             failed_page=context.new_page()
             failed_page.add_init_script("document.addEventListener('DOMContentLoaded',()=>{render=()=>{throw new Error('Synthetic rendering failure');};});")
             failed_page.goto(f'http://127.0.0.1:{port}/')

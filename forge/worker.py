@@ -306,7 +306,10 @@ def transcribe(source: Path, stage_dir: Path, stem: str, options: dict, data: Pa
     return export_transcript(segments, info, options, stage_dir, stem), warnings
 
 
-def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str, *, resume_dir=None):
+def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str, *, resume_dir=None, playlist_index=None):
+    if playlist_index is not None and (isinstance(playlist_index, bool) or not isinstance(playlist_index, int)
+                                       or not 1 <= playlist_index <= 1_000_000):
+        raise ValueError('A selected playlist item requires a valid original playlist index.')
     try:
         import yt_dlp
     except ImportError as exc:
@@ -317,7 +320,8 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
         plugin_dirs.value = []
     except ImportError:
         pass
-    last_progress = [0.0]
+    from .download_runtime import DownloadProgress, DownloadFailure
+    measurements = DownloadProgress(progress, tool=tool, playlist=options.get('playlist', False))
     warnings = []
     class Logger:
         def debug(self, message): pass
@@ -329,29 +333,22 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
                 if warning not in warnings: warnings.append(warning)
         def error(self, message): pass
 
-    def hook(d):
-        now = time.monotonic()
-        if now - last_progress[0] < 0.3:
-            return
-        last_progress[0] = now
-        total = d.get('total_bytes') or 0
-        measured = total > 0 and not options.get('playlist')
-        if d.get('status') == 'downloading':
-            done = d.get('downloaded_bytes', 0)
-            progress(100*done/total if measured else 0, 'Downloading playlist item '+str(d.get('info_dict',{}).get('playlist_index','?')) if options.get('playlist') else 'Downloading media',progress_measured=bool(measured),stage='Playlist / current file' if options.get('playlist') else 'Download',speed=(f'{d.get("speed",0)/1048576:.2f} MB/s' if d.get('speed') else ''),eta_seconds=d.get('eta') if measured else None)
-        elif d.get('status') == 'finished':
-            progress(0, 'Download finished; post-processing', progress_measured=False, stage='Post-processing')
+    def match(info, **kwargs):
+        measurements.prepare(info)
+        if info.get('is_live') and not options.get('capture_live'):
+            return 'Live broadcasts are not enabled.'
     ff = executable('ffmpeg', settings)
     if not ff or not executable('ffprobe', settings):
         raise RuntimeError('Download conversion/merging requires FFmpeg and FFprobe. Configure them in Environment.')
     params = {'outtmpl': str(stage_dir / '%(title).120B [%(id)s].%(ext)s'), 'paths': {'home': str(stage_dir)},
-              'quiet': True, 'no_warnings': True, 'logger': Logger(), 'progress_hooks': [hook],
+              'quiet': True, 'no_warnings': True, 'logger': Logger(), 'progress_hooks': [measurements.hook],
+              'postprocessor_hooks': [measurements.postprocess],
               'noplaylist': not options.get('playlist',False), 'windowsfilenames': True, 'restrictfilenames': False,
               'overwrites': False, 'socket_timeout': 25, 'retries': 2, 'extractor_retries': 0,
               'ffmpeg_location': str(Path(ff).parent), 'cachedir': False, 'remote_components': [],
-              'postprocessors': [], 'writethumbnail': options.get('thumbnail',False), 'writeinfojson': False,
+              'postprocessors': [], 'writethumbnail': False, 'write_all_thumbnails': False, 'writeinfojson': False,
               'continuedl': options.get('resume',True), 'trim_file_name':200,
-              'match_filter': lambda info, **kwargs: 'Live broadcasts are not enabled.' if info.get('is_live') and not options.get('capture_live') else None}
+              'match_filter': match}
     templates={'title_id':'%(title).120B [%(id)s].%(ext)s','channel_title':'%(uploader).60B - %(title).100B [%(id)s].%(ext)s','playlist_index':'%(playlist_index)03d - %(title).100B [%(id)s].%(ext)s'}
     params['outtmpl']=str(stage_dir/templates[options.get('filename_style','title_id')])
     if options.get('filename_template'):
@@ -393,31 +390,43 @@ def download(url: str, stage_dir: Path, options: dict, settings: dict, tool: str
             params['postprocessors'].append({'key': 'FFmpegVideoRemuxer', 'preferedformat': 'mkv'})
     if options['embed_metadata']:
         params['postprocessors'].append({'key': 'FFmpegMetadata', 'add_metadata': True})
+    failure = None
     with yt_dlp.YoutubeDL(params) as ydl:
-        try:ydl.extract_info(url,download=True)
+        if playlist_index is not None and not options.get('playlist'):
+            from yt_dlp.postprocessor.common import PostProcessor
+            class OriginalPlaylistIndexPP(PostProcessor):
+                def run(self, info):
+                    # yt-dlp clears playlist_index for standalone URLs. Restore
+                    # the server-owned source position at its supported video
+                    # preprocessor stage, before evaluating output templates.
+                    info['playlist_index'] = playlist_index
+                    return [], info
+            ydl.add_post_processor(OriginalPlaylistIndexPP(ydl), when='video')
+        try:
+            ydl.extract_info(url, download=True)
         except Exception as exc:
             from .download_support import diagnostic
-            message=diagnostic(exc)['message']
-            if not options.get('playlist'):raise RuntimeError(message) from None
-            warnings.append('Playlist stopped before all requested entries completed. '+message)
-    files = [p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.mp3','.m4a','.flac','.wav','.mp4','.mkv','.webm','.opus','.ogg'}]
+            failure = diagnostic(exc)
+            if not options.get('playlist'):
+                raise DownloadFailure(failure) from None
+            warnings.append('Playlist stopped before all requested entries completed. ' + failure['message'])
+    measurements.processing('Verifying Output')
+    files = [p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() == '.' + options['format']]
     if not files:
+        if failure:
+            raise DownloadFailure(failure, warnings=warnings)
         raise RuntimeError('No complete media output was produced.')
     for p in files:
         if not probe(p, settings).get('streams'):
             raise RuntimeError('Downloaded output failed media verification.')
     if options.get('subtitles') or options.get('auto_subtitles'):
         files.extend(p for p in stage_dir.iterdir() if p.is_file() and p.suffix.lower() in {'.srt','.vtt','.ass'})
-    if options.get('thumbnail'):
-        from PIL import Image
-        for p in stage_dir.iterdir():
-            if p.is_file() and p.suffix.lower() in {'.jpg','.jpeg','.png','.webp'}:
-                with Image.open(p) as image: image.verify()
-                files.append(p)
+    if failure:
+        raise DownloadFailure(failure, partial_files=files, warnings=warnings)
     return files, warnings
 
 
-def run(payload: dict):
+def _run(payload: dict):
     tool, options, settings = payload['tool'], payload['options'], payload['settings']
     from .models import OPTION_MODELS
     if tool in OPTION_MODELS:options=OPTION_MODELS[tool].model_validate(options).model_dump()  # Fill new defaults for preserved V0.1 jobs.
@@ -426,11 +435,62 @@ def run(payload: dict):
     data = Path(payload['data'])
     job_id = payload['job_id']
     stage_dir = dest / ('.forge-' + job_id + '.work')
-    stage_dir.mkdir(exist_ok=False)
+    download_publication = None
+    download_cache = None
+    if tool in {'download_audio', 'download_video'}:
+        import hashlib
+        import uuid
+        from .download_runtime import prepare_cache, DownloadPublication
+        key = hashlib.sha256(str(payload.get('resume_key') or payload.get('watch_media') or job_id).encode()).hexdigest()
+        identity_options = {**options, '_playlist_index': payload['playlist_index']} if payload.get('playlist_index') is not None else options
+        download_cache, identity = prepare_cache(data / 'download-cache' / key, payload['url'], identity_options, tool)
+        previous_id = str(payload.get('resume_from_job') or '')
+        if previous_id and previous_id != job_id:
+            import re
+            if not re.fullmatch(r'[a-zA-Z0-9_-]{1,100}', previous_id):
+                raise RuntimeError('Invalid previous download attempt identity.')
+            previous_stage = dest / ('.forge-' + previous_id + '.work')
+            if previous_stage.is_dir() and not previous_stage.is_symlink() and not stage_dir.exists():
+                try:
+                    previous_marker = json.loads((previous_stage / '.transfer.json').read_text('utf-8'))
+                except (OSError, ValueError):
+                    previous_marker = {}
+                if isinstance(previous_marker, dict) and previous_marker.get('identity') == identity:
+                    previous_stage.rename(stage_dir)
+                else:
+                    shutil.move(str(previous_stage), str(download_cache / ('orphan-stage-' + uuid.uuid4().hex)))
+        if stage_dir.exists():
+            if stage_dir.is_symlink() or not stage_dir.is_dir():
+                raise RuntimeError('The interrupted download staging path is not a regular owned directory.')
+            try:
+                previous = json.loads((stage_dir / '.transfer.json').read_text('utf-8'))
+            except (OSError, ValueError):
+                previous = {}
+            if not isinstance(previous, dict) or previous.get('identity') != identity:
+                # Preserve unrecognized legacy work privately instead of reading
+                # it as if it belonged to this request or deleting it.
+                shutil.move(str(stage_dir), str(download_cache / ('orphan-stage-' + uuid.uuid4().hex)))
+        stage_dir.mkdir(exist_ok=True)
+        json_write(stage_dir / '.transfer.json', {'identity': identity})
+        download_publication = DownloadPublication(download_cache, dest, identity)
+    else:
+        stage_dir.mkdir(exist_ok=False)
     warnings = []
     published = []
     manifest = data / 'work' / job_id / 'result.json'
     try:
+        if download_publication:
+            recovered = download_publication.recovered()
+            if recovered:
+                for output in recovered:
+                    if Path(output['path']).suffix.lower() in {'.mp3', '.m4a', '.flac', '.wav', '.mp4', '.mkv'}:
+                        if not probe(Path(output['path']), settings).get('streams'):
+                            raise RuntimeError('Recovered download failed media verification.')
+                emit('finalizing', message='Verified previously published download')
+                result = {'outputs': recovered, 'warnings': download_publication.record.get('warnings', []), 'complete': True}
+                json_write(manifest, result)
+                emit('result', **result)
+                return
         source = Path(payload['source']['path']) if payload.get('source') else None
         if source:
             stat = source.stat()
@@ -510,12 +570,33 @@ def run(payload: dict):
             else:
                 files, warnings = transcribe(source, stage_dir, safe_name(source.stem) + '_transcript', options, data)
         elif tool in {'download_audio','download_video'}:
-            import hashlib
-            from .model_cache import cache_lock
-            key=hashlib.sha256(str(payload.get('resume_key') or payload.get('watch_media') or job_id).encode()).hexdigest()
-            resume_dir=data/'download-cache'/key
-            with cache_lock(resume_dir/'.lock',lambda *a,**k:progress(0,'Waiting for the previous download attempt',stage='Download resume'),timeout=60):
-                files, warnings = download(payload['url'], stage_dir, options, settings, tool, resume_dir=resume_dir)
+            from .download_runtime import DownloadFailure
+            from .download_runtime import file_digest
+            for entry in download_publication.record['entries']:
+                name = entry.get('source_name')
+                if not isinstance(name, str) or Path(name).name != name or '\\' in name:
+                    continue
+                staged = stage_dir / name
+                if staged.is_file() and not staged.is_symlink() and file_digest(staged) != entry.get('sha256'):
+                    # A crash can leave a hard link between staged and final
+                    # names. Never reuse later user edits as downloaded bytes.
+                    import uuid
+                    shutil.move(str(staged), str(download_cache / ('changed-stage-' + uuid.uuid4().hex + '-' + staged.name)))
+            try:
+                files, warnings = download(payload['url'], stage_dir, options, settings, tool, resume_dir=download_cache,
+                                           playlist_index=payload.get('playlist_index'))
+                download_failure = None
+            except DownloadFailure as failure:
+                if not failure.partial_files:
+                    earlier = [download_publication.verified(entry) for entry in download_publication.record['entries']]
+                    earlier = [item for item in earlier if item]
+                    if earlier:
+                        partial = {'outputs': earlier, 'warnings': failure.warnings, 'complete': False}
+                        json_write(manifest, partial)
+                        emit('result', **partial)
+                    raise
+                files, warnings = failure.partial_files, failure.warnings
+                download_failure = failure
         elif tool == 'watermark':
             from .watermark import process
             files, warnings = process(source, stage_dir, options, settings, context=payload)
@@ -540,6 +621,8 @@ def run(payload: dict):
         # Publish actual media first. Collision resolution can change its name;
         # private verification reports must describe that real final filename.
         files = [Path(path) for path in files]
+        if download_publication:
+            download_publication.prepare(files, warnings, complete=download_failure is None)
         if tool in {'privacy_export', 'privacy_verify'}:
             files.sort(key=lambda path: path.suffix.lower() in {'.json', '.html'})
         published_paths = {}
@@ -553,17 +636,46 @@ def run(payload: dict):
             # Empty text is useful when no speech is detected, but make it explicit.
             if path.stat().st_size == 0 and path.suffix == '.txt':
                 path.write_text('[No speech detected]\n', encoding='utf-8')
-            final = publish(path, dest / path.name, allow_empty=(tool == 'transcribe' and path.suffix == '.srt'))
+            if download_publication:
+                item = download_publication.publish(path)
+                final = Path(item['path'])
+            else:
+                final = publish(path, dest / path.name, allow_empty=(tool == 'transcribe' and path.suffix == '.srt'))
+                stat = final.stat()
+                item = {'name': final.name, 'path': str(final), 'size': stat.st_size,
+                        'source_stat': {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}}
             published_paths[str(path)] = str(final)
-            stat = final.stat()
-            published.append({'name': final.name, 'path': str(final), 'size': stat.st_size,
-                              'source_stat': {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}})
+            published.append(item)
             json_write(manifest, {'outputs': published, 'warnings': warnings, 'complete': False})
-        result = {'outputs': published, 'warnings': warnings, 'complete': True}
+        if download_publication:
+            # Preserve earlier successfully published files from an interrupted
+            # legacy playlist while reporting this attempt's actual outcome.
+            for entry in download_publication.record['entries']:
+                item = download_publication.verified(entry)
+                if item and not any(output['path'] == item['path'] for output in published):
+                    published.append(item)
+        result = {'outputs': published, 'warnings': warnings,
+                  'complete': not download_publication or download_failure is None}
         json_write(manifest, result)
         emit('result', **result)
+        if download_publication and download_failure:
+            raise download_failure
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)
+
+
+def run(payload: dict):
+    if payload.get('tool') not in {'download_audio', 'download_video'}:
+        return _run(payload)
+    import hashlib
+    from .model_cache import cache_lock
+    # One OS-owned lock covers retry identity, transfer and publication. It is
+    # released by the OS even if a worker is killed during a transfer.
+    key = hashlib.sha256(str(payload.get('resume_key') or payload.get('watch_media') or payload['job_id']).encode()).hexdigest()
+    with cache_lock(Path(payload['data']) / 'download-cache' / key / '.lock',
+                    lambda *a, **k: progress(0, 'Waiting for the previous download attempt', stage='Download resume'),
+                    timeout=60):
+        return _run(payload)
 
 
 def watch_parent(pid: int, started: float):
@@ -590,5 +702,7 @@ if __name__ == '__main__':
             threading.Thread(target=watch_parent, args=(payload['parent_pid'], payload['parent_started']), daemon=True).start()
         run(payload)
     except Exception as error:
-        emit('error', message=str(error)[:4000])
+        from .download_runtime import DownloadFailure
+        details = {'error_code': error.code, 'error_retryable': error.retryable} if isinstance(error, DownloadFailure) else {}
+        emit('error', message=str(error)[:4000], **details)
         sys.exit(1)

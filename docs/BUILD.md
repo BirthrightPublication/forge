@@ -31,6 +31,12 @@ The package builder includes the updater's allowlisted application files and a m
 
 ## Local validation and build
 
+V0.9 development additionally runs `tests/browser_v9_check.py` and
+`tests/integration_upgrade_v9.py` against a populated V0.8 candidate in a new
+disposable directory. `scripts/check_download_acceptance.py --require-windows
+--output <new-evidence-directory>` enforces actual native downloader prerequisites
+and zero skipped media tests. See [V0.9 verification](V0.9-VALIDATION.md) for scopes.
+
 Use Python 3.12 for the release validation environment. Install FFmpeg/FFprobe and a Chromium browser for real media and browser checks. On Ubuntu 24.04:
 
 ```bash

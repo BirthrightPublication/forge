@@ -307,7 +307,12 @@ def test_download_authentication_reaches_worker_but_not_presets(tmp_path):
               'options':{'format':'mp4','cookies':str(cookie)},'output':{'mode':'custom','directory':str(tmp_path/'out')}}
         response=client.post('/api/jobs',json=body)
         assert response.status_code==200,response.text
-        assert app.state.store.jobs()[0]['payload']['options']['cookies']==str(cookie)
+        plan = response.json()['plans'][0]
+        assert not app.state.store.jobs()  # V0.9 plans wait outside execution.
+        assert app.state.download_planner.payload_for(plan['id'])['options']['cookies']==str(cookie)
+        assert str(cookie) not in json.dumps(client.get('/api/downloads/plans').json())
+        admitted = app.state.download_planner.admit_one(lambda candidate: True)
+        assert admitted['payload']['options']['cookies']==str(cookie)
         response=client.post('/api/presets',json={k:v for k,v in {**body,'name':'Synthetic auth-free preset'}.items() if k!='urls'})
         assert response.status_code==200,response.text
         assert app.state.store.get('presets')[0]['options']['cookies']==''
