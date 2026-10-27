@@ -1,20 +1,30 @@
 # FORGE — Scripting Environment Engine
 
-**V0.9.0 development candidate · Media Downloads 2.0 · Windows 11**
+**V0.9.0 · Media Downloads 2.0 · Windows 11**
 
 FORGE runs local production tools in your browser. V0.9 adds persistent download planning, priority scheduling, selected playlists and compact Channel Watch cards. It retains the complete V0.8 speech workspace, voice profiles and Kokoro blends, Ming adapters, audio effects, audiobook assembly and optional Bark recognition. Whisper, privacy tools, Black Scripting and verified updates remain available.
 
-This branch integrates approved V0.8 source `078d9d5375033cf982e122f0c148433fe4e6760f` from `main` after [PR #8](https://github.com/BirthrightPublication/forge/pull/8) merged. Development began at its tested `e2d66c7` checkpoint and preserved all subsequent approved changes. CUDA remains experimental and unverified; the V0.8 owner exception applies only to V0.8. V0.9 requires separate owner review before merge, tag or publication. See [V0.9 architecture and verification](docs/V0.9-MEDIA-DOWNLOADS.md), [V0.8 approved release guidance](docs/V0.8-RELEASE.md), and [the latest published release](https://github.com/BirthrightPublication/forge/releases/latest).
+V0.9 integrates approved V0.8 source `078d9d5375033cf982e122f0c148433fe4e6760f` from `main` after [PR #8](https://github.com/BirthrightPublication/forge/pull/8) merged. Development began at its tested `e2d66c7` checkpoint and preserved all subsequent approved changes. The owner authorized V0.9 publication through the existing Windows updater, subject to all final tagged-source release checks. CUDA remains experimental and unverified; the V0.8 owner exception applies only to V0.8. See [V0.9 release and update instructions](docs/V0.9-RELEASE.md), [architecture and verification](docs/V0.9-MEDIA-DOWNLOADS.md), and [the latest published release](https://github.com/BirthrightPublication/forge/releases/latest).
 
 ## Source and releases
 
-The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Published Windows releases contain exactly one `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` and its `.zip.sha256` companion, with application files under `app/`. A legacy offline ZIP is retained separately. Release packages are GitHub assets, never source files. The V0.9 candidate uses `FORGE-v0.9.0-windows-x64.zip` and legacy `FORGE-v0.9.zip`; these become release assets only after final approval and passing release gates.
+The authoritative repository is [BirthrightPublication/forge](https://github.com/BirthrightPublication/forge). Published Windows releases contain exactly one `FORGE-vMAJOR.MINOR.PATCH-windows-x64.zip` and its `.zip.sha256` companion, with application files under `app/`. A legacy offline ZIP is retained separately. Release packages are GitHub assets, never source files. V0.9 uses `FORGE-v0.9.0-windows-x64.zip` and legacy `FORGE-v0.9.zip`; publication must wait for all required release gates, and actual availability is recorded on GitHub Releases.
 
 Read [AGENTS.md](AGENTS.md) for the permanent development and publication rules, [build instructions](docs/BUILD.md), and [the initial publication audit](docs/PUBLICATION.md). The existing MIT license is retained with the owner's approval; third-party dependencies and user files retain their own terms.
 
 ## Update the existing installation
 
 **If `B:\Forge\Update-Application.ps1` is installed:** finish queued work, close FORGE, and run your existing `B:\Forge\Update FORGE.bat` using the [temporary-path instructions](docs/WINDOWS_RELEASES.md) to avoid the supplied updater's shortened-path bug. The script downloads the single Windows ZIP from the latest release, verifies its SHA-256 and stages `app/`; type `UPDATE` only after reviewing its plan. Keep both installed updater files. This package excludes them, settings, presets, history, user media, models, environments and original scripts. Backups and logs use `Update-Backups` and `Update-Logs`.
+
+Once V0.9 is published as the latest release, the existing PowerShell command remains:
+
+```powershell
+New-Item -ItemType Directory -Force 'B:\Forge\Build' | Out-Null
+$env:TEMP = 'B:\Forge\Build'
+& 'B:\Forge\Update FORGE.bat'
+```
+
+Confirm `v0.9.0` in the update plan, then enter `UPDATE`. Reopen FORGE using its installed launcher, reload the browser with Ctrl+F5 and confirm version `0.9.0`. See [the V0.9 release guide](docs/V0.9-RELEASE.md) for preservation, recovery and validation scope.
 
 **For the older offline updater:** the following procedure continues to use the legacy package. Do not replace a working GitHub updater with the legacy standalone BAT.
 

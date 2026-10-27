@@ -56,7 +56,7 @@
 
 ## V0.9 media planning
 
-- V0.9 began at V0.8 candidate `e2d66c7281107283bc81d3fcd6ebaa0a13118a64`, then integrated approved main commit `078d9d5375033cf982e122f0c148433fe4e6760f` after PR #8 merged. Preserve all approved V0.8 source, experimental CUDA labels and history. V0.9 requires separate owner approval; the V0.8 GPU exception is not a blanket exception for future releases.
+- V0.9 began at V0.8 candidate `e2d66c7281107283bc81d3fcd6ebaa0a13118a64`, then integrated approved main commit `078d9d5375033cf982e122f0c148433fe4e6760f` after PR #8 merged. Preserve all approved V0.8 source, experimental CUDA labels and history. The owner authorized V0.9 merge, tag and publication through the existing updater, subject to all final tagged-source release gates; see docs/V0.9-RELEASE.md. The V0.8 GPU exception is not a blanket exception for future releases, and CUDA remains unverified.
 - Keep one persistent canonical media plan across manual links, playlists and watched sources. Pending/review media does not create a worker or an executable queue record. Admission and job association must commit atomically only after real resource capacity is available.
 - Waiting manual singles outrank manual playlists, which outrank watched-channel work. Preserve all six channel priorities, deterministic fair turns, authoritative per-source ordering, Unknown-last metadata and active-job snapshots. Explicit Black Scripting graphs retain their dependency records.
 - Preserve existing channels, media identities, jobs/history, source associations, private credentials, speech projects, environments and partial transfer caches. Migration is additive and idempotent. Legacy completion labels alone are not verified output evidence.
