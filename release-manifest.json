@@ -362,7 +362,7 @@
     "tests/test_speech_books.py": "5317b7430c0f716055d3868babe5d42bc18bb8b9f620ecbadcfa234b00607c60",
     "tests/test_speech_documents.py": "ffde9c573615af6c5d14e1e4bdf87f01b29636f052f41360253842ad8e8e0b36",
     "tests/test_speech_engines_v8.py": "a9331829d991cc398bccb5a5c500ae78f9fd2cb17cea2d55304a792571249f75",
-    "tests/test_speech_release_gate.py": "5a2c62791e5bf3a936533491b37982df4facc00f56717dcd14f19d21ad679150",
+    "tests/test_speech_release_gate.py": "f2004f24790b0bdb219526a49d3bc3eba385ae20cc61f838e97cf34f3c67fe6d",
     "tests/test_updater.py": "c0ab300e31b5d70fb2c2e3a87ea870401392fc56a80601ed0692aea21d4fb473",
     "tests/test_v10_hotfixes.py": "6ca3478fd913884e334a8dcb0607a35e2f2392282b3c39710e8c09f0c18a12f5",
     "tests/test_v10_maintenance.py": "a08fbf0ed207f852fdcf9ba7d443addd2fe98390390699a133f60a52ab185db8",
