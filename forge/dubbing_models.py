@@ -581,7 +581,16 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
         url = download.get('url', ''); sha = download.get('archive_info', {}).get('hashes', {}).get('sha256', '')
         name = urllib.parse.unquote(Path(urllib.parse.urlsplit(url).path).name)
         if not _url_allowed(url) or not name.endswith('.whl') or not SHA256.fullmatch(sha):
-            raise ComponentUnavailable('Every managed dependency must have a verified binary wheel; arbitrary source builds are not permitted.')
+            identity = str(metadata.get('name', 'unknown package'))[:100] + ' ' + str(metadata.get('version', 'unknown version'))[:80]
+            reasons = []
+            if not _url_allowed(url):
+                reasons.append('unapproved publisher host ' + str(urllib.parse.urlsplit(url).hostname or '<missing>')[:120])
+            if not name.endswith('.whl'):
+                reasons.append('not a binary wheel: ' + name[:160])
+            if not SHA256.fullmatch(sha):
+                reasons.append('missing complete SHA-256 in the native resolver report')
+            raise ComponentUnavailable('Every managed dependency must have a verified binary wheel; arbitrary source builds are not permitted. '
+                                       + identity + ': ' + '; '.join(reasons) + '.')
         package, version = metadata.get('name', ''), metadata.get('version', '')
         if not re.fullmatch(r'[A-Za-z0-9_.-]+', package) or not re.fullmatch(r'[A-Za-z0-9_.+!-]+', version):
             raise ComponentUnavailable('Invalid dependency package identity.')

@@ -200,7 +200,7 @@
     "forge/dubbing_api.py": "dfd4612fc247de2f6e58a168670b97bafafd8ab231c327cb87660fbc5811d7e6",
     "forge/dubbing_audio.py": "99240646cb224e6d761173ffff06a9696801f654ca2bf85b63ae9342b5ec6397",
     "forge/dubbing_media.py": "4b20c9bb9506c0d6dc95141e593d4341f1caedc5cc9548fb07b435bec29f53ee",
-    "forge/dubbing_models.py": "6addbb00ef445ee9e5f7ed23093c0459e09448df36847f26e734d0260a842ded",
+    "forge/dubbing_models.py": "21ea5c866937c3e5163ae996b5d941115c8afe6dee3fa8ff67935be67bdbfdec",
     "forge/dubbing_options.py": "ff8aa7bd356324919f9af6f20832615e412b4759b59079d25b7d6241c578059f",
     "forge/dubbing_pipeline.py": "af173dc15df5d47f8f25bb763049d4ca0d2adc7bec7c14032483c155bc0ad1ea",
     "forge/dubbing_recovery.py": "3515a5a1292b1ce8454615ab1eb902dc8ea070c3fdf2b9a5636c2843b094755b",

@@ -9,6 +9,9 @@ on:
       - scripts/dubbing_dependency_lock.py
       - scripts/requirements-dubbing-*.txt
       - forge/dubbing_models.py
+      - forge/dubbing_visual.py
+      - forge/dubbing_separation.py
+      - forge/dubbing_wheel_locks/**
 
 permissions:
   contents: read
