@@ -74,7 +74,7 @@ def test_manual_window_edit_keeps_valid_voice_and_invalidates_derived_timing(lib
     assert changed['segments'][0]['timing']['stale'] is True
     assert changed['segments'][0]['reviewed'] is False
     output=tmp_path/'owned.srt';subtitles([changed['segments'][0]],output)
-    assert '00:00:02,000 --> 00:00:03,000' in output.read_text()
+    assert '00:00:02,000 --> 00:00:03,000' in output.read_text(encoding='utf-8')
 
 
 def test_late_worker_preserves_changed_segment_and_applies_unaffected_work(library):

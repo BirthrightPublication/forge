@@ -37,6 +37,22 @@ def failure_notice(error):
     print('::error title=Native dependency resolution::' + escaped, flush=True)
 
 
+def dependency_notices(raw):
+    """Transport complete inventories below GitHub's per-annotation truncation."""
+    compressed = zlib.compress(raw, 9)
+    encoded = base64.b64encode(compressed).decode('ascii')
+    if len(encoded) > 50000:
+        raise ValueError('The normalized dependency notice exceeds its bounded annotation size.')
+    chunks = [encoded[index:index + 3000] for index in range(0, len(encoded), 3000)]
+    receipt = {'schema': 1, 'encoding': 'base64+zlib', 'chunks': len(chunks),
+               'sha256': hashlib.sha256(raw).hexdigest(), 'compressed_bytes': len(compressed),
+               'uncompressed_bytes': len(raw)}
+    print('::notice title=Dubbing dependency lock receipt::' + json.dumps(receipt, sort_keys=True), flush=True)
+    for index, chunk in enumerate(chunks, 1):
+        print('::notice title=Dubbing dependency lock chunk ' + str(index).zfill(3) + ' of '
+              + str(len(chunks)).zfill(3) + '::' + chunk, flush=True)
+
+
 def main():
     from forge import dubbing_models as models
     parser = argparse.ArgumentParser(description=__doc__)
@@ -72,10 +88,7 @@ def main():
                       'wheels': len(dependencies['wheels']), 'download_bytes': dependencies['download_bytes'],
                       'lock_sha256': hashlib.sha256(raw).hexdigest(), 'model_inference_tested': False}))
     if args.annotation:
-        encoded = base64.b64encode(zlib.compress(raw, 9)).decode('ascii')
-        if len(encoded) > 50000:
-            raise SystemExit('The normalized dependency notice exceeds its bounded annotation size.')
-        print('::notice title=Dubbing dependency lock::' + encoded)
+        dependency_notices(raw)
 
 
 if __name__ == '__main__':

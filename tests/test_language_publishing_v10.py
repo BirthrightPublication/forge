@@ -607,7 +607,7 @@ def test_subtitle_failure_preserves_uploaded_video_and_retry_does_not_upload_aga
     client, app, service, fixture = api
     profile = connected(api)
     subtitle = tmp_path / 'ru.vtt'
-    subtitle.write_text('WEBVTT\n\n00:00.000 --> 00:01.000\nРусские субтитры\n')
+    subtitle.write_text('WEBVTT\n\n00:00.000 --> 00:01.000\nРусские субтитры\n', encoding='utf-8')
     prepared, path, body = review(api, profile, tmp_path, subtitles_path=str(subtitle))
     queued = post(client, 'upload', {'review_token': prepared['review_token'], 'approve': True})
     fixture.fail_caption = True
@@ -662,7 +662,7 @@ def test_manual_export_fallback_needs_no_oauth_and_never_sends_media(api, tmp_pa
     original = path.read_bytes()
     result = post(client, 'manual', {'profile_id': profile['id'], 'path': str(path), 'metadata': metadata(),
                                   'approved_metadata': True, 'directory': str(tmp_path / 'manual')})
-    saved = json.loads(Path(result['files'][0]['path']).read_text())
+    saved = json.loads(Path(result['files'][0]['path']).read_text(encoding='utf-8'))
     assert saved['review']['metadata']['title'] == metadata()['title']
     assert result['studio_url'] == 'https://studio.youtube.com/'
     assert not fixture.requests and not app.state.store.jobs()

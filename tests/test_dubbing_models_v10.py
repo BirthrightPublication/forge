@@ -46,7 +46,7 @@ def managed(tmp_path, monkeypatch):
     def environment(data, plan, runtime, progress=None):
         root = Path(data) / 'environments' / plan['runtime_id']
         python = models._python(root); python.parent.mkdir(parents=True, exist_ok=True)
-        python.write_text('Owned synthetic interpreter marker; never executed.')
+        python.write_text('Owned synthetic interpreter marker; never executed.', encoding='utf-8')
         json_write(root / 'forge-dubbing-runtime.json', {'schema': 1, 'id': root.name, 'import_tested': True,
                     'requirements_sha256': plan['dependencies']['requirements_sha256'], 'device': 'cpu', 'sources': []})
         return root
@@ -318,7 +318,7 @@ def test_concurrent_component_downloads_share_one_verified_transfer(tmp_path, mo
 def test_invoke_drains_large_stderr_without_deadlock(tmp_path, monkeypatch):
     app = tmp_path / 'app'; scripts = app / 'scripts'; scripts.mkdir(parents=True)
     runner = scripts / 'fixture.py'
-    runner.write_text('import sys,json,pathlib\nr=json.loads(pathlib.Path(sys.argv[2]).read_text())\nsys.stderr.write("owned warning "*150000);sys.stderr.flush()\nprint(json.dumps({"kind":"progress","progress":20,"message":"Owned fixture"}),flush=True)\npathlib.Path(r["response"]).write_text(json.dumps({"success":True,"model_revision":r["model_revision"],"inference_tested":False}))\n')
+    runner.write_text('import sys,json,pathlib\nr=json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))\nsys.stderr.write("owned warning "*150000);sys.stderr.flush()\nprint(json.dumps({"kind":"progress","progress":20,"message":"Owned fixture"}),flush=True)\npathlib.Path(r["response"]).write_text(json.dumps({"success":True,"model_revision":r["model_revision"],"inference_tested":False}),encoding="utf-8")\n', encoding='utf-8')
     monkeypatch.setattr(models, 'ROOT', app)
     monkeypatch.setattr(models, '_spec', lambda component: {'runner': 'scripts/fixture.py'})
     monkeypatch.setattr(models, 'resolve', lambda *args: {'python': Path(sys.executable), 'root': tmp_path,
@@ -332,7 +332,7 @@ def test_invoke_drains_large_stderr_without_deadlock(tmp_path, monkeypatch):
 
 def test_hung_inference_has_bounded_deadline_before_stdout_eof(tmp_path, monkeypatch):
     app = tmp_path / 'app'; scripts = app / 'scripts'; scripts.mkdir(parents=True)
-    (scripts / 'fixture.py').write_text('import time\ntime.sleep(60)\n')
+    (scripts / 'fixture.py').write_text('import time\ntime.sleep(60)\n', encoding='utf-8')
     monkeypatch.setattr(models, 'ROOT', app)
     monkeypatch.setattr(models, 'INFERENCE_TIMEOUT_SECONDS', .3)
     monkeypatch.setattr(models, '_spec', lambda component: {'runner': 'scripts/fixture.py'})
@@ -430,7 +430,7 @@ def test_component_parent_link_cannot_redirect_cleanup_or_install(managed, tmp_p
 def test_frozen_native_dependency_inventory_is_used_without_network(tmp_path, monkeypatch):
     spec = models._spec('qwen3-tts-0.6b-base')
     source = models.ROOT / 'forge/dubbing_wheel_locks/requirements-dubbing-core-linux-x64-py312-cpu.json'
-    value = json.loads(source.read_text())
+    value = json.loads(source.read_text(encoding='utf-8'))
     lock = tmp_path / 'native.json'; json_write(lock, value)
     monkeypatch.setattr(models, '_target_platform', lambda: ('linux', 'x64'))
     monkeypatch.setattr(models, '_wheel_lock_path', lambda *args: lock)
@@ -445,7 +445,7 @@ def test_frozen_native_dependency_inventory_is_used_without_network(tmp_path, mo
 def test_windows_lock_requires_native_platform_evidence(tmp_path, monkeypatch):
     spec = models._spec('qwen3-tts-0.6b-base')
     source = models.ROOT / 'forge/dubbing_wheel_locks/requirements-dubbing-core-linux-x64-py312-cpu.json'
-    value = json.loads(source.read_text()); value['system'] = 'windows'
+    value = json.loads(source.read_text(encoding='utf-8')); value['system'] = 'windows'
     lock = tmp_path / 'not-native.json'; json_write(lock, value)
     monkeypatch.setattr(models, '_target_platform', lambda: ('windows', 'x64'))
     monkeypatch.setattr(models, '_wheel_lock_path', lambda *args: lock)
@@ -473,7 +473,7 @@ def test_same_runtime_concurrent_installs_recheck_after_cache_lock(tmp_path, mon
     def execute(args, **kwargs):
         if '-m' in args and 'venv' in args:
             interpreter = models._python(Path(args[-1])); interpreter.parent.mkdir(parents=True)
-            interpreter.write_text('Owned interpreter fixture; not executed.')
+            interpreter.write_text('Owned interpreter fixture; not executed.', encoding='utf-8')
         return ''
     monkeypatch.setattr(models, '_bootstrap_python', bootstrap)
     monkeypatch.setattr(models, '_run', execute)
@@ -493,12 +493,12 @@ def test_same_runtime_concurrent_installs_recheck_after_cache_lock(tmp_path, mon
 
 def test_archived_api_patch_reuses_identical_upstream_defaults_and_fails_closed(tmp_path):
     package = tmp_path / 'chatterbox'; flow = package / 'models/s3gen/flow.py'; flow.parent.mkdir(parents=True)
-    (package / '__init__.py').write_text('from importlib.metadata import version\n__version__ = version("chatterbox-tts")\n')
+    (package / '__init__.py').write_text('from importlib.metadata import version\n__version__ = version("chatterbox-tts")\n', encoding='utf-8')
     defaults = "DictConfig(\n                                           {'sigma_min': 1e-06, 'solver': 'euler', 't_scheduler': 'cosine',\n                                            'training_cfg_rate': 0.2, 'inference_cfg_rate': 0.7,\n                                            'reg_loss_type': 'l1'})"
-    flow.write_text('from omegaconf import DictConfig\nfrom .flow_matching import CFM_PARAMS\ndef api(cfm_params=' + defaults + '): pass\n')
+    flow.write_text('from omegaconf import DictConfig\nfrom .flow_matching import CFM_PARAMS\ndef api(cfm_params=' + defaults + '): pass\n', encoding='utf-8')
     assert models._patch_chatterbox_api(tmp_path) == {'chatterbox/__init__.py', 'chatterbox/models/s3gen/flow.py'}
-    assert 'def api(cfm_params=CFM_PARAMS)' in flow.read_text() and 'from omegaconf' not in flow.read_text()
-    assert '__version__ = "0.1.7+forge.ru.api1"' in (package / '__init__.py').read_text()
+    assert 'def api(cfm_params=CFM_PARAMS)' in flow.read_text(encoding='utf-8') and 'from omegaconf' not in flow.read_text(encoding='utf-8')
+    assert '__version__ = "0.1.7+forge.ru.api1"' in (package / '__init__.py').read_text(encoding='utf-8')
     with pytest.raises(models.ComponentUnavailable, match='differs'):
         models._patch_chatterbox_api(tmp_path)
 

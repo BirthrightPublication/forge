@@ -87,7 +87,7 @@ def test_scope_contract_renders_nonempty_text_and_keeps_manuscript(api, tmp_path
     stage = tmp_path / 'render'
     stage.mkdir()
     files, _ = speech_books.process(payload, stage, app.state.store.data)
-    report = json.loads(next(path for path in files if path.suffix == '.json').read_text())
+    report = json.loads(next(path for path in files if path.suffix == '.json').read_text(encoding='utf-8'))
     assert [chapter['id'] for chapter in report['chapters']] == expected_ids
     assert tone_engine == expected_texts
     with wave.open(str(next(path for path in files if path.suffix == '.wav')), 'rb') as rendered:
@@ -112,7 +112,7 @@ def test_export_uses_all_project_chapters_and_only_cached_audio(api, tmp_path, t
     second = tmp_path / 'second'
     second.mkdir()
     files, _ = speech_books.process(payload, second, app.state.store.data)
-    report = json.loads(next(path for path in files if path.suffix == '.json').read_text())
+    report = json.loads(next(path for path in files if path.suffix == '.json').read_text(encoding='utf-8'))
     assert [chapter['id'] for chapter in report['chapters']] == ['one', 'two']
     assert all(segment['reused'] for segment in report['segments'])
     assert tone_engine == ['First chapter.', 'Second chapter.']

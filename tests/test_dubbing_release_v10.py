@@ -93,7 +93,7 @@ def verify(proof):
 
 def change_inventory(proof, mutate):
     path = proof['source'] / gate.INVENTORY
-    value = json.loads(path.read_text())
+    value = json.loads(path.read_text(encoding='utf-8'))
     mutate(value)
     dump(path, value)
     refresh_manifest(proof['source'])
@@ -115,7 +115,7 @@ def test_gate_applies_only_from_v010_and_never_inherits_old_release_exceptions(t
 
 
 def test_missing_model_pin_fails_before_any_network_call(proof, monkeypatch, tmp_path):
-    (proof['source'] / 'forge' / 'dubbing_models.py').write_text('MODEL_PINS: dict[str, str] = {}\n')
+    (proof['source'] / 'forge' / 'dubbing_models.py').write_text('MODEL_PINS: dict[str, str] = {}\n', encoding='utf-8')
     refresh_manifest(proof['source'])
     monkeypatch.setattr(gate, '_api', lambda *args: pytest.fail('Unverified inventory must fail before network I/O.'))
     with pytest.raises(gate.GateError, match='missing reviewed immutable recommended model pin'):
@@ -151,7 +151,7 @@ def test_unverified_model_or_runtime_inventory_is_rejected(proof, fault):
                                       ('reviewed', False), ('dependency_closure_complete', False), ('system', 'linux')])
 def test_linux_or_cross_resolved_wheels_do_not_satisfy_windows_acceptance(proof, field, value):
     path = proof['source'] / proof['wheel_name']
-    wheel = json.loads(path.read_text())
+    wheel = json.loads(path.read_text(encoding='utf-8'))
     wheel[field] = value
     dump(path, wheel)
     change_inventory(proof, lambda inventory: [component['runtime'].update(wheel_inventory_sha256=gate.digest(path))
@@ -200,7 +200,7 @@ def test_physical_gpu_pass_is_required_without_inherited_cpu_release_exception(p
 
 
 def test_changed_or_missing_report_is_not_a_valid_acceptance_claim(proof):
-    (proof['path'].parent / 'reports' / 'acceptance.json').write_text('changed')
+    (proof['path'].parent / 'reports' / 'acceptance.json').write_text('changed', encoding='utf-8')
     with pytest.raises(gate.GateError, match='differs from its digest'):
         verify(proof)
 
@@ -326,7 +326,7 @@ def test_external_artifact_must_have_fixed_identity_before_download(proof, tmp_p
 @pytest.mark.parametrize('workflow,job', [('release.yml', 'publish'), ('windows-release.yml', 'publish_existing')])
 def test_both_publication_dags_require_dubbing_gate_success_and_retain_its_assets(workflow, job):
     root = Path(__file__).resolve().parents[1]
-    text = (root / '.github' / 'workflows' / workflow).read_text()
+    text = (root / '.github' / 'workflows' / workflow).read_text(encoding='utf-8')
     publication = text.split('\n  ' + job + ':\n', 1)[1]
     assert 'dubbing]' in publication.split('if:', 1)[0]
     assert "needs.resolve.outputs.dubbing_required == 'true' && needs.dubbing.result == 'success'" in publication

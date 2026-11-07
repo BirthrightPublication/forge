@@ -33,10 +33,10 @@ def interrupted(tmp_path,monkeypatch):
     task={'id':identity,'root':str(root),'data':str(data),'engines':['transcription'],
           'parent_pid':2147483647,'parent_started':1.0,'port':18991,'queue_paused':True}
     request=data/'maintenance'/(identity+'.request.json')
-    request.write_text(json.dumps(task))
+    request.write_text(json.dumps(task), encoding='utf-8')
     marker=root/'.forge-maintenance.json'
     marker.write_text(json.dumps({'id':identity,'root':str(root),'data':str(data),
-                                 'owner_pid':2147483647,'owner_started':1.0}))
+                                 'owner_pid':2147483647,'owner_started':1.0}), encoding='utf-8')
     monkeypatch.setattr(installer,'ROOT',root)
     monkeypatch.setattr(maintenance,'ROOT',root)
     return root,data,task,marker
@@ -44,21 +44,21 @@ def interrupted(tmp_path,monkeypatch):
 
 def test_dead_owned_orphan_is_archived_without_changing_application_or_data(interrupted):
     root,data,task,marker=interrupted
-    source=root/'app-sentinel.py';source.write_text('Synthetic original source')
+    source=root/'app-sentinel.py';source.write_text('Synthetic original source', encoding='utf-8')
     original=data/'original.wav';original.write_bytes(b'Synthetic private media sentinel')
     info=installer.inspect_marker(data)
     assert info['state']=='inactive' and info['safe_to_clear'] is True
     result=installer.clear_orphan_marker(data)
     assert result['state']=='recovered' and result['repairable'] is False and not marker.exists()
-    assert source.read_text()=='Synthetic original source'
+    assert source.read_text(encoding='utf-8')=='Synthetic original source'
     assert original.read_bytes()==b'Synthetic private media sentinel'
     assert list((data/'maintenance').glob(task['id']+'.marker-*.json'))
 
 
 def test_live_exact_process_owner_cannot_be_cleared(interrupted):
     root,data,task,marker=interrupted
-    value=json.loads(marker.read_text());value.update(owner_pid=os.getpid(),owner_started=psutil.Process().create_time())
-    marker.write_text(json.dumps(value));before=marker.read_bytes()
+    value=json.loads(marker.read_text(encoding='utf-8'));value.update(owner_pid=os.getpid(),owner_started=psutil.Process().create_time())
+    marker.write_text(json.dumps(value), encoding='utf-8');before=marker.read_bytes()
     assert installer.inspect_marker(data)['state']=='active'
     with pytest.raises(RuntimeError,match='still running'):
         installer.clear_orphan_marker(data)
@@ -69,9 +69,9 @@ def test_reused_pid_record_never_kills_the_unrelated_live_process(interrupted):
     root,data,task,marker=interrupted
     child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(20)'])
     try:
-        value=json.loads(marker.read_text())
+        value=json.loads(marker.read_text(encoding='utf-8'))
         value.update(owner_pid=child.pid,owner_started=psutil.Process(child.pid).create_time()-100)
-        marker.write_text(json.dumps(value))
+        marker.write_text(json.dumps(value), encoding='utf-8')
         installer.clear_orphan_marker(data)
         assert not marker.exists() and child.poll() is None
     finally:
@@ -95,10 +95,10 @@ def test_unproven_marker_ownership_is_not_removed(interrupted,kind):
         (data/'maintenance'/(task['id']+'.request.json')).unlink()
     elif kind=='wrong-record-id':
         request=data/'maintenance'/(task['id']+'.request.json')
-        value=json.loads(request.read_text());value['id']='b'*32;request.write_text(json.dumps(value))
+        value=json.loads(request.read_text(encoding='utf-8'));value['id']='b'*32;request.write_text(json.dumps(value), encoding='utf-8')
     else:
-        value=json.loads(marker.read_text());value['root' if kind=='foreign-root' else 'data']=str(root/'foreign')
-        marker.write_text(json.dumps(value))
+        value=json.loads(marker.read_text(encoding='utf-8'));value['root' if kind=='foreign-root' else 'data']=str(root/'foreign')
+        marker.write_text(json.dumps(value), encoding='utf-8')
     before=marker.read_bytes()
     assert installer.inspect_marker(data)['state']=='unknown'
     with pytest.raises(RuntimeError):installer.clear_orphan_marker(data)
@@ -107,7 +107,7 @@ def test_unproven_marker_ownership_is_not_removed(interrupted,kind):
 
 def test_legacy_owner_requires_its_registered_request_and_process_scan(interrupted,monkeypatch):
     _,data,task,marker=interrupted
-    marker.write_text(json.dumps({'id':task['id'],'data':str(data)}))
+    marker.write_text(json.dumps({'id':task['id'],'data':str(data)}), encoding='utf-8')
     monkeypatch.setattr(installer,'_legacy_hosts',lambda request:True)
     assert installer.inspect_marker(data)['state']=='active'
     monkeypatch.setattr(installer,'_legacy_hosts',lambda request:False)
@@ -118,20 +118,20 @@ def test_incomplete_environment_recovery_keeps_current_user_state(interrupted,mo
     root,data,task,marker=interrupted
     target=root/'.venv';(target/'Scripts').mkdir(parents=True)
     (target/'Scripts/python.exe').write_bytes(b'Synthetic interpreter marker')
-    (target/'packages.txt').write_text('broken replacement')
+    (target/'packages.txt').write_text('broken replacement', encoding='utf-8')
     backup=data/'maintenance'/task['id'];(backup/'.venv/Scripts').mkdir(parents=True)
     (backup/'.venv/Scripts/python.exe').write_bytes(b'Synthetic original interpreter marker')
-    (backup/'.venv/packages.txt').write_text('original compatible packages')
-    (backup/'transaction.json').write_text(json.dumps({'state':'installing','changed':['.venv'],'saved':['.venv']}))
-    (data/'settings.json').write_text('Current user settings')
+    (backup/'.venv/packages.txt').write_text('original compatible packages', encoding='utf-8')
+    (backup/'transaction.json').write_text(json.dumps({'state':'installing','changed':['.venv'],'saved':['.venv']}), encoding='utf-8')
+    (data/'settings.json').write_text('Current user settings', encoding='utf-8')
     info=installer.inspect_marker(data)
     assert info['needs_recovery'] is True and info['safe_to_clear'] is False
     with pytest.raises(RuntimeError):installer.clear_orphan_marker(data)
     monkeypatch.setattr('launcher.alive',lambda data:None)
     installer.recover()
     assert not marker.exists()
-    assert (target/'packages.txt').read_text()=='original compatible packages'
-    assert (data/'settings.json').read_text()=='Current user settings'
+    assert (target/'packages.txt').read_text(encoding='utf-8')=='original compatible packages'
+    assert (data/'settings.json').read_text(encoding='utf-8')=='Current user settings'
     assert list(backup.glob('.venv-failed-*/packages.txt'))
 
 
@@ -184,14 +184,14 @@ def test_failed_scheduler_start_clears_maintenance_gates_without_changing_files(
 
 def test_app_rollback_never_replaces_a_newer_unrelated_working_version(interrupted,monkeypatch):
     root,_,_,_=interrupted
-    (root/'VERSION.txt').write_text('0.11.0')
-    (root/'forge').mkdir();(root/'forge/__init__.py').write_text("__version__ = '0.11.0'\n")
+    (root/'VERSION.txt').write_text('0.11.0', encoding='utf-8')
+    (root/'forge').mkdir();(root/'forge/__init__.py').write_text("__version__ = '0.11.0'\n", encoding='utf-8')
     (root/'scripts').mkdir()
     shutil.copyfile(Path(installer.__file__).parent/'update.py',root/'scripts/update.py')
     calls=[];monkeypatch.setattr(installer,'run',lambda *args,**kwargs:calls.append(args))
     with pytest.raises(RuntimeError,match='no longer matches'):
         installer.rollback_application({'from':'0.9.0','to':'0.10.0'})
-    assert calls==[] and (root/'VERSION.txt').read_text()=='0.11.0'
+    assert calls==[] and (root/'VERSION.txt').read_text(encoding='utf-8')=='0.11.0'
 
 
 def test_health_rejects_another_root_and_pid_changes(interrupted,monkeypatch):
@@ -211,9 +211,9 @@ def test_health_rejects_another_root_and_pid_changes(interrupted,monkeypatch):
 
 def test_update_preflight_reports_measured_health_work_and_explicit_estimate(interrupted,monkeypatch):
     root,data,_,_=interrupted
-    (root/'VERSION.txt').write_text(__version__);(root/'server.py').write_text('# Synthetic source')
-    (root/'forge').mkdir();(root/'forge/__init__.py').write_text('__version__ = '+repr(__version__))
-    (root/'release-manifest.json').write_text(json.dumps({'files':{'server.py':'unused'}}))
+    (root/'VERSION.txt').write_text(__version__, encoding='utf-8');(root/'server.py').write_text('# Synthetic source', encoding='utf-8')
+    (root/'forge').mkdir();(root/'forge/__init__.py').write_text('__version__ = '+repr(__version__), encoding='utf-8')
+    (root/'release-manifest.json').write_text(json.dumps({'files':{'server.py':'unused'}}), encoding='utf-8')
     store=Store(data);manager=QueueManager(store)
     store.add_job('qr','Queued',{'options':{}})
     running=store.add_job('qr','Active',{'options':{}});store.update_job(running['id'],status='running')
@@ -271,7 +271,7 @@ def test_launcher_uses_controlled_recovery_without_manual_commands(interrupted,m
     root,data,task,marker=interrupted
     (root/'scripts').mkdir();shutil.copyfile(Path(installer.__file__),root/'scripts/managed_install.py')
     backup=data/'maintenance'/task['id'];backup.mkdir()
-    (backup/'transaction.json').write_text(json.dumps({'state':'installing','changed':[],'saved':[]}))
+    (backup/'transaction.json').write_text(json.dumps({'state':'installing','changed':[],'saved':[]}), encoding='utf-8')
     monkeypatch.setattr(launcher,'ROOT',root)
     monkeypatch.setattr(launcher,'alive',lambda data:None)
     calls=[]
@@ -279,7 +279,7 @@ def test_launcher_uses_controlled_recovery_without_manual_commands(interrupted,m
     assert launcher.maintenance_startup(data) is True
     command,kwargs=calls[0]
     assert command[2]=='--recover-launch' and Path(command[1])==root/'scripts/managed_install.py'
-    request=json.loads(Path(command[3]).read_text())
+    request=json.loads(Path(command[3]).read_text(encoding='utf-8'))
     assert request['recovery']['id']==task['id'] and request['root']==str(root)
     assert request['parent_pid']==os.getpid() and marker.exists()
 
@@ -288,8 +288,8 @@ def test_failed_fresh_backend_rolls_back_environment_and_never_reports_update_su
     root,data,task,marker=interrupted
     target=root/'.venv';(target/'Scripts').mkdir(parents=True)
     (target/'Scripts/python.exe').write_bytes(b'Synthetic original interpreter')
-    (target/'packages.txt').write_text('Original compatible packages')
-    (data/'settings.json').write_text('Current user settings')
+    (target/'packages.txt').write_text('Original compatible packages', encoding='utf-8')
+    (data/'settings.json').write_text('Current user settings', encoding='utf-8')
     class WindowsOS:
         name='nt'
         def __getattr__(self,name):return getattr(os,name)
@@ -306,8 +306,8 @@ def test_failed_fresh_backend_rolls_back_environment_and_never_reports_update_su
     def replace(task):
         backup=data/'maintenance'/task['id'];backup.mkdir()
         shutil.copytree(target,backup/'.venv')
-        (target/'packages.txt').write_text('Broken new packages')
-        (backup/'transaction.json').write_text(json.dumps({'state':'completed','changed':['.venv'],'saved':['.venv'],'application':None}))
+        (target/'packages.txt').write_text('Broken new packages', encoding='utf-8')
+        (backup/'transaction.json').write_text(json.dumps({'state':'completed','changed':['.venv'],'saved':['.venv'],'application':None}), encoding='utf-8')
         return {'status':'installed','backup':str(backup),'message':'Disk replacement only; not restart success.'}
     monkeypatch.setattr(installer,'install',replace)
     calls=[]
@@ -315,16 +315,16 @@ def test_failed_fresh_backend_rolls_back_environment_and_never_reports_update_su
         calls.append(True)
         if len(calls)==1:
             raise RuntimeError('Synthetic new-backend health failure')
-        assert (target/'packages.txt').read_text()=='Original compatible packages'
+        assert (target/'packages.txt').read_text(encoding='utf-8')=='Original compatible packages'
         task['_verified_backend']={'pid':123,'root':str(root),'backend_verified':True}
         return __version__
     monkeypatch.setattr(installer,'restart_verified',restart)
     assert installer.main()==1
-    result=json.loads((data/'maintenance'/(task['id']+'.result.json')).read_text())
+    result=json.loads((data/'maintenance'/(task['id']+'.result.json')).read_text(encoding='utf-8'))
     assert result['status']=='failed' and result['rollback_verified'] is True
     assert result['backend_verified'] is True and len(calls)==2
     assert 'restored' in result['message'] and not marker.exists()
-    assert (data/'settings.json').read_text()=='Current user settings'
+    assert (data/'settings.json').read_text(encoding='utf-8')=='Current user settings'
 
 
 @pytest.mark.skipif(os.name!='nt',reason='Actual Windows process creation-time API acceptance')

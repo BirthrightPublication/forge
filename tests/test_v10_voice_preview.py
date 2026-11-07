@@ -151,7 +151,7 @@ def test_explicit_preview_keeps_other_named_speaker_assignments(api, tmp_path, c
 
 def test_voice_card_request_clears_old_blend_without_mutating_project(tmp_path):
     assert shutil.which('node'), 'The executable JavaScript contract requires Node.'
-    source = (Path(__file__).resolve().parents[1] / 'web' / 'speech_v8.js').read_text()
+    source = (Path(__file__).resolve().parents[1] / 'web' / 'speech_v8.js').read_text(encoding='utf-8')
     start = source.index('async function generate(scope,voiceOverride)')
     end = source.index('\n function queueResponse', start)
     function = source[start:end]

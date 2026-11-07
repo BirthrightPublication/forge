@@ -380,11 +380,11 @@ class ModelBundle:
         self.dtype = torch.float16 if self.device == 'cuda' else torch.float32
         muse, vae_path, whisper_path = [_part(request, part) for part in ('musetalk', 'vae', 'whisper')]
         config_path, weights = muse / 'musetalkV15/musetalk.json', muse / 'musetalkV15/unet.pth'
-        config = json.loads(_file(config_path).read_text())
+        config = json.loads(_file(config_path).read_text(encoding='utf-8'))
         self.unet = UNet2DConditionModel(**config)
         self.unet.load_state_dict(_tensor_state(_file(weights)), strict=True)
         self.unet.to(self.device, dtype=self.dtype).eval().requires_grad_(False)
-        vae_config = json.loads(_file(vae_path / 'config.json').read_text())
+        vae_config = json.loads(_file(vae_path / 'config.json').read_text(encoding='utf-8'))
         self.vae = AutoencoderKL.from_config(vae_config)
         safe = vae_path / 'diffusion_pytorch_model.safetensors'
         self.vae.load_state_dict(_tensor_state(_file(safe if safe.is_file() else vae_path / 'diffusion_pytorch_model.bin')), strict=True)

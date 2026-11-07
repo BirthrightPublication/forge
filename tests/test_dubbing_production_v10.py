@@ -300,7 +300,7 @@ def test_optional_provenance_is_real_unsigned_source_output_hash_record(tmp_path
     _, _, result = pipeline.process(payload(value, 'encode', tmp_path, artifacts=[artifact(narration, 'mix')]), tmp_path/'encode', tmp_path/'data')
     output = next(item for item in result['artifacts'] if item['kind'] == 'video')
     provenance = next(item for item in result['artifacts'] if item['kind'] == 'provenance')
-    record = json.loads(Path(provenance['path']).read_text())
+    record = json.loads(Path(provenance['path']).read_text(encoding='utf-8'))
     assert record['source']['sha256'] == audio.file_hash(source)
     assert record['output']['sha256'] == audio.file_hash(output['path'])
     assert record['lip_sync_applied'] is False and 'not a C2PA signature' in record['scope']
@@ -495,7 +495,7 @@ pipeline.process(json.loads(Path(sys.argv[1]).read_text()),Path(sys.argv[2]),Pat
             deadline = time.monotonic()+15
             while not marker.exists() and child.poll() is None and time.monotonic()<deadline:
                 time.sleep(.025)
-            assert marker.is_file(), (tmp_path/'worker.log').read_text()
+            assert marker.is_file(), (tmp_path/'worker.log').read_text(encoding='utf-8')
             child.kill(); child.wait(timeout=5)
         finally:
             if child.poll() is None:
@@ -650,7 +650,7 @@ def test_existing_whisper_adapter_preserves_source_segment_ids_and_manual_russia
     def timed_fixture(source, stage_dir, stem, options, data):
         assert options['engine'] == 'whisper' and options['timestamps'] == 'word'
         path = stage_dir/(stem+'.json')
-        path.write_text(json.dumps({'segments': [{'start': .2, 'end': 1.2, 'text': 'Hello, Alice 2026.'}], 'info': {'duration': 3, 'model_revision': 'a'*40}}))
+        path.write_text(json.dumps({'segments': [{'start': .2, 'end': 1.2, 'text': 'Hello, Alice 2026.'}], 'info': {'duration': 3, 'model_revision': 'a'*40}}), encoding='utf-8')
         return [path], []
     monkeypatch.setattr(worker, 'transcribe', timed_fixture)
     _, _, metadata = pipeline.process(payload(value, 'transcribe', tmp_path), tmp_path/'transcribe', tmp_path/'data')
@@ -696,7 +696,7 @@ def test_upload_preparation_is_local_private_and_never_uploads(tmp_path, media_t
     source = video(tmp_path/'russian.mp4')
     value = project(source)
     _, _, metadata = pipeline.process(payload(value, 'prepare_upload', tmp_path, artifacts=[artifact(source, 'video')]), tmp_path/'prepare', tmp_path/'data')
-    record = json.loads(Path(metadata['artifacts'][0]['path']).read_text())
+    record = json.loads(Path(metadata['artifacts'][0]['path']).read_text(encoding='utf-8'))
     assert record['upload_authorized'] is False and record['review_required'] is True
     assert record['visibility'] == 'private' and record['manual_fallback'] == 'https://studio.youtube.com/'
 
