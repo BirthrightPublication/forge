@@ -518,3 +518,50 @@ def test_guided_bootstrap_repairs_only_owned_runtime_and_retains_corrupt_copy(tm
     retained = list((tmp_path / 'runtimes').glob('.retained-*/python.exe'))
     assert len(retained) == 1 and retained[0].read_bytes() == b'Owned corrupt bootstrap fixture'
     assert original.read_bytes() == b'Original installed environment'
+
+
+@pytest.fixture
+def publisher_wheel(monkeypatch):
+    # Public publisher identity verified separately from pip's missing cache hash.
+    name = 'jinja2-3.1.6-py3-none-any.whl'
+    url = 'https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/' + name
+    sha = '85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67'
+    value = {'info': {'name': 'Jinja2', 'version': '3.1.6'},
+             'urls': [{'filename': name, 'url': url, 'packagetype': 'bdist_wheel', 'digests': {'sha256': sha}, 'size': 134899}]}
+    def metadata(request):
+        assert request == 'https://pypi.org/pypi/Jinja2/3.1.6/json'
+        return copy.deepcopy(value)
+    monkeypatch.setattr(models, '_fetch_json', metadata)
+    return SimpleNamespace(name=name, url=url, sha=sha, value=value)
+
+
+def test_missing_native_pip_hash_is_filled_only_from_exact_publisher_file(tmp_path, monkeypatch, publisher_wheel):
+    artifact = publisher_wheel
+    report = {'install': [{'download_info': {'url': artifact.url, 'archive_info': {}},
+                           'metadata': {'name': 'Jinja2', 'version': '3.1.6', 'license_expression': 'BSD-3-Clause'}}]}
+    commands = []
+    def resolver(args, **kwargs):
+        commands.append(args)
+        json_write(Path(args[args.index('--report') + 1]), report)
+    monkeypatch.setattr(models, '_run', resolver)
+    monkeypatch.setattr(models, '_head_size', lambda *args: pytest.fail('The exact publisher file already provides its size.'))
+    result = models._dependency_plan(models._spec('qwen3-tts-0.6b-base'),
+                                    {'version': '.'.join(map(str, sys.version_info[:3]))}, 'cpu', tmp_path, use_lock=False)
+    assert result['download_bytes'] == 134899 and result['wheels'][0]['sha256'] == artifact.sha
+    assert '--no-cache-dir' in commands[0]
+
+
+@pytest.mark.parametrize('conflict', ['url', 'filename', 'version', 'package', 'hash', 'fragment', 'missing_hash', 'size', 'duplicate'])
+def test_publisher_identity_conflicts_fail_closed(publisher_wheel, conflict):
+    artifact = publisher_wheel; url = artifact.url; name = artifact.name; reported_sha = ''
+    if conflict == 'url': url = url.replace('/packages/62/', '/packages/63/')
+    elif conflict == 'filename': name = 'unrelated-3.1.6-py3-none-any.whl'
+    elif conflict == 'version': artifact.value['info']['version'] = '3.1.5'
+    elif conflict == 'package': artifact.value['info']['name'] = 'unrelated-package'
+    elif conflict == 'hash': reported_sha = '0' * 64
+    elif conflict == 'fragment': url += '#sha256=' + '0' * 64
+    elif conflict == 'missing_hash': artifact.value['urls'][0]['digests'] = {}
+    elif conflict == 'size': artifact.value['urls'][0]['size'] = 0
+    elif conflict == 'duplicate': artifact.value['urls'].append(copy.deepcopy(artifact.value['urls'][0]))
+    with pytest.raises(models.ComponentUnavailable):
+        models._pypi_wheel_identity('Jinja2', '3.1.6', url, name, reported_sha=reported_sha)

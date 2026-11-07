@@ -161,8 +161,31 @@ jobs:
             choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
             if ($LASTEXITCODE -ne 0) { throw 'Required native V0.10 media prerequisites failed.' }
           }
-          python -m pytest -q tests/test_v10_maintenance.py tests/test_language_publishing_v10.py tests/test_v10_voice_preview.py tests/test_dubbing_store_v10.py --junitxml="$env:RUNNER_TEMP/v010-native.xml"
-          if ($LASTEXITCODE -ne 0) { throw 'Native V0.10 maintenance or credential protection failed.' }
+          $nativeOutput = & python -m pytest -q tests/test_v10_maintenance.py tests/test_language_publishing_v10.py tests/test_v10_voice_preview.py tests/test_dubbing_store_v10.py --junitxml="$env:RUNNER_TEMP/v010-native.xml" 2>&1
+          $nativeCode = $LASTEXITCODE
+          $nativeOutput | Write-Output
+          $nativeOutput | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/v010-native-results.txt"
+          if ($nativeCode -ne 0) {
+            $reported = 0
+            if (Test-Path "$env:RUNNER_TEMP/v010-native.xml") {
+              [xml]$report = Get-Content "$env:RUNNER_TEMP/v010-native.xml" -Raw
+              foreach ($failure in @($report.SelectNodes('//testcase[failure or error]') | Select-Object -First 12)) {
+                $node = $failure.SelectSingleNode('failure|error')
+                $details = "$($failure.classname).$($failure.name): $($node.GetAttribute('message'))`n$($node.InnerText)"
+                if ($details.Length -gt 6000) { $details = $details.Substring(0, 6000) + ' [bounded diagnostic]' }
+                $message = $details.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+                Write-Output "::error title=Native V0.10 test failure::$message"
+                $reported++
+              }
+            }
+            if ($reported -eq 0) {
+              $details = ($nativeOutput | Select-Object -Last 20) -join "`n"
+              if ($details.Length -gt 6000) { $details = $details.Substring($details.Length - 6000) }
+              $message = $details.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Native V0.10 test process::$message"
+            }
+            throw 'Native V0.10 maintenance or credential protection failed; bounded test diagnostics were reported.'
+          }
       - name: Build and validate the candidate Windows package
         run: |
           $version = (Get-Content VERSION.txt -Raw).Trim()
@@ -196,6 +219,7 @@ jobs:
           path: |
             ${{ runner.temp }}/v06-native.xml
             ${{ runner.temp }}/v010-native.xml
+            ${{ runner.temp }}/v010-native-results.txt
             ${{ runner.temp }}/v06-package/
             ${{ runner.temp }}/v06-windows-acceptance/windows-acceptance.json
             ${{ runner.temp }}/v06-windows-acceptance/*/installed-app-smoke.json

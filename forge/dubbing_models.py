@@ -238,7 +238,7 @@ def _url_allowed(url):
     value = urllib.parse.urlsplit(url)
     host = value.hostname or ''
     return value.scheme == 'https' and not value.username and not value.password and (
-        host in {'huggingface.co', 'api.github.com', 'github.com', 'raw.githubusercontent.com',
+        host in {'huggingface.co', 'api.github.com', 'github.com', 'raw.githubusercontent.com', 'pypi.org',
                  'release-assets.githubusercontent.com', 'files.pythonhosted.org', 'download.pytorch.org', 'download-r2.pytorch.org'}
         or host.endswith(('.huggingface.co', '.hf.co')))
 
@@ -550,6 +550,32 @@ def _load_wheel_lock(spec, runtime, device):
             'download_bytes': value['download_bytes'], 'native_manifest': path.name}
 
 
+def _pypi_wheel_identity(package, version, url, name, *, reported_sha=''):
+    """Recover missing pip-cache identity from the exact publisher release file."""
+    if (not re.fullmatch(r'[A-Za-z0-9_.-]+', package) or not re.fullmatch(r'[A-Za-z0-9_.+!-]+', version)
+            or urllib.parse.urlsplit(url).hostname != 'files.pythonhosted.org' or not name.endswith('.whl')):
+        raise ComponentUnavailable('The resolver omitted a wheel hash and no exact official PyPI release identity can be checked.')
+    value = _fetch_json('https://pypi.org/pypi/' + urllib.parse.quote(package, safe='') + '/'
+                        + urllib.parse.quote(version, safe='') + '/json')
+    normalize = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+    info = value.get('info') or {}
+    if normalize(str(info.get('name', ''))) != normalize(package) or str(info.get('version', '')) != version:
+        raise ComponentUnavailable('The PyPI release metadata does not match the resolved package and version.')
+    reported = urllib.parse.urldefrag(url)[0]
+    files = [item for item in value.get('urls', []) if item.get('filename') == name
+             and item.get('packagetype') == 'bdist_wheel' and item.get('url') == reported]
+    if len(files) != 1:
+        raise ComponentUnavailable('The resolved wheel URL and filename do not match exactly one official PyPI release artifact.')
+    sha = files[0].get('digests', {}).get('sha256', ''); size = files[0].get('size')
+    if not SHA256.fullmatch(sha) or type(size) is not int or not 0 < size <= 20_000_000_000:
+        raise ComponentUnavailable('The official PyPI artifact lacks a complete SHA-256 and bounded size.')
+    fragment = urllib.parse.parse_qs(urllib.parse.urlsplit(url).fragment)
+    fragment_hashes = fragment.get('sha256', [])
+    if (reported_sha and reported_sha != sha or fragment_hashes and fragment_hashes != [sha]):
+        raise ComponentUnavailable('The native resolver wheel hash conflicts with the exact official PyPI release artifact.')
+    return sha, size
+
+
 def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
     requirements = ROOT / spec['requirements']
     if not requirements.is_file() or not requirements.resolve().is_relative_to(ROOT / 'scripts'):
@@ -567,7 +593,7 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
     with tempfile.TemporaryDirectory(prefix='forge-dubbing-plan-') as temporary:
         report = Path(temporary) / 'packages.json'
         args = [sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check', '--timeout', '25', '--retries', '1',
-                '--dry-run', '--ignore-installed', '--only-binary=:all:', '--report', report, '-r', requirements]
+                '--no-cache-dir', '--dry-run', '--ignore-installed', '--only-binary=:all:', '--report', report, '-r', requirements]
         torch_version = '2.6.0' if spec.get('family') == 'chatterbox' else '2.8.0'
         suffix = '+cu128' if device == 'cuda' else '+cpu'
         args.extend(['--extra-index-url', 'https://download.pytorch.org/whl/' + ('cu128' if device == 'cuda' else 'cpu'), 'torch==' + torch_version + suffix])
@@ -580,6 +606,13 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
         download = item.get('download_info', {}); metadata = item.get('metadata', {})
         url = download.get('url', ''); sha = download.get('archive_info', {}).get('hashes', {}).get('sha256', '')
         name = urllib.parse.unquote(Path(urllib.parse.urlsplit(url).path).name)
+        package, version = metadata.get('name', ''), metadata.get('version', '')
+        size = None
+        if _url_allowed(url) and name.endswith('.whl') and urllib.parse.urlsplit(url).hostname == 'files.pythonhosted.org':
+            # pip documents absent archive hashes for some reused wheel-cache
+            # origins. The exact PyPI release file supplies an independent
+            # publisher identity; missing or mismatched metadata still fails.
+            sha, size = _pypi_wheel_identity(package, version, url, name, reported_sha=sha)
         if not _url_allowed(url) or not name.endswith('.whl') or not SHA256.fullmatch(sha):
             identity = str(metadata.get('name', 'unknown package'))[:100] + ' ' + str(metadata.get('version', 'unknown version'))[:80]
             reasons = []
@@ -591,13 +624,12 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
                 reasons.append('missing complete SHA-256 in the native resolver report')
             raise ComponentUnavailable('Every managed dependency must have a verified binary wheel; arbitrary source builds are not permitted. '
                                        + identity + ': ' + '; '.join(reasons) + '.')
-        package, version = metadata.get('name', ''), metadata.get('version', '')
         if not re.fullmatch(r'[A-Za-z0-9_.-]+', package) or not re.fullmatch(r'[A-Za-z0-9_.+!-]+', version):
             raise ComponentUnavailable('Invalid dependency package identity.')
         license = metadata.get('license_expression') or metadata.get('license') or 'See publisher LICENSE'
         if len(license) > 160:
             license = 'See the package distribution LICENSE'
-        wheels.append({'package': package, 'version': version, 'name': name, 'url': url, 'sha256': sha, 'size': _head_size(url), 'license': license})
+        wheels.append({'package': package, 'version': version, 'name': name, 'url': url, 'sha256': sha, 'size': size or _head_size(url), 'license': license})
     if not 0 < len(wheels) <= 250:
         raise ComponentUnavailable('The complete managed dependency plan could not be verified.')
     return {'wheels': wheels, 'requirements_sha256': _hash(requirements), 'download_bytes': sum(item['size'] for item in wheels)}
