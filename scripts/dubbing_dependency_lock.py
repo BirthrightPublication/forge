@@ -11,12 +11,30 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+
+def failure_notice(error):
+    """Expose bounded resolver diagnostics when external CI logs are unavailable."""
+    detail = type(error).__name__ + ': ' + str(error)[-6000:]
+    context = getattr(error, 'stderr', None) or getattr(error, 'output', None)
+    if isinstance(context, bytes):
+        context = context[-6000:].decode('utf-8', errors='replace')
+    if isinstance(context, str) and context:
+        detail += '\nResolver context: ' + context[-6000:]
+    detail = re.sub(r'https?://[^\s<>\"\']+', '<publisher URL>', detail)
+    detail = re.sub(r'(?i)(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;]+', r'\1<private>', detail)
+    detail = re.sub(r'(?i)((?:access[_-]?token|refresh[_-]?token|token|password|secret|credential|api[_-]?key)\s*[:=]\s*)[^\s,;]+', r'\1<private>', detail)
+    detail = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|hf_[A-Za-z0-9]+)\b', '<private>', detail)
+    detail = detail[-4000:]
+    escaped = detail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+    print('::error title=Native dependency resolution::' + escaped, flush=True)
 
 
 def main():
@@ -61,4 +79,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as error:
+        failure_notice(error)
+        raise SystemExit(1) from None
+    except SystemExit as error:
+        if error.code not in (None, 0):
+            failure_notice(error)
+        raise
