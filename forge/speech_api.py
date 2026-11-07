@@ -127,12 +127,26 @@ def mount(app, store, manager, destination):
         scope='preview' if preview else body.get('scope',value.get('scope','document'))
         if scope=='export':
             value['assemble_only']=True
+            if snapshot:
+                value['text']=''
             scope='document'
         if scope=='chapters':
             value['chapter_ids']=body.get('chapter_ids',value.get('chapter_ids',[]))
+            if not isinstance(value['chapter_ids'],list) or not value['chapter_ids']:
+                raise ValueError('Choose at least one chapter to generate.')
             scope='document'
+        elif scope != 'document':
+            value['chapter_ids']=[]
+        elif 'chapter_ids' not in body.get('options',{}) and 'chapter_ids' not in body:
+            value['chapter_ids']=[]
+        if snapshot and 'text' not in body and 'text' not in body.get('options',{}):
+            # Manuscript text is held by its immutable project snapshot; a saved
+            # options.text must not silently replace newly edited chapters.
+            value['text']=''
         if body.get('chapter_id'):
             value['chapter_id']=body['chapter_id']
+        if scope == 'document':
+            value['chapter_id']=''
         value['scope']=scope
         if preview and len(value.get('text',''))>1000:
             raise ValueError('Voice previews are limited to 1,000 characters.')
@@ -177,6 +191,10 @@ def mount(app, store, manager, destination):
         options=SpeechOptions.model_validate(options).model_dump()
         if not options['text'] and not snapshot:
             raise ValueError('Enter text or select a saved speech project.')
+        from .speech_books import resolve_chapters
+        chapters=resolve_chapters(snapshot or {},options)
+        if not chapters or not any(chapter.get('text','').strip() for chapter in chapters):
+            raise ValueError('Choose a nonempty project, chapter or text selection.')
         # Validate marker syntax before persisting a production job.
         compile_document(options['text'],style=options['style'],pronunciation=options['pronunciation'],pauses=options['pauses'])
         return enqueue('tts',options,body,extra={'speech_project':snapshot,'speech_profile':profile})

@@ -59,10 +59,13 @@
   const guided=$('[data-install-engine]')?.closest('.panel');if(guided){const note=$('.note',guided);if(note)note.textContent='Approved installations wait for work to finish and restart FORGE automatically.';}
   const daily=$('[name="daily_update_check"]')?.closest('.field');if(daily)daily.remove();
  };
- let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer,loadedVersion=null;
+ let catalog={entries:[],count:0},center=null,refreshTimer,maintenanceTimer,loadedVersion=null,loadedRoot=null;
+ let maintenanceChecking=false,maintenanceFailures=0,observedMaintenance='',observedMaintenanceAt=0;
+ const reloadedMaintenance=new Set();
  function badge(){
   catalog=state?.update_catalog||catalog;
   if(!loadedVersion&&state?.version)loadedVersion=state.version;
+  if(!loadedRoot&&state?.application_directory)loadedRoot=state.application_directory;
   const count=catalog.count||0;$('#update-count').textContent=String(count);$('#update-count').hidden=!count;
   updateButton.setAttribute('aria-label',count?`Updates: ${count} available`:'Updates');
   updateButton.classList.toggle('is-checking',!!catalog.busy);updateButton.classList.toggle('has-updates',!!count);
@@ -91,14 +94,44 @@
   api('/maintenance/history').then(result=>{const el=$('#update-history');if(el)el.innerHTML=result.history.map(v=>`<p class="note">${escape(when(v.completed||v.requested))} · ${escape(v.status)}${v.version?' · '+escape(v.version):''}<br>${escape(v.message||'')}</p>`).join('')||'<p class="note">No managed installations recorded.</p>';}).catch(()=>{});
  }
  async function check(force=false){try{catalog=await api(force?'/updates/refresh':'/updates/catalog',force?{}:undefined);if(state)state.update_catalog=catalog;badge();draw();clearTimeout(refreshTimer);if(catalog.busy)refreshTimer=setTimeout(()=>check(),1000);}catch(error){status(error.message,true);}}
+ function newerVersion(candidate,current){
+  const parse=value=>{const match=/^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(value||''));if(!match)return null;const parts=match.slice(1).map(Number);return parts.every(Number.isSafeInteger)?parts:null;};
+  const a=parse(candidate),b=parse(current);if(!a||!b)return false;
+  for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]>b[i];}return false;
+ }
+ function installationKey(value){const path=String(value||'').replace(/\\/g,'/').replace(/\/+$/,'');return state?.platform==='win32'||/^[A-Za-z]:/.test(path)?path.toLowerCase():path;}
+ async function freshJSON(path){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);try{const response=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:controller.signal});if(!response.ok)throw Error('Backend identity could not be verified.');return await response.json();}finally{clearTimeout(timer);}}
+ async function reloadVerifiedBackend(value){
+  if(!value.id||!loadedRoot||!newerVersion(value.version,loadedVersion))return false;
+  try{
+   const health=await freshJSON('/health'),current=await freshJSON('/api/state'),confirmed=await freshJSON('/health');
+   if(health.app!=='FORGE'||confirmed.app!=='FORGE'||health.version!==value.version||confirmed.version!==value.version||current.version!==value.version||!Number.isSafeInteger(health.pid)||health.pid<=0||health.pid!==confirmed.pid||installationKey(current.application_directory)!==installationKey(loadedRoot))return false;
+   if(value.pid&&value.pid!==health.pid)return false;
+   const key=JSON.stringify([value.id,value.version,installationKey(loadedRoot),health.pid]);
+   if(reloadedMaintenance.has(key))return false;
+   try{if(sessionStorage.getItem('forge-completed-reload')===key)return false;sessionStorage.setItem('forge-completed-reload',key);}catch{}
+   reloadedMaintenance.add(key);location.reload();return true;
+  }catch{return false;}
+ }
  async function monitorMaintenance(){
-  try{const value=await api('/maintenance');if(value.message)status(value.message+(value.total?' '+bytes(value.received||0)+' / '+bytes(value.total):value.received?' '+bytes(value.received):''),value.status==='failed');
+  if(maintenanceChecking)return;maintenanceChecking=true;clearTimeout(maintenanceTimer);
+  try{const value=await api('/maintenance');maintenanceFailures=0;if(value.message)status(value.message+(value.total?' '+bytes(value.received||0)+' / '+bytes(value.total):value.received?' '+bytes(value.received):''),value.status==='failed');
    showMaintenance(value);
    updateButton.dataset.stage=value.status||'idle';const fraction=value.total>0?Math.min(1,(value.received||0)/value.total):0;updateButton.style.setProperty('--update-progress',String(fraction*62.83));
-   if(value.status==='completed'&&value.version&&loadedVersion&&value.version!==loadedVersion)location.reload();
-   if(['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status)){clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,2000);}
+   if(value.status==='completed'&&value.version&&loadedVersion&&value.version!==loadedVersion){
+    const newer=newerVersion(value.version,loadedVersion);
+    status(newer?'Installation is recorded; verifying the running backend before restarting the workspace.':'Previous maintenance completed for FORGE '+value.version+'. Running FORGE '+loadedVersion+'.');
+    if(newer)await reloadVerifiedBackend(value);
+   }
+   if(['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status)){
+    if(observedMaintenance!==value.id){observedMaintenance=value.id;observedMaintenanceAt=Date.now();}
+    const age=Date.now()-observedMaintenanceAt,limit=value.status==='waiting'?1800000:600000;
+    if(age<limit)maintenanceTimer=setTimeout(monitorMaintenance,2000);
+    else status('Installation has not been verified. Review Updates or use the installed recovery updater; existing data remains preserved.',true);
+   }
    if(value.status==='waiting'&&!$('#cancel-maintenance')){const button=document.createElement('button');button.id='cancel-maintenance';button.className='text-button';button.textContent='Cancel installation request';button.onclick=async()=>{await api('/maintenance/cancel',{});button.remove();monitorMaintenance();};center?.append(button);}
-  }catch{status('Waiting for the maintenance service to restart.');clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,3000);}
+  }catch{maintenanceFailures++;status(maintenanceFailures<20?'Waiting for the maintenance service to restart.':'Restart could not be verified. Open FORGE with its installed launcher or review the recovery updater.',maintenanceFailures>=20);if(maintenanceFailures<20)maintenanceTimer=setTimeout(monitorMaintenance,3000);}
+  finally{maintenanceChecking=false;}
  }
  async function install(entries){
   if(!entries.length)return;
@@ -132,7 +165,7 @@
  }
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&center?.open){center.close();event.preventDefault();}});
  document.addEventListener('pointerdown',event=>{if(center?.open&&!center.contains(event.target)&&!updateButton.contains(event.target))center.close();});
- setInterval(()=>{if(!document.hidden)monitorMaintenance();},5000);
+ setInterval(()=>{if(!document.hidden)monitorMaintenance();},30000);
  updateButton.setAttribute('aria-expanded','false');
  updateButton.onclick=()=>{
   capture();if(!center){center=document.createElement('dialog');center.className='birthright-updates';center.setAttribute('aria-label','Birthright Updates');document.body.append(center);center.addEventListener('close',()=>{clearTimeout(refreshTimer);updateButton.setAttribute('aria-expanded','false');updateButton.focus();});}

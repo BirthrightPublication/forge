@@ -5,6 +5,7 @@ import uuid
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,34 @@ from .resources import MEDIA_ANALYSIS, ResourceMonitor, admission_reason, admiss
 from .timing import JobClock
 
 TERMINAL = {'failed', 'cancelled', 'interrupted', 'completed', 'blocked'}
+WORKER_EXCEPTION_PATTERN = re.compile(r'^(?:[A-Za-z_.]*(?:Error|Exception)|Fatal Python error):')
+
+
+def worker_failure(job: dict, structured: str, stderr: list[str], code: int):
+    """Keep explicit worker errors primary; warnings are not failure causes."""
+    explicit = str(structured or '').strip()
+    full_diagnostic = re.sub(r'\x1b\[[0-9;]*m', '', ''.join(stderr))
+    diagnostic = full_diagnostic[-6000:]
+    if explicit:
+        message = explicit[:4000]
+    else:
+        lines = [line.strip() for line in full_diagnostic.splitlines() if line.strip()]
+        errors = [line for line in lines if WORKER_EXCEPTION_PATTERN.search(line)]
+        detail = errors[-1] if errors else ''
+        native = f', 0x{code & 0xffffffff:08X}' if abs(code) > 255 else ''
+        message = f'Worker stopped (exit {code}{native}). ' + (detail if detail else 'No structured error was returned; retained warnings do not establish the cause.')
+    lowered = message.lower()
+    if any(value in lowered for value in ('modulenotfounderror', 'importerror', 'no module named', 'cannot import name', 'install transcription.bat', 'metadata_errors')):
+        category = 'transcription_dependencies' if job.get('tool') == 'transcribe' else 'package_compatibility'
+        if 'run install transcription.bat' in lowered:
+            message = 'Transcription dependencies are missing or incompatible. Open Updates, choose Repair for the transcription engine, then retry.'
+    elif any(value in lowered for value in ('cublas', 'cudnn', 'cuda error', 'cuda driver', 'no kernel image', 'cuda out of memory', 'cuda runtime')):
+        category = 'cuda_runtime'
+    elif any(value in lowered for value in ('invaliddataerror', 'invalid data found', 'could not inspect the media', 'could not decode', 'decode_audio', 'ffmpeg failed', 'no such file or directory')):
+        category = 'source_decode'
+    else:
+        category = 'worker_error'
+    return {'message': message[:4000], 'error_code': category, 'diagnostic': diagnostic[-1600:]}
 
 
 def public_job(job):
@@ -234,9 +263,14 @@ class QueueManager:
         error = ''
         result = None
         stderr = []
+        stderr_errors = []
         def drain():
             for line in p.stderr:
-                stderr.append(line)
+                stderr.append(line[-4000:])
+                plain = re.sub(r'\x1b\[[0-9;]*m', '', line).strip()
+                if WORKER_EXCEPTION_PATTERN.search(plain):
+                    stderr_errors.append(plain[:4000] + '\n')
+                    del stderr_errors[:-8]
                 if len(stderr) > 60:
                     del stderr[:30]
         reader = threading.Thread(target=drain, daemon=True)
@@ -298,7 +332,12 @@ class QueueManager:
                 elif code == 0 and result and result.get('complete'):
                     self.store.update_job(id, status='completed', progress=100, message='Completed' + (' · review notes' if warnings else ''), outputs=outputs, warnings=warnings)
                 else:
-                    message = error or (''.join(stderr)[-1600:] if stderr else f'Worker stopped (exit {code}). Retry restarts the job.')
+                    failure = worker_failure(job, error, [*stderr_errors, *stderr], code)
+                    message = failure['message']
+                    if not self.store.job(id).get('error_code'):
+                        self.store.update_meta(id,error_code=failure['error_code'],error_retryable=False)
+                    if failure['diagnostic'] and not error:
+                        warnings = [*warnings, 'Retained worker diagnostic: ' + failure['diagnostic']]
                     if job['tool'] == 'transcribe' and any(s in message.lower() for s in ('cublas', 'cudnn', 'no kernel image', 'cuda driver')):
                         from .cuda_health import remember_failure
                         remember_failure(self.store.data, message)

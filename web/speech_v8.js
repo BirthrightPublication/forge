@@ -118,9 +118,10 @@
   captureText();captureOptions();const o={...structuredClone(currentOptions()),pronunciation:project.pronunciation||{},pauses:project.pauses||{},speakers:project.speakers||{},...(voiceOverride?{voice:voiceOverride}:{})};for(const key of ['profile','effects','title','artist','album','copyright'])delete o[key];if(o.engine==='ming'&&voiceOverride){o.task='IP';for(const k of ['reference_audio','reference_text','instructions','consent','attribute_speed','attribute_pitch','attribute_volume','dialect','emotion'])delete o[k];}if(o.engine==='ming'&&o.task!=='IP')o.voice='';if(scope==='selection')o.segment_effects=structuredClone(project.selection_chain||[]);else delete o.segment_effects;
   if(scope==='preview')o.text=$s('preview-text')?.value||'A new story begins here.';
   if(engine().unavailable_reason)throw Error(engine().unavailable_reason);if(!engine().installed){if(confirm(`The ${engine().label||o.engine} model is not installed. Review its isolated installation before generating speech?`))modelManager();return;}
-  await saveProject(false);const text=scope==='selection'?selectedText:scope==='preview'?o.text:scope==='document'?project.chapters.map(c=>c.text).join('\n\n'):chapterData().text;
-  if(!text.trim()&&scope!=='export')throw Error('Enter text before generating speech.');
-  const response=await api(scope==='preview'?'/speech/preview':'/speech/generate',{project_id:project.id,text,chapter_id:chapterData().id,scope,options:o,output:output(),selection:scope==='selection'?{start:selectionStart,end:selectionEnd}:undefined});
+  await saveProject(false);const text=scope==='selection'?selectedText:scope==='preview'?o.text:scope==='chapter'?chapterData().text:undefined;
+  if(text!==undefined&&!text.trim()&&scope!=='export')throw Error('Enter text before generating speech.');
+  if(scope!=='preview')delete o.text;delete o.chapter_ids;delete o.chapter_id;
+  const response=await api(scope==='preview'?'/speech/preview':'/speech/generate',{project_id:project.id,...(text!==undefined?{text}:{}),...(['chapter','selection'].includes(scope)?{chapter_id:chapterData().id}:{}),scope,options:o,output:output(),selection:scope==='selection'?{start:selectionStart,end:selectionEnd}:undefined});
   queueResponse(response,scope==='preview'?'Preview':'Speech');
  });}
  function queueResponse(response,label){const jobs=response.jobs||(response.job?[response.job]:response.id?[response]:[]);if(!jobs.length){if(response.message)status(response.message);return;}for(const job of jobs)rememberedJobs.add(job.id);playingJob=jobs[jobs.length-1].id;status(`${label} queued · ${jobs.length} job${jobs.length===1?'':'s'}`);void refresh(false).then(renderDock);startPolling();}
