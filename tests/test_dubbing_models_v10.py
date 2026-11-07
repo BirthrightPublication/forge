@@ -544,11 +544,13 @@ def test_missing_native_pip_hash_is_filled_only_from_exact_publisher_file(tmp_pa
         commands.append(args)
         json_write(Path(args[args.index('--report') + 1]), report)
     monkeypatch.setattr(models, '_run', resolver)
+    monkeypatch.setattr(models, '_torch_wheel_requirement', lambda package, version, device: {'requirement': package + '==2.8.0+cpu', 'html': '<a>Owned resolver fixture</a>'})
     monkeypatch.setattr(models, '_head_size', lambda *args: pytest.fail('The exact publisher file already provides its size.'))
     result = models._dependency_plan(models._spec('qwen3-tts-0.6b-base'),
                                     {'version': '.'.join(map(str, sys.version_info[:3]))}, 'cpu', tmp_path, use_lock=False)
     assert result['download_bytes'] == 134899 and result['wheels'][0]['sha256'] == artifact.sha
     assert '--no-cache-dir' in commands[0]
+    assert '--extra-index-url' not in commands[0] and commands[0][commands[0].index('--index-url') + 1] == 'https://pypi.org/simple'
 
 
 @pytest.mark.parametrize('conflict', ['url', 'filename', 'version', 'package', 'hash', 'fragment', 'missing_hash', 'size', 'duplicate'])
@@ -565,3 +567,26 @@ def test_publisher_identity_conflicts_fail_closed(publisher_wheel, conflict):
     elif conflict == 'duplicate': artifact.value['urls'].append(copy.deepcopy(artifact.value['urls'][0]))
     with pytest.raises(models.ComponentUnavailable):
         models._pypi_wheel_identity('Jinja2', '3.1.6', url, name, reported_sha=reported_sha)
+
+
+@pytest.mark.parametrize('invalid', [None, 'missing_hash', 'wrong_host', 'wrong_python', 'wrong_version', 'missing_metadata'])
+def test_torch_native_selection_uses_only_hashed_matching_publisher_wheel(monkeypatch, invalid):
+    from pip._vendor.packaging import tags
+    monkeypatch.setattr(tags, 'sys_tags', lambda: iter([tags.Tag('cp312', 'cp312', 'win_amd64')]))
+    suffix = '#sha256=' + 'a' * 64
+    url = 'https://download-r2.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_amd64.whl'
+    if invalid == 'missing_hash': suffix = ''
+    elif invalid == 'wrong_host': url = url.replace('download-r2.pytorch.org', 'unapproved.invalid')
+    elif invalid == 'wrong_python': url = url.replace('cp312', 'cp311')
+    elif invalid == 'wrong_version': url = url.replace('2.8.0', '2.7.0')
+    metadata = '' if invalid == 'missing_metadata' else ' data-dist-info-metadata="sha256=' + 'b' * 64 + '"'
+    raw = ('<a href="' + url + suffix + '"' + metadata + '>torch</a>'
+           '<a href="/whl/jinja2-3.1.6-py3-none-any.whl">unhashed unrelated mirror</a>').encode()
+    monkeypatch.setattr(models, '_open', lambda *args, **kwargs: io.BytesIO(raw))
+    if invalid:
+        with pytest.raises(models.ComponentUnavailable, match='no hashed compatible'):
+            models._torch_wheel_requirement('torch', '2.8.0', 'cpu')
+    else:
+        result = models._torch_wheel_requirement('torch', '2.8.0', 'cpu')
+        assert result['requirement'] == 'torch==2.8.0+cpu' and url + suffix in result['html']
+        assert 'data-dist-info-metadata="sha256=' + 'b' * 64 + '"' in result['html']

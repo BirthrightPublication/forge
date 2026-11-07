@@ -12,6 +12,8 @@ from collections import deque
 import csv
 import fnmatch
 import hashlib
+import html
+from html.parser import HTMLParser
 import io
 import importlib.metadata
 import importlib.util
@@ -576,6 +578,65 @@ def _pypi_wheel_identity(package, version, url, name, *, reported_sha=''):
     return sha, size
 
 
+def _torch_wheel_requirement(package, version, device):
+    """Select only the exact native Torch-family wheel from its HTTPS index.
+
+    The PyTorch extra index also mirrors ordinary PyPI dependencies, sometimes
+    without wheel digests. Those mirrors are never used for other packages.
+    """
+    if package not in {'torch', 'torchaudio'} or version not in {'2.6.0', '2.8.0'} or device not in {'cpu', 'cuda'}:
+        raise ComponentUnavailable('Unregistered Torch runtime wheel selection.')
+    try:
+        from pip._vendor.packaging.tags import sys_tags
+        from pip._vendor.packaging.utils import parse_wheel_filename
+        from pip._vendor.packaging.version import Version
+    except ImportError:
+        raise ComponentUnavailable('The local pip native wheel-tag verifier is unavailable. Repair the setup controller before installing model dependencies.') from None
+    suffix = '+cu128' if device == 'cuda' else '+cpu'
+    expected = Version(version + suffix)
+    index = 'https://download.pytorch.org/whl/' + ('cu128' if device == 'cuda' else 'cpu') + '/' + package + '/'
+    with _open(index) as response:
+        raw = response.read(8_000_001)
+    if len(raw) > 8_000_000:
+        raise ComponentUnavailable('The Torch publisher index exceeds the bounded native wheel inventory.')
+    class Links(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True); self.values = []
+        def handle_starttag(self, tag, attributes):
+            if tag == 'a':
+                self.values.append(dict(attributes))
+    links = Links(); links.feed(raw.decode('utf-8'))
+    ranks = {tag: rank for rank, tag in enumerate(sys_tags())}; candidates = []
+    for attributes in links.values:
+        href = attributes.get('href')
+        if not isinstance(href, str):
+            continue
+        url = urllib.parse.urljoin(index, href); parsed = urllib.parse.urlsplit(url)
+        if parsed.hostname not in {'download.pytorch.org', 'download-r2.pytorch.org'} or not _url_allowed(url):
+            continue
+        name = urllib.parse.unquote(Path(parsed.path).name)
+        try:
+            distribution, actual, _, tags = parse_wheel_filename(name)
+        except (ValueError, TypeError):
+            continue
+        compatible = [ranks[tag] for tag in tags if tag in ranks]
+        hashes = urllib.parse.parse_qs(parsed.fragment).get('sha256', [])
+        metadata = attributes.get('data-core-metadata') or attributes.get('data-dist-info-metadata') or ''
+        if (distribution == package and actual == expected and compatible and len(hashes) == 1
+                and SHA256.fullmatch(hashes[0]) and re.fullmatch(r'sha256=[a-f0-9]{64}', metadata)):
+            candidates.append((min(compatible), url, metadata))
+    if not candidates:
+        raise ComponentUnavailable('The official Torch index contains no hashed compatible native binary for ' + package + ' ' + str(expected) + '.')
+    best = min(rank for rank, _, _ in candidates)
+    urls = sorted({(url, metadata) for rank, url, metadata in candidates if rank == best})
+    if len(urls) != 1:
+        raise ComponentUnavailable('The official Torch index contains ambiguous native wheel identities; no unverified selection was installed.')
+    url, metadata = urls[0]
+    return {'requirement': package + '==' + str(expected),
+            'html': '<a href="' + html.escape(url, quote=True) + '" data-dist-info-metadata="' + metadata
+                    + '" data-core-metadata="' + metadata + '">' + package + '</a>'}
+
+
 def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
     requirements = ROOT / spec['requirements']
     if not requirements.is_file() or not requirements.resolve().is_relative_to(ROOT / 'scripts'):
@@ -593,12 +654,18 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
     with tempfile.TemporaryDirectory(prefix='forge-dubbing-plan-') as temporary:
         report = Path(temporary) / 'packages.json'
         args = [sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check', '--timeout', '25', '--retries', '1',
-                '--no-cache-dir', '--dry-run', '--ignore-installed', '--only-binary=:all:', '--report', report, '-r', requirements]
+                '--no-cache-dir', '--index-url', 'https://pypi.org/simple', '--dry-run', '--ignore-installed',
+                '--only-binary=:all:', '--report', report, '-r', requirements]
         torch_version = '2.6.0' if spec.get('family') == 'chatterbox' else '2.8.0'
-        suffix = '+cu128' if device == 'cuda' else '+cpu'
-        args.extend(['--extra-index-url', 'https://download.pytorch.org/whl/' + ('cu128' if device == 'cuda' else 'cpu'), 'torch==' + torch_version + suffix])
+        native_wheels = [_torch_wheel_requirement('torch', torch_version, device)]
         if spec.get('family') != 'translation':
-            args.append('torchaudio==' + torch_version + suffix)
+            native_wheels.append(_torch_wheel_requirement('torchaudio', torch_version, device))
+        # A narrow local index preserves publisher PEP658 metadata, allowing pip
+        # to quote without transferring large unapproved runtime wheels. It
+        # exposes no mirrored dependencies from the broader Torch extra index.
+        native_index = Path(temporary) / 'native-torch-wheels.html'
+        native_index.write_text('<!doctype html><html><body>' + '\n'.join(item['html'] for item in native_wheels) + '</body></html>', encoding='utf-8')
+        args.extend(['--find-links', native_index, *[item['requirement'] for item in native_wheels]])
         _run(args, timeout=360)
         value = _read(report)
     wheels = []
