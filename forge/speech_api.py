@@ -148,6 +148,11 @@ def mount(app, store, manager, destination):
         if scope == 'document':
             value['chapter_id']=''
         value['scope']=scope
+        preview_recipe=scope=='preview' and any(key in body.get('options',{}) for key in ('voice','blend'))
+        if preview_recipe and 'voice' in body.get('options',{}) and 'blend' not in body.get('options',{}):
+            # Choosing an original voice does not inherit the manuscript's blend.
+            # A selected saved profile can restore its own recipe below.
+            value['blend']=[]
         if preview and len(value.get('text',''))>1000:
             raise ValueError('Voice previews are limited to 1,000 characters.')
         options=SpeechOptions.model_validate(value).model_dump()
@@ -168,6 +173,11 @@ def mount(app, store, manager, destination):
             return result,profile
         options,profile=expand_voice(options)
         options['speakers']={key:expand_voice(value)[0] for key,value in options['speakers'].items()}
+        if preview_recipe:
+            # A voice-card/mixer audition explicitly selects its narrator recipe.
+            # Keep named dialogue speakers, but do not let the saved default
+            # narrator replace that selected voice or blend in the queued copy.
+            options['speakers'].pop('narrator',None)
         if snapshot:
             snapshot['speakers']=copy.deepcopy(options['speakers'])
         if isinstance(options['style'],str):

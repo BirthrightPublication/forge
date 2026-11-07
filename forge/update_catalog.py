@@ -68,6 +68,32 @@ def application_entry(release):
     return entry
 
 
+def dubbing_entries(data):
+    """Local receipts only. New model quotes belong to Dubbing Studio's installer."""
+    try:
+        from . import dubbing_models
+        components = dubbing_models.catalog(data)
+    except (ImportError, ValueError, OSError):
+        return []
+    values = []
+    for item in components:
+        ready = item.get('ready') is True
+        values.append({'id':'dubbing:'+item['id'],'category':'models',
+                       'label':item.get('label') or item.get('name') or item['id'],
+                       'installed':item.get('model_revision','') if ready else '',
+                       'available':item.get('model_revision','') if ready else 'Set Up Dubbing Studio',
+                       'compatible':bool(item.get('installation_available')),'action':'','setup_action':'dubbing',
+                       'notes':item.get('unavailable_reason') or ('Verified local component; use Dubbing setup to Verify, Test or Repair it.' if ready else 'Review the component download, storage and isolated runtime quote in Dubbing Studio before approval.'),
+                       'inference_verified':item.get('inference_verified') is True,
+                       'windows_model_verified':item.get('windows_model_verified') is True})
+    if values:
+        values.append({'id':'dubbing-runtime','category':'dependencies','label':'Dubbing isolated runtimes',
+                       'installed':'Managed environments available' if any(item.get('installed') for item in components) else '',
+                       'available':'Managed compatible Python','action':'','setup_action':'dubbing',
+                       'notes':'Dubbing setup selects isolated compatible runtimes. Existing Whisper, Kokoro, Ming and Bark environments are retained.'})
+    return values
+
+
 class Catalog:
     def __init__(self, store, manager):
         self.store, self.manager = store, manager
@@ -164,6 +190,7 @@ class Catalog:
                 if entry.get('category') == 'dependencies' and entry.get('action'):
                     if not any(p['present'] for p in entry.get('packages', [])):
                         entry.update(action='', installable=True)
+            entries.extend(dubbing_entries(self.store.data))
             result = {'entries': entries, 'checked': time.time(), 'errors': errors,
                       'next_check': time.time() + (1800 if errors else 43200)}
             with self.manager.lock:
@@ -212,6 +239,24 @@ def mount(app, store, manager):
     def refresh():
         return catalog.refresh(force=True)
 
+    @app.post('/api/updates/preflight')
+    def preflight(body: dict):
+        ids = body.get('ids')
+        if not isinstance(ids,list) or not ids or len(ids)>30 or not all(isinstance(value,str) for value in ids):
+            raise ValueError('Select registered updates to inspect.')
+        entries = {entry['id']:entry for entry in catalog.snapshot()['entries']}
+        if any(value not in entries for value in ids):
+            raise ValueError('The selected update is no longer available. Refresh Updates.')
+        selected = [entries[value] for value in dict.fromkeys(ids)]
+        application = next((entry for entry in selected if entry['category']=='application'),None)
+        from .update_manager import installation_preflight
+        plan = installation_preflight(ROOT,manager,application)
+        plan['selected'] = [{'id':entry['id'],'label':entry.get('label',entry['id']),
+                             'available':entry.get('available','')} for entry in selected]
+        plan['unknown_download_sizes'] = [entry.get('label',entry['id']) for entry in selected
+                                          if entry['category']!='application' and not entry.get('bytes')]
+        return plan
+
     install_lock = threading.Lock()
 
     @app.post('/api/updates/install')
@@ -236,13 +281,24 @@ def mount(app, store, manager):
         selected = []
         for id in dict.fromkeys(ids):
             entry = entries.get(id)
+            if entry and entry.get('setup_action') == 'dubbing':
+                raise ValueError('Use Set Up Dubbing Studio to review and approve this isolated component installation quote.')
             if not entry or not (entry.get('action') or entry.get('installable') or entry['category'] == 'models' and not entry['installed']):
                 raise ValueError('The selected update is no longer available. Refresh Updates.')
             selected.append(entry)
         engines = [e['id'] for e in selected if e['category'] == 'dependencies']
         app_entry = next((e for e in selected if e['category'] == 'application'), None)
+        if app_entry and body.get('expected_version') != app_entry.get('available'):
+            raise ValueError('Review and approve the exact application version in Updates before installation.')
         if (engines or app_entry) and os.name != 'nt':
             raise ValueError('Managed package/application installation requires Windows.')
+        if app_entry:
+            from .update_manager import installation_preflight
+            plan = installation_preflight(ROOT,manager,app_entry)
+            if not plan['health']['ready']:
+                raise ValueError('The running backend does not match the installed application. Restart or Repair FORGE before updating.')
+            if not plan['storage_ready']:
+                raise ValueError('Not enough free storage for the application package and rollback backup. Free disk space and retry.')
         with manager.lock:
             manager.check_accepting()
         def progress(received, total, speed):
@@ -258,6 +314,16 @@ def mount(app, store, manager):
                                      '--zip', str(package), '--dry-run'], capture_output=True, text=True, timeout=90)
             if result.returncode:
                 raise ValueError('The updater rejected this package: ' + result.stderr[-800:])
+            from .update_adapter import check_application_storage
+            verified = check_application_storage(ROOT,package)
+            if version(verified['version']) != version(app_entry['available']):
+                raise ValueError('The verified package is not the application version that was approved.')
+            checksum = TRANSPORT.metadata(app_entry['checksum_url']).decode('utf-8-sig').split()[0].lower()
+            if not re.fullmatch(r'[a-f0-9]{64}',checksum):
+                raise ValueError('The publisher checksum is invalid; no application files were replaced.')
+            with Path(package).open('rb') as stream:
+                if hashlib.file_digest(stream,'sha256').hexdigest() != checksum:
+                    raise ValueError('The verified application package changed before installation. Retry the download.')
         from .entitlements import require_feature
         import uuid
         models = [e for e in selected if e['category'] == 'models']
@@ -275,7 +341,7 @@ def mount(app, store, manager):
                 # Model jobs may need the engine being repaired in this batch.
                 # Keep them queued until maintenance verifies it and restarts.
                 result = app.state.maintenance_service.request(engines, approve=True, application_package=package,
-                                                             preserve_queued=bool(models))
+                                                             preserve_queued=True)
                 store.set('update_transfer', {})
                 return result
         return {'message': 'Model installations queued; existing revisions are retained.'}
@@ -283,4 +349,4 @@ def mount(app, store, manager):
     @app.post('/api/updates/application')
     def application(body: dict):
         # One verified installation path, including shutdown and restart checks.
-        return install({'ids':['application'], 'consent':body.get('consent')})
+        return install({'ids':['application'], 'consent':body.get('consent'),'expected_version':body.get('expected_version')})

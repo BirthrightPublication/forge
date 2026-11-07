@@ -35,6 +35,14 @@ privacy_tools = ['watermark', 'audio_fingerprint', 'video_fingerprint', 'trackin
 expected_tools.update(privacy_tools)
 if tuple(map(int,expected_version.split('.'))) >= (0,8,0):
     expected_tools.update({'tts','audio_effects'})
+internal_tools = set()
+if version_tuple >= (0, 10, 0):
+    expected_tools.add('dubbing')
+    internal_tools.update({'dubbing_transcribe', 'dubbing_translate', 'dubbing_review', 'dubbing_voice',
+                           'dubbing_voice_reference', 'dubbing_align', 'dubbing_separate', 'dubbing_mix',
+                           'dubbing_effects', 'dubbing_lipsync', 'dubbing_encode', 'dubbing_export',
+                           'dubbing_metadata', 'dubbing_prepare_upload', 'dubbing_install',
+                           'dubbing_model_test', 'youtube_upload'})
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--runtime', type=Path, required=True)
@@ -118,8 +126,12 @@ with sync_playwright() as playwright:
               page.locator('.version').inner_text() == display_version and api('/state')['version'] == expected_version)
         check('Launcher authorization clears temporary ticket and token from the page',
               page.evaluate('()=>token===""&&launchTicket===""&&location.hash===""'))
-        check(f'Overview and API expose the expected {len(expected_tools)} tools',
-              page.locator('.tool-card').count() == len(expected_tools) and set(api('/state')['tools']) == expected_tools)
+        tool_metadata = api('/state')['tools']
+        overview_tools = set(page.locator('.tool-card').evaluate_all('(elements)=>elements.map(element=>element.dataset.tool)'))
+        check(f'Overview exposes {len(expected_tools)} tools and API retains hidden internal stages',
+              overview_tools == expected_tools and page.locator('.tool-card').count() == len(expected_tools)
+              and set(tool_metadata) == expected_tools | internal_tools
+              and all(tool_metadata[name].get('hidden') is True for name in internal_tools))
         check('Black Scripting global launcher remains outside sidebar',
               page.locator('#black-scripting-launcher').is_visible() and page.locator('#sidebar [data-view="workflows"],#sidebar [data-favorite-nav="workflows"]').count() == 0)
         check('FORGE OS has its own seven-tool sidebar group', page.locator('#forge-os-nav [data-view]').count() == 7)

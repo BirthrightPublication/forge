@@ -131,6 +131,60 @@ def main():
                 check('The verified completion cannot cause a reload loop', len(navigations) == before + 1)
                 check('Only a nonsecret consumed-update identity is stored', 'forge-token' not in page.evaluate('Object.keys(sessionStorage)'))
 
+                mode['value']='actual'
+                app.state.store.set('maintenance',{'id':'c'*32,'status':'recovered','version':__version__,
+                    'backend_verified':True,'pid':health['pid'],'message':'Explicit recovered-backend fixture.'})
+                inspect_updates();page.wait_for_selector('#open-recovered-workspace')
+                check('An older verified recovery offers an explicit Open action without automatic reload',len(navigations)==before+1)
+                page.locator('#open-recovered-workspace').click()
+                page.wait_for_selector('#dl-urls')
+                page.wait_for_function('version=>state!==null&&state.version===version',arg=__version__)
+                check('Open restored workspace is a user action and reloads the current backend',len(navigations)==before+2)
+
+                app.state.store.set('update_catalog',{'entries':[
+                    {'id':'application','category':'application','label':'FORGE','installed':__version__,
+                     'available':target,'action':'update','bytes':1024,'legacy_bytes':2048,
+                     'notes':'Synthetic release metadata; no package is downloaded.'},
+                    {'id':'dubbing:translation-en-ru','category':'models','label':'Russian translation',
+                     'installed':'','available':'Set Up Dubbing Studio','action':'','setup_action':'dubbing'},
+                    {'id':'dubbing-runtime','category':'dependencies','label':'Dubbing runtimes',
+                     'installed':'','available':'Managed Python','action':'','setup_action':'dubbing'}],
+                     'checked':time.time(),'next_check':time.time()+86400,'errors':[]})
+                inspect_updates();page.wait_for_selector('[data-update-id="application"]')
+                check('Dubbing components link to controlled setup rather than legacy model installation',page.locator('[data-dubbing-setup]').count()==2)
+                check('Optional dubbing components do not inflate the update badge',page.locator('#update-count').inner_text()=='1')
+                dialogs=[]
+                page.once('dialog',lambda dialog:(dialogs.append(dialog.message),dialog.dismiss()))
+                page.locator('[data-update-id="application"]').click()
+                for _ in range(100):
+                    if dialogs:break
+                    page.wait_for_timeout(50)
+                check('Approval shows exact version, download size, storage, destination and work summary',bool(dialogs) and all(value in dialogs[0] for value in (target,'Download:','Required free storage:','Destination:','Active jobs:')))
+                check('Declining the preflight performs no installation or queue mutation',app.state.store.jobs()==[])
+
+                # Explicit save callbacks exercise the real Update Center event
+                # handler. A draft conflict must stop before any maintenance API.
+                update_requests=[]
+                page.on('request',lambda request:update_requests.append(request.url)
+                        if '/api/updates/preflight' in request.url or '/api/updates/install' in request.url else None)
+                page.evaluate("""()=>{window.hotfixOriginalFlush=ForgeDubbing.flush;
+                    window.hotfixDraft='Unsaved Russian text';ForgeDubbing.flush=async()=>false;}""")
+                page.locator('[data-update-id="application"]').click()
+                page.wait_for_function("()=>document.querySelector('.birthright-updates').innerText.includes('could not be saved')")
+                check('A conflicted Dubbing draft blocks application preflight and installation',not update_requests)
+                page.evaluate("()=>{ForgeDubbing.flush=async()=>{throw Error('Explicit save conflict fixture');};}")
+                page.locator('[data-update-id="application"]').click();page.wait_for_timeout(150)
+                check('A rejected Dubbing save leaves the draft and maintenance untouched',not update_requests and page.evaluate('hotfixDraft')=='Unsaved Russian text')
+                page.evaluate("""()=>{window.hotfixFlushCount=0;ForgeDubbing.flush=async()=>{
+                    hotfixFlushCount++;if(hotfixFlushCount===1){window.hotfixSavedDraft=hotfixDraft;return true;}return false;};}""")
+                page.once('dialog',lambda dialog:dialog.accept())
+                page.locator('[data-update-id="application"]').click()
+                page.wait_for_function('()=>hotfixFlushCount===2')
+                check('Update approval flushes again before maintenance and retains saved workspace',
+                      len(update_requests)==1 and update_requests[0].endswith('/api/updates/preflight')
+                      and page.evaluate('hotfixSavedDraft===hotfixDraft'))
+                page.evaluate('()=>{ForgeDubbing.flush=hotfixOriginalFlush;}')
+
                 # Separate fresh page: model availability is a metadata fixture,
                 # while project persistence and queue requests use the real API.
                 mode['value'] = 'actual'

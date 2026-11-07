@@ -68,6 +68,10 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     @asynccontextmanager
     async def lifespan(app):
         if workers:
+            from .dubbing_recovery import recover_completed_results
+            # Reconcile already-published local work before dispatch. This does
+            # not start an installer/upload or clear an explicit queue pause.
+            app.state.dubbing_recovery=await asyncio.to_thread(recover_completed_results,app.state.dubbing)
             manager.start()
             app.state.update_catalog.start()
             app.state.download_studio.start()
@@ -75,6 +79,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
             threading.Thread(target=update_check, daemon=True).start()
         yield
         manager.stop()
+        if hasattr(app.state,'language_publishing'):
+            app.state.language_publishing.close()
         # Keep store available to test clients after lifespan teardown; launcher process exits next.
 
     app = FastAPI(title='FORGE Local Studio', version=__version__, docs_url=None, redoc_url=None,
@@ -107,6 +113,10 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
             if not native and not bootstrap and request.method not in {'GET','HEAD'}:
                 if not session or not secrets.compare_digest(request.headers.get('x-forge-csrf',''),session['csrf']):
                     return JSONResponse({'detail':'Browser request verification failed. Reload the FORGE page.'},status_code=403)
+            feature=('dubbing' if request.url.path.startswith('/api/dubbing/') else
+                     'youtube_upload' if request.url.path.startswith('/api/language-publishing/') else None)
+            if feature and not app.state.entitlements.allowed(feature):
+                return JSONResponse({'detail':'This local feature is not enabled by the current entitlement provider.'},status_code=403)
             if manager.maintenance and request.method not in {'GET','HEAD'} and request.url.path not in {'/api/shutdown','/api/update/prepare','/api/update/cancel'}:
                 return JSONResponse({'detail':'FORGE is preparing an application update. Changes are temporarily blocked.'},status_code=409)
             length=request.headers.get('content-length','0')
@@ -140,7 +150,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     def asset(name: str):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
-                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','downloads_v9.css','speech_v8.js','speech_v8.css'}:
+                        'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','downloads_v9.css','speech_v8.js','speech_v8.css',
+                        'dubbing_v10.js','dubbing_v10.css'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -482,4 +493,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     restore_queue_after_restart(store,manager.download_planner)
     from .speech_api import mount as mount_speech
     mount_speech(app,store,manager,destination)
+    from .dubbing_api import mount as mount_dubbing
+    mount_dubbing(app,store,manager,destination)
+    from .language_publishing import mount as mount_language_publishing
+    mount_language_publishing(app,store,manager,destination)
     return app

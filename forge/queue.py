@@ -18,6 +18,10 @@ from .resources import MEDIA_ANALYSIS, ResourceMonitor, admission_reason, admiss
 from .timing import JobClock
 
 TERMINAL = {'failed', 'cancelled', 'interrupted', 'completed', 'blocked'}
+
+
+def model_storage_change(job):
+    return job['tool']=='dubbing_model_test' and job.get('payload',{}).get('options',{}).get('action') in {'move','remove_unused'}
 WORKER_EXCEPTION_PATTERN = re.compile(r'^(?:[A-Za-z_.]*(?:Error|Exception)|Fatal Python error):')
 
 
@@ -73,6 +77,7 @@ class QueueManager:
         self.repair_pending = False
         self.require_feature = None  # Optional server-owned entitlement boundary.
         self.download_planner = None
+        self.dubbing = None
         self.active: dict[str, subprocess.Popen] = {}
         self.threads: list[threading.Thread] = []
         self.stop_event = threading.Event()
@@ -103,9 +108,18 @@ class QueueManager:
             settings = self.store.settings()
             if settings['queue_paused'] or self.maintenance or self.repair_pending:
                 return
-            for job in self.store.jobs(status='queued', limit=100000):
+            queued=self.store.jobs(status='queued', limit=100000)
+            storage_pending=any(model_storage_change(job) for job in queued)
+            for job in queued:
                 if self.stop_event.is_set():
                     break
+                active_now=[self.store.job(identity) for identity in self.active]
+                if any(model_storage_change(item) for item in active_now): break
+                if storage_pending and not model_storage_change(job): continue
+                if model_storage_change(job) and active_now:
+                    if job.get('message')!='Waiting for active processing before changing model storage.':
+                        self.store.update_job(job['id'],message='Waiting for active processing before changing model storage.')
+                    continue
                 if not self.prepare_dependency(job):
                     continue
                 if job['tool'] == 'transcribe' and job['payload'].get('options',{}).get('engine','whisper')=='whisper':
@@ -127,7 +141,7 @@ class QueueManager:
                     continue
                 # Dependency resolution may have refreshed the worker's source.
                 self.launch(self.store.job(job['id']))
-            if self.download_planner is not None and not self.maintenance_pending:
+            if self.download_planner is not None and not self.maintenance_pending and not storage_pending:
                 # There is no second waiting execution queue. A plan obtains a
                 # processing record only at resource admission, then launches
                 # before this lock is released. Active jobs are never preempted.
@@ -175,6 +189,8 @@ class QueueManager:
         return 'download' if resource == 'network' else resource
 
     def prepare_dependency(self, job):
+        if self.dubbing is not None and job['tool'].startswith('dubbing_'):
+            return self.dubbing.prepare_job(job)
         parent_id=job['payload'].get('depends_on')
         if not parent_id:
             return True
@@ -330,7 +346,13 @@ class QueueManager:
                 if status == 'cancelling':
                     self.store.update_job(id, status='cancelled', message='Cancelled. Originals and any already-published outputs were kept.', outputs=outputs, warnings=warnings)
                 elif code == 0 and result and result.get('complete'):
-                    self.store.update_job(id, status='completed', progress=100, message='Completed' + (' · review notes' if warnings else ''), outputs=outputs, warnings=warnings)
+                    try:
+                        if self.dubbing is not None and result.get('dubbing_result'):
+                            self.dubbing.library.apply_result(self.store.job(id),result)
+                    except Exception as failure:
+                        self.store.update_job(id,status='failed',message='Verified outputs were retained, but the project result needs review: '+str(failure)[:1500],outputs=outputs,warnings=warnings)
+                    else:
+                        self.store.update_job(id, status='completed', progress=100, message='Completed' + (' · review notes' if warnings else ''), outputs=outputs, warnings=warnings)
                 else:
                     failure = worker_failure(job, error, [*stderr_errors, *stderr], code)
                     message = failure['message']
@@ -432,6 +454,9 @@ class QueueManager:
     def _retry_selection(self, originals, *, validate_only=False):
         self.check_accepting()
         self.check_features(originals)
+        if any(job['tool'].startswith('dubbing_') for job in originals):
+            from .dubbing_retry import retry_selection
+            return retry_selection(self, originals, validate_only=validate_only)
         if any(job['status'] not in TERMINAL or job['id'] in self.active for job in originals):
             raise ValueError('Wait until every selected job stops before retrying.')
         selected = {job['id'] for job in originals}
@@ -531,6 +556,9 @@ class QueueManager:
             originals = [job for job in self.store.jobs(limit=100000) if job.get('batch_id') == batch_id]
             if not originals:
                 raise ValueError('Batch not found.')
+            if all(job['tool'].startswith('dubbing_') for job in originals):
+                from .dubbing_retry import retry_selection
+                return retry_selection(self, originals, batch=True)
             ids = {job['id'] for job in originals}
             if any(job['payload'].get('depends_on') and job['payload']['depends_on'] not in ids for job in originals):
                 raise ValueError('The Black Scripting dependency graph is incomplete. No new jobs were created.')

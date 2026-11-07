@@ -6,13 +6,54 @@ Package inspection uses the same verifier as the external recovery updater.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 from scripts import update as updater
+
+
+def installation_preflight(root: Path, manager, application=None):
+    """Read-only health, work and conservative free-space summary before consent."""
+    from . import __version__
+    root = root.resolve()
+    try:
+        disk_version = updater.installed_version(root)
+        declared_version = (root / 'VERSION.txt').read_text('utf-8').strip()
+    except (OSError,ValueError,updater.UpdateError):
+        disk_version = ''
+        declared_version = ''
+    healthy = disk_version == declared_version == __version__ and (root / 'server.py').is_file()
+    installed_bytes = 0
+    try:
+        manifest = json.loads((root / 'release-manifest.json').read_text('utf-8'))
+        for name in manifest.get('files', {}):
+            path = (root / name).resolve()
+            if path.is_relative_to(root) and path.is_file() and not path.is_symlink() and not name.startswith('original_scripts/'):
+                installed_bytes += path.stat().st_size
+    except (OSError, ValueError, TypeError):
+        pass
+    size = (application or {}).get('legacy_bytes') or (application or {}).get('bytes')
+    download_bytes = size if type(size) is int and size > 0 else None
+    # Compression cannot be measured before transfer. This is explicitly an
+    # estimate; exact manifest sizes are checked again before service shutdown.
+    required = installed_bytes + (download_bytes or 0) * 8 + 512 * 1048576
+    free = shutil.disk_usage(root).free
+    with manager.lock:
+        active = [job for job in manager.store.jobs(limit=100000)
+                  if job['status'] in {'running', 'cancelling', 'finalizing'}]
+        queued = sum(job['status'] == 'queued' for job in manager.store.jobs(limit=100000))
+    return {'application_version': (application or {}).get('available'), 'download_bytes':download_bytes,
+            'required_storage_bytes':required,'storage_estimate':True,'free_storage_bytes':free,
+            'storage_ready':free >= required,'active_jobs':len(active),'queued_jobs':queued,
+            'health':{'ready':healthy,'version':__version__,'disk_version':disk_version,
+                      'pid':os.getpid(),'root':str(root)},
+            'installation_directory':str(root),'download_directory':str(root / 'Build'),
+            'message':'Exact package space is verified after download and before replacement. Queued work is preserved.'}
 
 
 def windows_supported():

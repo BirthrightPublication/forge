@@ -76,10 +76,11 @@
  const categories={application:'Application',models:'Transcription models',dependencies:'Python dependencies',tools:'Production utilities',gpu:'GPU runtime'};
  function row(entry){
   let action='';
-  if(entry.id==='gpu-runtime')action='<button class="secondary" id="update-gpu-check">Diagnose</button>';
+  if(entry.setup_action==='dubbing')action='<button class="secondary" data-dubbing-setup>Set Up Dubbing Studio</button>';
+  else if(entry.id==='gpu-runtime')action='<button class="secondary" id="update-gpu-check">Diagnose</button>';
   else if(entry.action||entry.installable||entry.category==='models'&&!entry.installed)action=`<button class="${entry.action?'primary':'secondary'}" data-update-id="${escape(entry.id)}">${entry.action==='update'?'Update':entry.installed?'Repair':'Install'}</button>`;
   const revisions=(entry.revisions||[]).length>1?`<select data-model-revision="${escape(entry.id.slice(6))}" aria-label="${escape(entry.label)} cached revision">${entry.revisions.map(r=>`<option value="${escape(r.revision)}" ${r.revision===entry.installed?'selected':''}>${escape(r.revision.slice(0,12))} · cached</option>`).join('')}</select>`:'';
-  const display=value=>/^[0-9a-f]{40}$/.test(value||'')?value.slice(0,12):value;
+  const display=value=>/^[0-9a-f]{40,64}$/.test(value||'')?value.slice(0,12):value;
   return `<div class="birthright-update-row"><div><strong>${escape(entry.label)}</strong><small title="${escape(entry.installed)}">${escape(display(entry.installed)||'Not installed')}${entry.available?' → '+escape(display(entry.available)):''}</small>${entry.published?`<small>${escape(new Date(entry.published).toLocaleDateString())}${entry.bytes?' · '+bytes(entry.bytes):''}</small>`:''}${entry.notes||entry.rollback?`<details><summary>${entry.category==='application'?'Changelog':'Details'}</summary><pre>${escape(entry.notes||entry.available||'')}${entry.rollback?'\nRollback: '+escape(entry.rollback):''}</pre></details>`:''}${entry.category==='application'&&entry.notes?`<small>${escape(entry.notes.slice(0,140))}</small>`:''}${revisions}</div><div>${action}</div></div>`;
  }
  function draw(){
@@ -89,6 +90,7 @@
   $('#updates-later').onclick=()=>center.close();$('#updates-refresh').onclick=()=>check(true);
   $('#updates-all').onclick=()=>install(available);
   $$('[data-update-id]',center).forEach(button=>button.onclick=()=>install(entries.filter(e=>e.id===button.dataset.updateId)));
+  $$('[data-dubbing-setup]',center).forEach(button=>button.onclick=()=>{center.close();if(window.ForgeDubbing?.open)window.ForgeDubbing.open();else navigate('dubbing');});
   $$('[data-model-revision]',center).forEach(select=>select.onchange=async()=>{try{await api('/environment/models/select',{model:select.dataset.modelRevision,revision:select.value});status('Cached revision selected.');check(true);}catch(error){status(error.message,true);}});
   $('#update-gpu-check')?.addEventListener('click',gpuCheck);
   api('/maintenance/history').then(result=>{const el=$('#update-history');if(el)el.innerHTML=result.history.map(v=>`<p class="note">${escape(when(v.completed||v.requested))} · ${escape(v.status)}${v.version?' · '+escape(v.version):''}<br>${escape(v.message||'')}</p>`).join('')||'<p class="note">No managed installations recorded.</p>';}).catch(()=>{});
@@ -123,6 +125,15 @@
     status(newer?'Installation is recorded; verifying the running backend before restarting the workspace.':'Previous maintenance completed for FORGE '+value.version+'. Running FORGE '+loadedVersion+'.');
     if(newer)await reloadVerifiedBackend(value);
    }
+   if(value.recovery?.repairable&&!$('#repair-maintenance')){
+    const button=document.createElement('button');button.id='repair-maintenance';button.className='secondary';button.textContent='Repair interrupted installation';
+    button.onclick=async()=>{if(!confirm('Repair the registered interrupted installation? Active work finishes first; protected settings, projects and models are preserved.'))return;try{await api('/maintenance/recover',{consent:true});monitorMaintenance();}catch(error){status(error.message,true);}};
+    (center?.open?center:$('#maintenance-banner')||$('#main')).append(button);
+   }
+   if(!value.recovery?.repairable)$('#repair-maintenance')?.remove();
+   const restored=value.backend_verified===true&&value.version&&value.version!==loadedVersion&&(value.status==='recovered'||value.rollback_verified===true);
+   if(restored&&!$('#open-recovered-workspace')){const button=document.createElement('button');button.id='open-recovered-workspace';button.className='secondary';button.textContent='Open restored workspace';button.onclick=()=>location.assign('/');(center?.open?center:$('#main')).append(button);}
+   if(!restored)$('#open-recovered-workspace')?.remove();
    if(['downloading','verifying','waiting','starting','backing_up','installing','validating','restarting'].includes(value.status)){
     if(observedMaintenance!==value.id){observedMaintenance=value.id;observedMaintenanceAt=Date.now();}
     const age=Date.now()-observedMaintenanceAt,limit=value.status==='waiting'?1800000:600000;
@@ -135,11 +146,24 @@
  }
  async function install(entries){
   if(!entries.length)return;
-  const descriptions=entries.map(e=>e.label).join(', ');
-  if(!confirm(`Install compatible updates for ${descriptions}? Packages and models download from approved publishers. Existing jobs finish first; FORGE restarts if needed. Selected dependency classes also allow compatible repairs. New application versions always require approval.`))return;
+  const application=entries.some(e=>e.category==='application');
+  async function preserveDubbingWorkspace(){
+   if(!application||!window.ForgeDubbing?.flush)return true;
+   try{if(await window.ForgeDubbing.flush()!==false)return true;}catch{}
+   status('Your Dubbing Studio changes could not be saved. Resolve the save conflict or copy your edits before updating.',true);return false;
+  }
+  if(!await preserveDubbingWorkspace())return;
+  let plan;try{plan=await api('/updates/preflight',{ids:entries.map(e=>e.id)});}catch(error){status(error.message,true);return;}
+  if(application&&!plan.health?.ready){status('The running backend needs Restart or Repair before installing an application update.',true);return;}
+  if(!plan.storage_ready){status('Not enough free storage for this update and its rollback backup.',true);return;}
+  const descriptions=entries.map(e=>e.label+(e.category==='application'&&e.available?' '+e.available:'')).join(', ');
+  const summary=`Download: ${plan.download_bytes?bytes(plan.download_bytes):'resolved by the compatible component installer'}\nRequired free storage: ${bytes(plan.required_storage_bytes)}${plan.storage_estimate?' (estimate)':''}\nAvailable: ${bytes(plan.free_storage_bytes)}\nDestination: ${plan.installation_directory}\nActive jobs: ${plan.active_jobs}; queued work preserved: ${plan.queued_jobs}`;
+  const unresolved=plan.unknown_download_sizes?.length?'\nAdditional component download sizes are resolved by their installers: '+plan.unknown_download_sizes.join(', '):'';
+  if(!confirm(`Install compatible updates for ${descriptions}?\n\n${summary}${unresolved}\n\nPackages and models download from approved publishers. Active jobs finish first; FORGE restarts if needed. Selected dependency classes also allow compatible repairs. New application versions always require approval.`))return;
+  if(!await preserveDubbingWorkspace())return;
   status('Preparing updates…');clearTimeout(maintenanceTimer);maintenanceTimer=setTimeout(monitorMaintenance,500);
   try{
-   const result=await api('/updates/install',{ids:entries.map(e=>e.id),consent:true});
+   const result=await api('/updates/install',{ids:entries.map(e=>e.id),consent:true,...(plan.application_version?{expected_version:plan.application_version}:{})});
    status(result.message);monitorMaintenance();
   }catch(error){status(error.message,true);}
  }
