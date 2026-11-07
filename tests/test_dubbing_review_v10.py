@@ -87,6 +87,26 @@ def glossary(service):
     return service.library.save_record('glossaries', {'name': 'Series names', 'entries': {'Alice': 'Алиса'}})
 
 
+def test_cached_final_render_cannot_bypass_voice_approval(service,tmp_path):
+    reference=voice(service,tmp_path,approved=False)
+    saved=project(service,voice=reference)
+    with pytest.raises(ValueError,match='approve|permitted|permission'):
+        service.enqueue(saved,['dubbing_align'])
+    assert not service.store.jobs()
+
+
+def test_script_review_does_not_restore_voice_approval(service,tmp_path):
+    reference=voice(service,tmp_path)
+    saved=project(service,voice=reference)
+    started=service.enqueue(saved,['dubbing_align'])
+    revoked={**reference,'approved':False}
+    service.library.save_record('voices',revoked,reference['revision'],trusted=True)
+    current=service.library.project(saved['id'])
+    service.review({'project_id':saved['id'],'expected_revision':current['revision'],
+                    'run_id':started['run']['id'],'approve':True})
+    assert service.prepare_job(first_job(service,started)) is False
+
+
 def first_job(service, result):
     return service.store.job(result['jobs'][0]['id'])
 

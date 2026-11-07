@@ -183,7 +183,7 @@ class DubbingService:
         original_metadata=project.get('source_metadata') or project.get('source',{}).get('metadata') or {}
         if 'dubbing_translate' in stages or ('dubbing_metadata' in stages and any(original_metadata.get(key) for key in ('title','description','tags','hashtags','chapters','chapter_headings'))):
             needs.append(project['options']['translation']['engine'])
-        profiles=self._voices(project) if 'dubbing_voice' in stages else {}
+        profiles=self._voices(project) if any(stage in POST_REVIEW for stage in stages) else {}
         if 'dubbing_voice' in stages:
             if not profiles: raise ValueError('Prepare and approve a permitted voice reference with Use My Voice first.')
             needs.extend(profile.get('model') or profile.get('engine') or project['options']['tts']['engine'] for profile in profiles.values())
@@ -195,17 +195,17 @@ class DubbingService:
             model=project['options']['asr']['model']
             if not self.models().existing_whisper_state(self.store.data,model).get('ready') and not catalog.get('whisper-'+model,{}).get('ready'):
                 raise ValueError('Speech recognition needs a compatible installed Whisper model. Choose Install Recommended or Repair in Dubbing Studio.')
-        if 'dubbing_voice' in stages:
+        if profiles:
             if any(p.get('consent') is not True or (p.get('approved') is not True and not preview) for p in profiles.values()):
                 raise ValueError('Listen to and approve the selected permitted voice references first.')
 
     def enqueue(self,project,stages,*,segment_ids=None,preview=False,replace_manual_text=False,run_id=None,frozen_inputs=None,stage_options=None,workflow_name=None):
         self.manager.check_accepting()
-        self._ready(project,stages,preview=preview)
+        production_stages=[stage for stage in stages if not (stage=='dubbing_export' and (stage_options or {}).get(stage,{}).get('formats')==['project'])]
+        self._ready(project,production_stages,preview=preview)
         identity=run_id or uuid.uuid4().hex
         reviewed=bool(project.get('segments')) and all(row.get('reviewed') and row.get('text','').strip() for row in project['segments'])
         approved=reviewed and 'dubbing_review' not in stages and not preview
-        production_stages=[stage for stage in stages if not (stage=='dubbing_export' and (stage_options or {}).get(stage,{}).get('formats')==['project'])]
         if any(stage in POST_REVIEW for stage in production_stages) and 'dubbing_review' not in stages and not approved and not preview:
             raise ValueError('Review the Russian script before starting final narration or rendering. Preview does not approve the production script.')
         now=time.time();jobs=[];previous='';settings=self.store.settings()
@@ -340,6 +340,11 @@ class DubbingService:
                 self.store.update_job(job['id'],message='Review and approve the Russian translation in Dubbing Studio.')
             return False
         backup_only=job['tool']=='dubbing_export' and run.get('stage_options',{}).get(job['tool'],{}).get('formats')==['project']
+        if job['tool'] in POST_REVIEW and not backup_only and not run.get('preview') and any(
+                value.get('consent') is not True or value.get('approved') is not True for value in live_voices.values()):
+            message='Listen to and approve the selected permitted voice references before final production.'
+            if job.get('message')!=message: self.store.update_job(job['id'],message=message)
+            return False
         if job['tool'] in POST_REVIEW and not backup_only and not run.get('preview') and not approved:
             message='The script or voice changed. Review the current Russian translation before continuing.'
             if job.get('message')!=message: self.store.update_job(job['id'],message=message)

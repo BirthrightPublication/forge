@@ -590,3 +590,20 @@ def test_torch_native_selection_uses_only_hashed_matching_publisher_wheel(monkey
         result = models._torch_wheel_requirement('torch', '2.8.0', 'cpu')
         assert result['requirement'] == 'torch==2.8.0+cpu' and url + suffix in result['html']
         assert 'data-dist-info-metadata="sha256=' + 'b' * 64 + '"' in result['html']
+
+
+def test_managed_pip_ignores_other_sources_and_preserves_proxy_ca_trust(monkeypatch):
+    import os
+    monkeypatch.setenv('PIP_EXTRA_INDEX_URL', 'https://unapproved.invalid/simple')
+    monkeypatch.setenv('PIP_FIND_LINKS', 'https://unapproved.invalid/wheels')
+    monkeypatch.setenv('PIP_CONSTRAINT', '/owned-fixture/other-constraints.txt')
+    monkeypatch.setenv('PIP_CONFIG_FILE', '/owned-fixture/other-pip.ini')
+    monkeypatch.setenv('PIP_CERT', '/owned-fixture/managed-proxy-ca.pem')
+    monkeypatch.setenv('HTTPS_PROXY', 'http://owned-fixture-proxy.invalid:8080')
+    monkeypatch.setenv('SSL_CERT_FILE', '/owned-fixture/managed-proxy-ca.pem')
+    before = dict(os.environ); environment = models._pip_env()
+    assert not {'PIP_EXTRA_INDEX_URL', 'PIP_FIND_LINKS', 'PIP_CONSTRAINT'} & environment.keys()
+    assert environment['PIP_CONFIG_FILE'] == os.devnull and environment['PIP_NO_INPUT'] == '1'
+    assert environment['PIP_CERT'] == before['PIP_CERT']
+    assert environment['HTTPS_PROXY'] == before['HTTPS_PROXY'] and environment['SSL_CERT_FILE'] == before['SSL_CERT_FILE']
+    assert dict(os.environ) == before, 'Planning must not change the application or owner environment.'

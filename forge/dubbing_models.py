@@ -637,6 +637,16 @@ def _torch_wheel_requirement(package, version, device):
                     + '" data-core-metadata="' + metadata + '">' + package + '</a>'}
 
 
+def _pip_env(base=None):
+    # A managed recipe must not acquire sources/constraints from a user's pip
+    # configuration. Keep the environment's network proxy and CA/client trust.
+    values = os.environ if base is None else base
+    result = {key: value for key, value in values.items()
+              if not key.upper().startswith('PIP_') or key.upper() in {'PIP_CERT', 'PIP_CLIENT_CERT'}}
+    result.update(PIP_CONFIG_FILE=os.devnull, PIP_NO_INPUT='1', PIP_KEYRING_PROVIDER='disabled')
+    return result
+
+
 def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
     requirements = ROOT / spec['requirements']
     if not requirements.is_file() or not requirements.resolve().is_relative_to(ROOT / 'scripts'):
@@ -666,7 +676,7 @@ def _dependency_plan(spec, runtime, device, data, *, use_lock=True):
         native_index = Path(temporary) / 'native-torch-wheels.html'
         native_index.write_text('<!doctype html><html><body>' + '\n'.join(item['html'] for item in native_wheels) + '</body></html>', encoding='utf-8')
         args.extend(['--find-links', native_index, *[item['requirement'] for item in native_wheels]])
-        _run(args, timeout=360)
+        _run(args, env=_pip_env(), timeout=360)
         value = _read(report)
     wheels = []
     for item in value.get('install', []):
@@ -1010,8 +1020,8 @@ def _environment(data, component_plan, runtime, progress=None):
         python = _python(staging)
         _emit(progress, 0, 'Installing the approved binary dependencies offline', stage='Runtime installation')
         _run([python, '-m', 'pip', 'install', '--disable-pip-version-check', '--no-index', '--no-deps',
-              '--require-hashes', '--find-links', wheelhouse, '-r', lock_path], timeout=900)
-        _run([python, '-m', 'pip', 'check'], timeout=60)
+              '--require-hashes', '--find-links', wheelhouse, '-r', lock_path], env=_pip_env(), timeout=900)
+        _run([python, '-m', 'pip', 'check'], env=_pip_env(), timeout=60)
         sources = _install_sources(component_plan['sources'], staging / 'upstream', data, progress)
         env = _runtime_env(staging)
         smoke = component_plan.get('smoke') or 'import torch,soundfile'
@@ -1159,7 +1169,7 @@ def _runtime_probe(environment, marker):
             'bad={name:(m.version(name),version) for name,version in expected.items() if m.version(name)!=version}; '
             'assert not bad,"The isolated dependency versions differ from their approved receipt."')
     _run([_python(environment), '-c', code], env=_runtime_env(environment), timeout=120)
-    _run([_python(environment), '-m', 'pip', 'check'], env=_runtime_env(environment), timeout=120)
+    _run([_python(environment), '-m', 'pip', 'check'], env=_pip_env(_runtime_env(environment)), timeout=120)
     if marker.get('smoke'):
         _run([_python(environment), '-c', marker['smoke']], env=_runtime_env(environment), timeout=180)
 
