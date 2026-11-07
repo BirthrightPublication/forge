@@ -1,0 +1,5 @@
+# Isolated optional source-separation runtime; checkpoint approval is separate.
+torch==2.8.0
+torchaudio==2.8.0
+numpy==2.2.6
+soundfile==0.13.1

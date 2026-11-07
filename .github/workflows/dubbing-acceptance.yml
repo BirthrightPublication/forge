@@ -1,0 +1,118 @@
+name: Dubbing compatibility acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['development/v0.10-dubbing-studio']
+    paths:
+      - .github/workflows/dubbing-acceptance.yml
+      - scripts/dubbing_dependency_lock.py
+      - scripts/requirements-dubbing-*.txt
+      - forge/dubbing_models.py
+
+permissions:
+  contents: read
+
+jobs:
+  windows-wheel-lock:
+    name: Resolve Windows Python 3.12 wheels (${{ matrix.profile }} / ${{ matrix.device }})
+    runs-on: windows-2022
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {component: qwen3-tts-0.6b-base, profile: core, device: cpu}
+          - {component: qwen3-tts-0.6b-base, profile: core, device: cuda}
+          - {component: chatterbox-multilingual-v3, profile: chatterbox, device: cpu}
+          - {component: musetalk-1.5, profile: visual, device: cpu}
+          - {component: musetalk-1.5, profile: visual, device: cuda}
+          - {component: hdemucs-high, profile: separation, device: cpu}
+          - {component: hdemucs-high, profile: separation, device: cuda}
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install the controller prerequisites
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-core.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Controller prerequisite installation failed.' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Controller dependency verification failed.' }
+      - name: Resolve and quote real native Windows binary artifacts
+        shell: pwsh
+        run: |
+          python scripts/dubbing_dependency_lock.py --component '${{ matrix.component }}' --device '${{ matrix.device }}' --output "$env:RUNNER_TEMP/dubbing-windows-${{ matrix.profile }}-${{ matrix.device }}.json" --annotation
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows dependency resolution failed; no cross-platform lock is substituted.' }
+      - name: Retain the resolved dependency inventory
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-native-wheels-${{ matrix.profile }}-${{ matrix.device }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/dubbing-windows-${{ matrix.profile }}-${{ matrix.device }}.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  managed-python:
+    name: Bootstrap managed Python from an incompatible Windows app runtime
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Install controller prerequisites in the test runner
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-core.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Controller prerequisites failed.' }
+      - name: Download, verify and use the private managed runtime
+        shell: pwsh
+        run: |
+          @'
+          import hashlib, json, os, subprocess, sys
+          from pathlib import Path
+          from forge.dubbing_models import _runtime_plan, _bootstrap_python
+          assert os.name == 'nt' and sys.version_info[:2] == (3, 13)
+          original = Path(sys.executable)
+          before = hashlib.sha256(original.read_bytes()).hexdigest()
+          runtime = _runtime_plan()
+          assert runtime['kind'] == 'managed'
+          data = Path(os.environ['RUNNER_TEMP']) / 'dubbing-managed-runtime'
+          data.mkdir()
+          python = _bootstrap_python(runtime, data)
+          version = subprocess.check_output([str(python), '-I', '-c', 'import platform; print(platform.python_version())'], text=True).strip()
+          assert version == runtime['version']
+          environment = data / 'private-model-environment'
+          subprocess.run([str(python), '-I', '-m', 'venv', str(environment)], check=True, timeout=120)
+          executable = environment / 'Scripts' / 'python.exe'
+          result = json.loads(subprocess.check_output([str(executable), '-I', '-c', 'import json,sys;print(json.dumps({"version":list(sys.version_info[:2]),"isolated":sys.prefix!=sys.base_prefix}))'], text=True))
+          assert result == {'version': [3,12], 'isolated': True}
+          assert hashlib.sha256(original.read_bytes()).hexdigest() == before
+          receipt = {'status':'passed','native_windows_execution':True,'application_python':'3.13',
+                     'managed_python':version,'private_environment_usable':True,
+                     'original_python_unchanged':True,'model_weights_downloaded':False,
+                     'source_commit':os.environ['GITHUB_SHA']}
+          (Path(os.environ['RUNNER_TEMP'])/'dubbing-managed-python.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print('::notice title=Managed dubbing Python acceptance::'+json.dumps(receipt))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Real managed-runtime bootstrap failed.' }
+      - name: Retain runtime acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-managed-python-${{ github.run_id }}
+          path: ${{ runner.temp }}/dubbing-managed-python.json
+          if-no-files-found: warn
+          retention-days: 14
