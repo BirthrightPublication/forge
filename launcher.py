@@ -12,6 +12,34 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 
+
+def maintenance_startup(data):
+    """Resume a proved inactive transaction without manual Python commands."""
+    import importlib.util
+    script = ROOT / 'scripts' / 'managed_install.py'
+    if not script.is_file():
+        raise RuntimeError('FORGE maintenance needs recovery, but its controlled helper is missing. Use the installed external updater.')
+    spec = importlib.util.spec_from_file_location('forge_maintenance_bootstrap',script)
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    info = helper.inspect_marker(data)
+    if info.get('state') == 'inactive' and info.get('safe_to_clear'):
+        helper.clear_orphan_marker(data)
+        return False
+    if info.get('state') == 'inactive' and info.get('repairable'):
+        running = alive(data)
+        if running:
+            verify_runtime(running)
+            return False  # Open the existing Studio's controlled Repair action.
+        request_path = helper.recovery_request(data,os.getpid(),helper.process_started(os.getpid()))
+        interpreter = Path(sys._base_executable).with_name('python.exe') if os.name == 'nt' else Path(sys._base_executable)
+        flags = subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+        subprocess.Popen([str(interpreter),str(script),'--recover-launch',str(request_path)],cwd=ROOT,
+                         env={**os.environ,'FORGE_DATA_DIR':str(data),'PYTHONUTF8':'1'},creationflags=flags)
+        return True
+    raise RuntimeError('FORGE maintenance is still active or its ownership cannot be verified. '
+                       +info.get('message','Wait for the installation to finish or use the installed recovery updater.'))
+
 def data_directory():
     if os.getenv('FORGE_DATA_DIR'):
         return Path(os.environ['FORGE_DATA_DIR']).expanduser().resolve()
@@ -51,8 +79,8 @@ def main():
                 raise RuntimeError('Refusing to stop a different FORGE installation.')
             request(runtime, '/api/shutdown', {})
         return
-    if (ROOT/'.forge-maintenance.json').exists():
-        raise RuntimeError('FORGE maintenance is running or was interrupted. Wait for its console, or recover using: py -3 scripts/managed_install.py --recover')
+    if (ROOT/'.forge-maintenance.json').exists() and maintenance_startup(data_directory()):
+        return
     if (ROOT/'.forge-updating').exists() or (ROOT/'.forge-update-state.json').exists():
         raise RuntimeError('A FORGE update is in progress or was interrupted. Run Update FORGE.bat to finish or recover it before opening the Studio.')
     data = data_directory(); data.mkdir(parents=True, exist_ok=True)

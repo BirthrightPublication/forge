@@ -24,6 +24,50 @@ def progress(value: float, message: str, *, progress_measured: bool = False, **m
     emit('progress', progress=min(99, max(0, value)), message=message, progress_measured=progress_measured, **metrics)
 
 
+def relocated(value, paths):
+    """Only exact owned output paths are relocated; source/cache references stay read-only."""
+    if isinstance(value,dict): return {key:relocated(item,paths) for key,item in value.items()}
+    if isinstance(value,list): return [relocated(item,paths) for item in value]
+    return paths.get(value,value) if isinstance(value,str) else value
+
+
+def dubbing_component(payload,stage_dir,data):
+    from . import dubbing_models
+    options=payload['options'];component=options.get('component','');action=options.get('action','install')
+    meta={}
+    if payload['tool']=='dubbing_install':
+        value=dubbing_models.install(component,data,consent=options.get('consent') is True,
+            device=options.get('device','auto'),progress=progress,plan=payload.get('dubbing_install_plan'),
+            repair=action=='repair',action=action)
+    elif action=='verify': value=dubbing_models.verify(component,data,progress=progress)
+    elif action=='compatibility': value=dubbing_models.compatibility(component,data,payload.get('settings',{}),device=options.get('device','auto'))
+    elif action=='move': value=dubbing_models.move_storage(data,options.get('destination',''),consent=options.get('consent') is True,progress=progress)
+    elif action=='remove_unused':
+        value=dubbing_models.remove_unused(component,data,consent=options.get('consent') is True,
+                                          used_revisions=payload.get('dubbing_protected_revisions',[]),progress=progress)
+    elif action=='test':
+        profile=payload.get('dubbing_voice_profile')
+        request=None
+        if profile:
+            reference=profile.get('prepared_reference',{})
+            if profile.get('consent') is not True or profile.get('approved') is not True:
+                raise ValueError('Approve a permitted prepared voice reference before testing Russian speech.')
+            request={'task':'synthesize','text':'Здравствуйте! Это проверка русского голоса.','language':'Russian',
+                     'reference_audio':reference.get('path'),'ref_audio':reference.get('path'),
+                     'reference_text':profile.get('reference_text',''),'ref_text':profile.get('reference_text',''),
+                     'consent':True,'output':str(stage_dir/'Russian-voice-test.wav'),
+                     'x_vector_only_mode':not bool(profile.get('reference_text')),'device':options.get('device','auto')}
+        value=dubbing_models.test(component,data,request=request,progress=progress)
+        if profile and (stage_dir/'Russian-voice-test.wav').is_file():
+            from .dubbing_pipeline import _file
+            descriptor=_file(stage_dir/'Russian-voice-test.wav','voice_sample',payload['settings'],media=True)
+            meta={'voice_profile_update':{**profile,'sample':descriptor}}
+    else: raise ValueError('Choose a registered managed-model action.')
+    report=stage_dir/'dubbing-component.json';json_write(report,value)
+    files=[path for path in stage_dir.iterdir() if path.is_file()]
+    return files,[],meta
+
+
 def probe(path: Path, settings: dict) -> dict:
     binary = executable('ffprobe', settings)
     if not binary:
@@ -476,6 +520,8 @@ def _run(payload: dict):
     else:
         stage_dir.mkdir(exist_ok=False)
     warnings = []
+    dubbing_result = None
+    publishing_result = None
     published = []
     manifest = data / 'work' / job_id / 'result.json'
     try:
@@ -508,7 +554,16 @@ def _run(payload: dict):
             expected = selected.get('source_stat')
             if expected and {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns} != expected:
                 raise RuntimeError('An asset or comparison file changed after being queued. Select the inputs again.')
-        if tool=='speech_install':
+        if tool in {'dubbing_install','dubbing_model_test'}:
+            files,warnings,dubbing_result=dubbing_component(payload,stage_dir,data)
+        elif tool.startswith('dubbing_'):
+            if tool=='dubbing_review': raise RuntimeError('Translation review is an explicit application approval gate, not an inference worker.')
+            from .dubbing_pipeline import process
+            files,warnings,dubbing_result=process(payload,stage_dir,data)
+        elif tool=='youtube_upload':
+            from .language_publishing import worker_upload
+            files,warnings,publishing_result=worker_upload(payload,progress=progress,stage_dir=stage_dir)
+        elif tool=='speech_install':
             if options.get('engine')=='bark':
                 from .bark_asr import install
                 result=install(options.get('model','bark-3.0-pro'),data,consent=options.get('consent',False),revision=options.get('revision',''),device=options.get('device','cpu'),progress=progress)
@@ -644,6 +699,13 @@ def _run(payload: dict):
                 stat = final.stat()
                 item = {'name': final.name, 'path': str(final), 'size': stat.st_size,
                         'source_stat': {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}}
+                if dubbing_result is not None:
+                    # Production artifacts already carry worker-computed hashes.
+                    # Hash auxiliary reports too, so crash recovery can verify
+                    # every published output without trusting a completion flag.
+                    from .download_runtime import file_digest
+                    hashes={str(row.get('path')):row.get('sha256') for row in dubbing_result.get('artifacts',[])}
+                    item['sha256']=hashes.get(str(path)) or file_digest(final)
             published_paths[str(path)] = str(final)
             published.append(item)
             json_write(manifest, {'outputs': published, 'warnings': warnings, 'complete': False})
@@ -656,6 +718,10 @@ def _run(payload: dict):
                     published.append(item)
         result = {'outputs': published, 'warnings': warnings,
                   'complete': not download_publication or download_failure is None}
+        if dubbing_result is not None:
+            result['dubbing_result']=relocated(dubbing_result,published_paths)
+        if publishing_result is not None:
+            result['publishing_result']=relocated(publishing_result,published_paths)
         json_write(manifest, result)
         emit('result', **result)
         if download_publication and download_failure:

@@ -127,13 +127,32 @@ def mount(app, store, manager, destination):
         scope='preview' if preview else body.get('scope',value.get('scope','document'))
         if scope=='export':
             value['assemble_only']=True
+            if snapshot:
+                value['text']=''
             scope='document'
         if scope=='chapters':
             value['chapter_ids']=body.get('chapter_ids',value.get('chapter_ids',[]))
+            if not isinstance(value['chapter_ids'],list) or not value['chapter_ids']:
+                raise ValueError('Choose at least one chapter to generate.')
             scope='document'
+        elif scope != 'document':
+            value['chapter_ids']=[]
+        elif 'chapter_ids' not in body.get('options',{}) and 'chapter_ids' not in body:
+            value['chapter_ids']=[]
+        if snapshot and 'text' not in body and 'text' not in body.get('options',{}):
+            # Manuscript text is held by its immutable project snapshot; a saved
+            # options.text must not silently replace newly edited chapters.
+            value['text']=''
         if body.get('chapter_id'):
             value['chapter_id']=body['chapter_id']
+        if scope == 'document':
+            value['chapter_id']=''
         value['scope']=scope
+        preview_recipe=scope=='preview' and any(key in body.get('options',{}) for key in ('voice','blend'))
+        if preview_recipe and 'voice' in body.get('options',{}) and 'blend' not in body.get('options',{}):
+            # Choosing an original voice does not inherit the manuscript's blend.
+            # A selected saved profile can restore its own recipe below.
+            value['blend']=[]
         if preview and len(value.get('text',''))>1000:
             raise ValueError('Voice previews are limited to 1,000 characters.')
         options=SpeechOptions.model_validate(value).model_dump()
@@ -154,6 +173,11 @@ def mount(app, store, manager, destination):
             return result,profile
         options,profile=expand_voice(options)
         options['speakers']={key:expand_voice(value)[0] for key,value in options['speakers'].items()}
+        if preview_recipe:
+            # A voice-card/mixer audition explicitly selects its narrator recipe.
+            # Keep named dialogue speakers, but do not let the saved default
+            # narrator replace that selected voice or blend in the queued copy.
+            options['speakers'].pop('narrator',None)
         if snapshot:
             snapshot['speakers']=copy.deepcopy(options['speakers'])
         if isinstance(options['style'],str):
@@ -177,6 +201,10 @@ def mount(app, store, manager, destination):
         options=SpeechOptions.model_validate(options).model_dump()
         if not options['text'] and not snapshot:
             raise ValueError('Enter text or select a saved speech project.')
+        from .speech_books import resolve_chapters
+        chapters=resolve_chapters(snapshot or {},options)
+        if not chapters or not any(chapter.get('text','').strip() for chapter in chapters):
+            raise ValueError('Choose a nonempty project, chapter or text selection.')
         # Validate marker syntax before persisting a production job.
         compile_document(options['text'],style=options['style'],pronunciation=options['pronunciation'],pauses=options['pauses'])
         return enqueue('tts',options,body,extra={'speech_project':snapshot,'speech_profile':profile})

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0 — development candidate; not released
+
+- Add a persistent Dubbing Studio workspace with timed English/Russian segments, glossary support, permitted voice profiles, explicit script review and immutable queued recipes.
+- Add isolated, consent-based model/runtime setup, verified resumable artifact downloads, native dependency inventories and managed Python compatibility without replacing existing environments. Exact model checkpoints and neural acceptance remain blocked pending publisher verification and cloud network access.
+- Integrate translation, voice, four timing strategies, stems/mixing, existing audio effects, optional face-selected lip sync, video/subtitle/audio/metadata exports and upload preparation into the existing queue and Black Scripting.
+- Add language-channel profiles, supported OAuth/PKCE and protected Windows credentials, verified-channel/private-first resumable publishing, plus a manual upload fallback. Live account authorization/upload remains untested.
+- Preserve manual edits during late results, retain completed media on retry, bind review to text/voice revisions and withhold changed production recipes. Add verified local completion recovery without replaying network uploads.
+- Correct stale update reloads, maintenance ownership/restart diagnostics, TTS chapter/selection scope and explicit voice-card preview behavior. Preserve existing tools and Windows updater contracts.
+- Release approval, model inference, physical GPU testing and other final release checks remain required. See docs/V0.10-DEVELOPMENT.md for actual evidence and limitations.
+
 ## 0.9.0 — Media Downloads 2.0; approved for publication
 
 - Preserve the complete V0.8 implementation and integrate approved main source `078d9d5375033cf982e122f0c148433fe4e6760f`, including its experimental CUDA labels and release guidance. V0.9 retains its own review and release requirements.

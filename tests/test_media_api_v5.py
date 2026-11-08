@@ -20,7 +20,10 @@ def test_catalog_matches_registry_and_entitlements(client):
     assert response.status_code == 200
     body = response.json()
     assert set(body['tools']) == PRIVACY_TOOLS
-    assert len(TOOLS) == 20
+    # The privacy catalogue remains stable when other workspaces add hidden
+    # queue stages. Those internal stages must not become overview tools.
+    assert len([tool for tool in TOOLS.values() if not tool.get('hidden')]) == 21
+    assert not TOOLS['dubbing'].get('hidden')
     assert {'tts','audio_effects'} <= set(TOOLS)
     assert all(value['schema']['additionalProperties'] is False for value in body['tools'].values())
     state = client.get('/api/state').json()

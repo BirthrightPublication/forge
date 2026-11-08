@@ -91,15 +91,17 @@ jobs:
       - name: Run the complete Python suite
         run: python -m pytest -q --junitxml="$TEST_OUTPUT/PYTEST.xml" | tee "$TEST_OUTPUT/PYTHON_TEST_RESULTS.txt"
       - name: Install Chromium for interface acceptance
-        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-'))
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-') || startsWith(github.ref_name, 'development/v0.10-'))
         run: python -m playwright install --with-deps chromium
       - name: Validate V0.7 interface and address controls
-        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-'))
+        if: (startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-') || startsWith(github.ref_name, 'development/v0.10-'))
         run: |
           python tests/browser_v7_check.py --output "$TEST_OUTPUT/v07-browser"
           python tests/browser_generators_check.py --output "$TEST_OUTPUT/generator-browser"
           if [[ -f tests/browser_v8_check.py ]]; then python tests/browser_v8_check.py --output "$TEST_OUTPUT/v08-browser"; fi
           if [[ -f tests/browser_v9_check.py ]]; then python tests/browser_v9_check.py --output "$TEST_OUTPUT/v09-browser"; fi
+          if [[ -f tests/browser_v10_check.py ]]; then python tests/browser_v10_check.py --output "$TEST_OUTPUT/v010-browser"; fi
+          if [[ -f tests/browser_v10_hotfixes.py ]]; then python tests/browser_v10_hotfixes.py --output "$TEST_OUTPUT/v010-hotfix-browser"; fi
       - name: Retain Python validation results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6; Node 24
@@ -111,7 +113,7 @@ jobs:
 
   windows-candidate:
     name: Native maintenance and Windows installation acceptance
-    if: startsWith(github.ref_name, 'development/v0.6-') || startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-')
+    if: startsWith(github.ref_name, 'development/v0.6-') || startsWith(github.ref_name, 'development/v0.7-') || startsWith(github.ref_name, 'development/v0.8-') || startsWith(github.ref_name, 'development/v0.9-') || startsWith(github.ref_name, 'development/v0.10-')
     runs-on: windows-2022
     timeout-minutes: 20
     defaults:
@@ -152,6 +154,38 @@ jobs:
             }
             throw 'Native contract tests failed.'
           }
+      - name: Verify native V0.10 maintenance and protected publishing credentials
+        if: startsWith(github.ref_name, 'development/v0.10-')
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'Required native V0.10 media prerequisites failed.' }
+          }
+          $nativeOutput = & python -m pytest -q tests/test_v10_maintenance.py tests/test_language_publishing_v10.py tests/test_v10_voice_preview.py tests/test_dubbing_store_v10.py --junitxml="$env:RUNNER_TEMP/v010-native.xml" 2>&1
+          $nativeCode = $LASTEXITCODE
+          $nativeOutput | Write-Output
+          $nativeOutput | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/v010-native-results.txt"
+          if ($nativeCode -ne 0) {
+            $reported = 0
+            if (Test-Path "$env:RUNNER_TEMP/v010-native.xml") {
+              [xml]$report = Get-Content "$env:RUNNER_TEMP/v010-native.xml" -Raw
+              foreach ($failure in @($report.SelectNodes('//testcase[failure or error]') | Select-Object -First 12)) {
+                $node = $failure.SelectSingleNode('failure|error')
+                $details = "$($failure.classname).$($failure.name): $($node.GetAttribute('message'))`n$($node.InnerText)"
+                if ($details.Length -gt 6000) { $details = $details.Substring(0, 6000) + ' [bounded diagnostic]' }
+                $message = $details.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+                Write-Output "::error title=Native V0.10 test failure::$message"
+                $reported++
+              }
+            }
+            if ($reported -eq 0) {
+              $details = ($nativeOutput | Select-Object -Last 20) -join "`n"
+              if ($details.Length -gt 6000) { $details = $details.Substring($details.Length - 6000) }
+              $message = $details.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Output "::error title=Native V0.10 test process::$message"
+            }
+            throw 'Native V0.10 maintenance or credential protection failed; bounded test diagnostics were reported.'
+          }
       - name: Build and validate the candidate Windows package
         run: |
           $version = (Get-Content VERSION.txt -Raw).Trim()
@@ -167,7 +201,7 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows_release_acceptance.ps1 -Archive $archive -Checksum "$archive.sha256" -Output "$env:RUNNER_TEMP/v06-windows-acceptance" -PythonExecutable (Get-Command python).Source
           if ($LASTEXITCODE -ne 0) { throw 'Unchanged updater acceptance failed.' }
       - name: Verify real V0.9 Windows downloads and interruption recovery
-        if: startsWith(github.ref_name, 'development/v0.9-')
+        if: startsWith(github.ref_name, 'development/v0.9-') || startsWith(github.ref_name, 'development/v0.10-')
         run: |
           python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-downloads.txt
           if ($LASTEXITCODE -ne 0) { throw 'Required downloader installation failed.' }
@@ -184,6 +218,8 @@ jobs:
           name: windows-candidate-review-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/v06-native.xml
+            ${{ runner.temp }}/v010-native.xml
+            ${{ runner.temp }}/v010-native-results.txt
             ${{ runner.temp }}/v06-package/
             ${{ runner.temp }}/v06-windows-acceptance/windows-acceptance.json
             ${{ runner.temp }}/v06-windows-acceptance/*/installed-app-smoke.json

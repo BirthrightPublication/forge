@@ -36,6 +36,17 @@ def bounded(value, default=1, maximum=5):
 def primary_resource(job):
     tool = job['tool']
     options = job.get('payload', {}).get('options', {})
+    if tool=='youtube_upload' or tool=='dubbing_install': return 'network'
+    if tool=='dubbing_model_test':
+        if options.get('action') in {'verify','move','remove_unused'}: return 'disk'
+        return 'gpu' if options.get('device','auto')!='cpu' else 'cpu'
+    if tool.startswith('dubbing_'):
+        config=job.get('payload',{}).get('dubbing',{}).get('project',{}).get('options',{})
+        key={'dubbing_transcribe':'asr','dubbing_translate':'translation','dubbing_voice':'tts','dubbing_lipsync':'lip_sync'}.get(tool)
+        if key: return 'gpu' if config.get(key,{}).get('device','cpu')!='cpu' else 'cpu'
+        if tool=='dubbing_separate': return 'gpu' if config.get('audio',{}).get('separation_device','auto')!='cpu' else 'cpu'
+        if tool=='dubbing_encode' and 'nvenc' in config.get('export',{}).get('video_codec',''): return 'gpu'
+        return 'cpu'
     if tool.startswith('download') or tool == 'model_download':
         return 'network'
     if tool == 'speech_install':
@@ -57,6 +68,9 @@ def primary_resource(job):
 def required_resources(job):
     resource = primary_resource(job)
     result = {resource}
+    if job['tool'].startswith('dubbing_') or job['tool']=='youtube_upload':
+        result.add('disk')
+        if job['tool']=='dubbing_install' and job.get('payload',{}).get('options',{}).get('device')=='cuda': result.add('gpu')
     if job['tool'] in {'retune', 'download_audio', 'download_video', 'model_download',
                        'watermark', 'privacy_export','tts','audio_effects','speech_install'} | MEDIA_ANALYSIS:
         result.add('disk')
@@ -67,6 +81,21 @@ def required_resources(job):
 
 
 def model_budget_mb(job):
+    if job['tool'].startswith('dubbing_'):
+        config=job.get('payload',{}).get('dubbing',{}).get('project',{}).get('options',{})
+        if job['tool']=='dubbing_encode': return ENCODER_MEMORY_MB
+        if job['tool']=='dubbing_transcribe': return MODEL_MEMORY_MB.get(config.get('asr',{}).get('model','large-v3-turbo'),6500)
+        if job['tool']=='dubbing_translate': return 1500
+        if job['tool']=='dubbing_separate': return 4500
+        if job['tool']=='dubbing_lipsync': return 9500
+        engine=job.get('payload',{}).get('options',{}).get('component') or config.get('tts',{}).get('engine','')
+        if job['tool']=='dubbing_voice':
+            engines=[value.get('model') or value.get('engine') or engine for value in job.get('payload',{}).get('dubbing',{}).get('voice_profiles',{}).values()]
+            if any('1.7b' in value for value in engines): return 8500
+            if any('chatterbox' in value for value in engines): return 6000
+        if 'musetalk' in engine: return 9500
+        if engine.startswith('whisper-'): return MODEL_MEMORY_MB.get(engine.removeprefix('whisper-'),6500)
+        return 8500 if '1.7b' in engine else 6000 if 'chatterbox' in engine else 4500
     if job['tool'] == 'tts':
         engine = job.get('payload',{}).get('options',{}).get('engine','kokoro')
         return {'kokoro':2000,'ming':6000,'ming-0.5b':6000,'ming-tiny':24000}.get(engine,12000)

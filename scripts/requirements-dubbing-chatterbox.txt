@@ -1,0 +1,16 @@
+# Optional archived research adapter. Its source is Git-blob verified separately.
+# CPU-only: do not install this dependency family over the modern Qwen/CUDA runtime.
+torch==2.6.0
+torchaudio==2.6.0
+transformers==5.2.0
+diffusers==0.29.0
+librosa==0.11.0
+numpy==1.26.4
+s3tokenizer==0.3.0
+resemble-perth==1.0.1
+conformer==0.3.2
+safetensors==0.5.3
+pyloudnorm==0.1.1
+setuptools==80.9.0
+# Russian-only reviewed API patch uses upstream CFM_PARAMS without OmegaConf.
+# Chinese/Japanese helpers and unreviewed stress-model downloads are disabled.

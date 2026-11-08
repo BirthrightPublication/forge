@@ -1,4 +1,29 @@
-# Building the V0.7 candidate
+# Building the current candidate
+
+The current development version is **0.10.0**, based on released V0.9.0. This is
+not a release approval. See [V0.10 development and acceptance](V0.10-DEVELOPMENT.md)
+and the [model/dependency inventory](V0.10-MODEL-INVENTORY.md). Run the complete
+Python suite and all existing browser harnesses, including `browser_v10_check.py`
+and `browser_v10_hotfixes.py`. Keep output in a disposable directory outside
+source. Dubbing neural dependencies belong in their isolated managed runtimes,
+not the application environment.
+
+The development review workflow tests CPU behavior, native Windows maintenance,
+protected credentials, the exact external updater, and real downloader recovery.
+The separate Dubbing compatibility workflow resolves binary dependencies on native
+Windows Python 3.12 and verifies managed Python 3.13-to-3.12 setup. Those checks
+do not imply model inference or physical GPU acceptance. Do not bypass missing
+publisher checkpoints, license review, actual inference or owner release review.
+
+Before committing final application files, build the legacy ZIP with
+`python scripts/package_release.py --output <outside-source>`, copy its
+`release-manifest.json` back to the source tree, then build the Windows candidate:
+`python scripts/package_windows_release.py build --source . --output <outside-source> --tag v0.10.0`.
+This validates the source inventory and produces the `app/` ZIP/checksum. A local
+candidate is not a GitHub Release. Build final approved releases from exact tagged
+source and retain the required Windows acceptance evidence before publication.
+
+## Historical V0.7 build procedure
 
 Use the existing commands below with version `0.7.0`. Run the complete Python suite,
 all existing browser harnesses, and `tests/browser_v7_check.py --output <new-disposable-folder>`.
