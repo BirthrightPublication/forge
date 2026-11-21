@@ -43,6 +43,65 @@ jobs:
         run: |
           python scripts/dubbing_legal_sources.py --manifest forge/dubbing_legal_sources_inventory.json --output "$env:RUNNER_TEMP/dubbing-legal-source-evidence" --download-limit-bytes 83886080 --require-clean-source
           if ($LASTEXITCODE -ne 0) { throw 'Immutable public legal source verification failed; no native code was installed or executed.' }
+      - name: Retain exact non-UTF8 OpenMP notice bytes for human review
+        timeout-minutes: 2
+        run: |
+          @'
+          import base64, hashlib, json, os, re, tarfile
+          from pathlib import Path
+          archive_sha = 'c351b0f0472c99de1f989001baf07847036158579706cb97cba35be7160f85e4'
+          notice_sha = '7723b626fe7313c8f8a24143e9bfa008874241aaf54432ea22fd50387c9f1ddf'
+          member_name, notice_size = 'info/licenses/tpp.txt', 71667
+          source_commit = os.environ['GITHUB_SHA']
+          assert re.fullmatch(r'[a-f0-9]{40}', source_commit), 'Exact source commit required.'
+          root = Path(os.environ['RUNNER_TEMP']) / 'dubbing-legal-source-evidence'
+          def ordinary(path):
+              for item in (path, *path.parents):
+                  if item == root.parent:
+                      break
+                  assert not item.is_symlink() and not getattr(item.stat(), 'st_file_attributes', 0) & 0x400, 'Linked evidence rejected.'
+              assert path.is_file(), 'Ordinary evidence file required.'
+              return path
+          report_path = ordinary(root / 'PUBLIC_LEGAL_SOURCE_REPORT.json')
+          assert report_path.stat().st_size <= 4 * 1024 * 1024, 'Bounded verifier report required.'
+          report = json.loads(report_path.read_text('utf-8'))
+          assert report['status'] == 'identities_verified_legal_review_pending' and not report['errors'], 'Successful verifier required.'
+          assert report['source_commit'] == source_commit and report['source_checkout_clean'] is True, 'Matching clean source required.'
+          evidence = [row for row in report['downloads'] if row.get('component') == 'Intel-OpenMP-runtime' and row.get('kind') == 'verified_archive']
+          assert len(evidence) == 1 and evidence[0]['identity_verified'] is True and evidence[0]['sha256'] == archive_sha, 'Verified archive receipt required.'
+          documents = [row for row in evidence[0]['documents'] if row.get('member') == member_name]
+          assert len(documents) == 1 and documents[0]['size'] == notice_size and documents[0]['sha256'] == notice_sha, 'Exact notice receipt required.'
+          archive = ordinary(root / 'archives' / 'Intel-OpenMP-runtime.verified-archive')
+          assert 0 < archive.stat().st_size <= 16 * 1024 * 1024, 'Archive exceeds its approved byte allowance.'
+          actual = hashlib.sha256()
+          with archive.open('rb') as stream:
+              for block in iter(lambda: stream.read(1024 * 1024), b''):
+                  actual.update(block)
+          assert actual.hexdigest() == archive_sha, 'Full source archive hash mismatch.'
+          notice = None
+          with tarfile.open(archive, 'r:bz2') as handle:
+              for count, member in enumerate(handle, 1):
+                  assert count <= 50000, 'Archive entry bound exceeded.'
+                  if member.name != member_name:
+                      continue
+                  assert notice is None and member.type in {tarfile.REGTYPE, tarfile.AREGTYPE} and member.size == notice_size, 'Exactly one regular notice member required.'
+                  with handle.extractfile(member) as stream:
+                      notice = stream.read(notice_size + 1)
+          assert notice is not None and len(notice) == notice_size, 'Exact notice size required.'
+          assert hashlib.sha256(notice).hexdigest() == notice_sha, 'Raw notice hash mismatch.'
+          review = {'schema': 1, 'kind': 'openmp_notice_encoding_review', 'source_commit': source_commit,
+                    'source_archive_sha256': archive_sha, 'member': member_name, 'size': notice_size,
+                    'raw_sha256': notice_sha, 'raw_notice_base64': base64.b64encode(notice).decode('ascii'),
+                    'encoding_unreviewed': True, 'license_reviewed': False, 'distribution_approved': False,
+                    'native_binary_execution_performed': False}
+          raw = (json.dumps(review, sort_keys=True, indent=2) + '\n').encode('utf-8')
+          assert len(raw) <= 128 * 1024, 'Notice review JSON exceeded its byte bound.'
+          output = Path(os.environ['RUNNER_TEMP']) / 'dubbing-notice-review'
+          output.mkdir(exist_ok=False)
+          with (output / 'INTEL_OPENMP_TPP_REVIEW.json').open('xb') as stream:
+              stream.write(raw)
+          '@ | python -I -
+          if ($LASTEXITCODE -ne 0) { throw 'Exact OpenMP notice review export failed; no source archive or native binary is retained as an artifact.' }
       - name: Retain only public report and verified source text
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -51,5 +110,13 @@ jobs:
           path: |
             ${{ runner.temp }}/dubbing-legal-source-evidence/PUBLIC_LEGAL_SOURCE_REPORT.json
             ${{ runner.temp }}/dubbing-legal-source-evidence/public_source_texts/**
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Retain only the named OpenMP notice review JSON
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-openmp-tpp-review-${{ github.run_id }}
+          path: ${{ runner.temp }}/dubbing-notice-review/INTEL_OPENMP_TPP_REVIEW.json
           if-no-files-found: warn
           retention-days: 30
