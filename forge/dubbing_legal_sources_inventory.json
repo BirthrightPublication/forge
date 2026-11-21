@@ -1,0 +1,354 @@
+{
+  "approval_flags": {
+    "distribution_approved": false,
+    "license_reviewed": false,
+    "native_execution_performed": false,
+    "physical_gpu_tested": false
+  },
+  "excluded_completed_large_download": "NVIDIA cuDNN9.1.0.70 vendor archive is separate previously verified evidence. This workflow targets remaining original FFmpeg/codec/Intel sources and does not fetch that669629858-byte archive.",
+  "expected_source_sizes_note": "Unknown originalarchive size stays null; independently pinnedSHA256 and strict per-artifact/total download caps remain mandatory.",
+  "immutable_assets": [
+    {
+      "path": "docs/development/license.rst",
+      "repository": "PyAV-Org/PyAV",
+      "revision": "7e3d950a8b72062502c1a60d672f8ca565313af5",
+      "save_as": "upstream/docs/development/license.rst",
+      "sha256": "becc70e9cfe7e15d624f6de729fae233f188e22c294d517e7bd98c435ffb304e",
+      "size": 246,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/docs/development/license.rst"
+    },
+    {
+      "path": "scripts/build-deps",
+      "repository": "PyAV-Org/PyAV",
+      "revision": "7e3d950a8b72062502c1a60d672f8ca565313af5",
+      "save_as": "upstream/scripts/build-deps",
+      "sha256": "0d82d5a0882aa237544efcb0e840a0da66ccb6e49053036073e426d17e0db485",
+      "size": 2437,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/scripts/build-deps"
+    },
+    {
+      "path": "scripts/ffmpeg-8.1.json",
+      "repository": "PyAV-Org/PyAV",
+      "revision": "7e3d950a8b72062502c1a60d672f8ca565313af5",
+      "save_as": "upstream/scripts/ffmpeg-8.1.json",
+      "sha256": "ee5eff64bfdb5fcff2ec419ed84ede05d26dc6bc219fe8b95ab087c3c9e087e3",
+      "size": 108,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/scripts/ffmpeg-8.1.json"
+    },
+    {
+      "path": "pyproject.toml",
+      "repository": "PyAV-Org/PyAV",
+      "revision": "7e3d950a8b72062502c1a60d672f8ca565313af5",
+      "save_as": "upstream/pyproject.toml",
+      "sha256": "436a037a4ae0f10e8f607a129e71cf47bf549ea650f9b3bc3e979a2cd84a572d",
+      "size": 1607,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/pyproject.toml"
+    },
+    {
+      "path": ".github/workflows/tests.yml",
+      "repository": "PyAV-Org/PyAV",
+      "revision": "7e3d950a8b72062502c1a60d672f8ca565313af5",
+      "save_as": "upstream/.github/workflows/tests.yml",
+      "sha256": "5a3f3757c8491940d40da7352e43d9056955d5a92c5a297786d83971c008927c",
+      "size": 5002,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/.github/workflows/tests.yml"
+    },
+    {
+      "path": "README.rst",
+      "repository": "PyAV-Org/pyav-ffmpeg",
+      "revision": "cf545d99347ea17cd00ac72f0a3c3cb137399eca",
+      "save_as": "ffmpeg-upstream/README.rst",
+      "sha256": "c59dcb461aaab34302f038035a7633f2d9404cfd52e3678a7e6e0de4f258eb83",
+      "size": 877,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/README.rst"
+    },
+    {
+      "path": "patches/ffmpeg.patch",
+      "repository": "PyAV-Org/pyav-ffmpeg",
+      "revision": "cf545d99347ea17cd00ac72f0a3c3cb137399eca",
+      "save_as": "ffmpeg-upstream/patches/ffmpeg.patch",
+      "sha256": "c6fff328c0c64ea5a3cb4b9bf44299553cb5897ab7bc5e22b4e16902c191d492",
+      "size": 749,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/patches/ffmpeg.patch"
+    },
+    {
+      "path": "scripts/build-ffmpeg.py",
+      "repository": "PyAV-Org/pyav-ffmpeg",
+      "revision": "cf545d99347ea17cd00ac72f0a3c3cb137399eca",
+      "save_as": "ffmpeg-upstream/scripts/build-ffmpeg.py",
+      "sha256": "35aed6c5b9a99af6eccd948d350f40bc9cc4087efca5535dc56d480bd55de048",
+      "size": 12236,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/scripts/build-ffmpeg.py"
+    },
+    {
+      "path": "scripts/pkg.py",
+      "repository": "PyAV-Org/pyav-ffmpeg",
+      "revision": "cf545d99347ea17cd00ac72f0a3c3cb137399eca",
+      "save_as": "ffmpeg-upstream/scripts/pkg.py",
+      "sha256": "809dfe365c69f8ec9efa24bfb0b4c103b5c884aaf2c78ffbb7448e75f647b648",
+      "size": 7652,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/scripts/pkg.py"
+    },
+    {
+      "path": ".github/workflows/build-ffmpeg.yml",
+      "repository": "PyAV-Org/pyav-ffmpeg",
+      "revision": "cf545d99347ea17cd00ac72f0a3c3cb137399eca",
+      "save_as": "ffmpeg-upstream/.github/workflows/build-ffmpeg.yml",
+      "sha256": "3f8840e0e6f48ea88e38bc06c8a494c97945c1526937140ace3c48b86ef8455c",
+      "size": 6495,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/.github/workflows/build-ffmpeg.yml"
+    },
+    {
+      "git_blob_sha1": "371b0913ce7c199c4092d9344680c80f78ebeb2a",
+      "path": "LICENSE.md",
+      "repository": "FFmpeg/FFmpeg",
+      "revision": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+      "save_as": "licenses/FFmpeg-FFmpeg/LICENSE.md",
+      "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+      "size": 4346,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/LICENSE.md"
+    },
+    {
+      "git_blob_sha1": "65c5ca88a67c30becee01c5a8816d964b03862f9",
+      "path": "COPYING.LGPLv3",
+      "repository": "FFmpeg/FFmpeg",
+      "revision": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+      "save_as": "licenses/FFmpeg-FFmpeg/COPYING.LGPLv3",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+      "size": 7651,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.LGPLv3"
+    },
+    {
+      "git_blob_sha1": "94a9ed024d3859793618152ea559a168bbcbb5e2",
+      "path": "COPYING.GPLv3",
+      "repository": "FFmpeg/FFmpeg",
+      "revision": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+      "save_as": "licenses/FFmpeg-FFmpeg/COPYING.GPLv3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "size": 35147,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.GPLv3"
+    },
+    {
+      "git_blob_sha1": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "path": "COPYING.GPLv2",
+      "repository": "FFmpeg/FFmpeg",
+      "revision": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+      "save_as": "licenses/FFmpeg-FFmpeg/COPYING.GPLv2",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.GPLv2"
+    },
+    {
+      "git_blob_sha1": "17596942749abe569c7d42f8abc1b48ce88cb148",
+      "path": "configure",
+      "repository": "FFmpeg/FFmpeg",
+      "revision": "38b88335f99e76ed89ff3c93f877fdefce736c13",
+      "save_as": "licenses/FFmpeg-FFmpeg/configure",
+      "sha256": "28edfaee55cd82f33a2651b8b7ad496ed4ba3e0b0208f3b5a08e6b8c438b45f4",
+      "size": 307358,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/configure"
+    },
+    {
+      "git_blob_sha1": "d60c31a97a544b53039088d14fe9114583c0efc3",
+      "path": "COPYING",
+      "repository": "mirror/x264",
+      "revision": "b35605ace3ddf7c1a5d67a2eb553f034aef41d55",
+      "save_as": "licenses/mirror-x264/COPYING",
+      "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+      "size": 17992,
+      "url": "https://raw.githubusercontent.com/mirror/x264/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/COPYING"
+    },
+    {
+      "git_blob_sha1": "cc22f05d5cf6cfe51fd462b92ffd4ba6dfc9b275",
+      "path": "x264.h",
+      "repository": "mirror/x264",
+      "revision": "b35605ace3ddf7c1a5d67a2eb553f034aef41d55",
+      "save_as": "licenses/mirror-x264/x264.h",
+      "sha256": "cec084bdb3cd2330800d0726bdbd99d91112df3fdb6d79f94e15ba67808b715c",
+      "size": 49056,
+      "url": "https://raw.githubusercontent.com/mirror/x264/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264.h"
+    },
+    {
+      "git_blob_sha1": "bc8c42b50d5b3e0c256c31375764805bf51bb966",
+      "path": "recipe/meta.yaml",
+      "repository": "AnacondaRecipes/intel_repack-feedstock",
+      "revision": "b030f0efd7c6182fa4f9bba6ac039acd03cf1437",
+      "save_as": "intel-upstream/AnacondaRecipes-recipe-meta.yaml",
+      "sha256": "71308923e26db11882edde3f52e8b1062056d5e7d57d0b6e6f9c43be3ccd7cc6",
+      "size": 23258,
+      "url": "https://raw.githubusercontent.com/AnacondaRecipes/intel_repack-feedstock/b030f0efd7c6182fa4f9bba6ac039acd03cf1437/recipe/meta.yaml"
+    }
+  ],
+  "kind": "exact_native_binary_legal_source_inputs",
+  "local_network_blockers": "Normal inherited proxy blocked FFmpeg.org, Videolan, Bitbucket and original Intel package archives. User explicitly authorizes approved native network runner; do not bypass proxy here.",
+  "mkl_scope_note": "MKLinclude source legal evidence is same pinned2023build family, not a claimed byte match to statically compiled CT2 MKL.",
+  "schema": 1,
+  "scope": "Read-only exact-source archive and legal-document verification; no installation, native execution, GPU claims or automatic legal approval.",
+  "separate_verified_vendor_identity": {
+    "archive_sha256": "3083b5bf20b0b2b29305de088e0b2cdbb78b5190655a27e8a7c596e47042eedf",
+    "archive_size": 669629858,
+    "archive_url": "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.1.0.70_cuda12-archive.zip",
+    "component": "NVIDIA-cuDNN9.1.0.70-cuda12",
+    "license_member_suffix": "/LICENSE",
+    "license_sha256": "7936e1f9f2a6d9deea237aee6aa7f1abd032d34bcc1c35de1e6516b223d09487",
+    "license_size": 29879,
+    "matching_binary_member_suffix": "/bin/cudnn64_9.dll",
+    "matching_binary_sha256": "c07cc47f2fa4a566593c7af4aa7e57edf09a985a0fddd14cb8d6f456e252af05",
+    "matching_binary_size": 438840,
+    "scope": "Identity/provenance record only, not an instruction to fetch or rehost proprietary terms. No automatic license/distribution approval.",
+    "vendor_manifest_sha256": "39f3cf1789a46ff7df72c4102d0240d8a8693bed0937f2f97ccf6fe8f03fa66c",
+    "vendor_manifest_url": "https://developer.download.nvidia.com/compute/cudnn/redist/redistrib_9.1.0.json"
+  },
+  "source_archives": [
+    {
+      "component": "ffmpeg",
+      "expected_size": null,
+      "identity_source": "PyAV-Org/pyav-ffmpeg cf545d99347ea17cd00ac72f0a3c3cb137399eca scripts/pkg.py",
+      "max_bytes": 20971520,
+      "required_members": [
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "371b0913ce7c199c4092d9344680c80f78ebeb2a",
+          "expected_sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+          "expected_size": 4346,
+          "path": "LICENSE.md"
+        },
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "65c5ca88a67c30becee01c5a8816d964b03862f9",
+          "expected_sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+          "expected_size": 7651,
+          "path": "COPYING.LGPLv3"
+        },
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "94a9ed024d3859793618152ea559a168bbcbb5e2",
+          "expected_sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "expected_size": 35147,
+          "path": "COPYING.GPLv3"
+        },
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+          "expected_sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+          "expected_size": 18092,
+          "path": "COPYING.GPLv2"
+        },
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "17596942749abe569c7d42f8abc1b48ce88cb148",
+          "expected_sha256": "28edfaee55cd82f33a2651b8b7ad496ed4ba3e0b0208f3b5a08e6b8c438b45f4",
+          "expected_size": 307358,
+          "path": "configure"
+        }
+      ],
+      "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+      "version": "8.1.2"
+    },
+    {
+      "component": "x264",
+      "expected_size": null,
+      "identity_source": "PyAV-Org/pyav-ffmpeg cf545d99347ea17cd00ac72f0a3c3cb137399eca scripts/pkg.py",
+      "max_bytes": 4194304,
+      "mirror_note": "GitHub mirror/x264 is supporting exact Git-commit identity, not a separate upstream license grant; the official VideoLAN archive SHA must verify before declaring archive equivalence.",
+      "required_members": [
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "d60c31a97a544b53039088d14fe9114583c0efc3",
+          "expected_sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+          "expected_size": 17992,
+          "path": "COPYING"
+        },
+        {
+          "equivalence": "Immutable repository file; source archive extraction must match all bytes.",
+          "expected_git_blob_sha1": "cc22f05d5cf6cfe51fd462b92ffd4ba6dfc9b275",
+          "expected_sha256": "cec084bdb3cd2330800d0726bdbd99d91112df3fdb6d79f94e15ba67808b715c",
+          "expected_size": 49056,
+          "path": "x264.h"
+        }
+      ],
+      "sha256": "6eeb82934e69fd51e043bd8c5b0d152839638d1ce7aa4eea65a3fedcf83ff224",
+      "url": "https://code.videolan.org/videolan/x264/-/archive/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55.tar.bz2",
+      "version": "b35605ace3ddf7c1a5d67a2eb553f034aef41d55"
+    },
+    {
+      "component": "x265",
+      "expected_size": null,
+      "identity_source": "PyAV-Org/pyav-ffmpeg cf545d99347ea17cd00ac72f0a3c3cb137399eca scripts/pkg.py",
+      "max_bytes": 8388608,
+      "missing_independent_members": "Full terms/header contents are not yet retrieved. Native verifier may hash/extract only after entire official archive matches the independently pinned SHA.",
+      "required_members": [
+        {
+          "expected_git_blob_sha1": null,
+          "expected_sha256": null,
+          "expected_size": null,
+          "path": "COPYING"
+        },
+        {
+          "expected_git_blob_sha1": null,
+          "expected_sha256": null,
+          "expected_size": null,
+          "path": "source/x265.h"
+        }
+      ],
+      "sha256": "40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1210",
+      "url": "https://bitbucket.org/multicoreware/x265_git/downloads/x265_4.2.tar.gz",
+      "version": "4.2"
+    },
+    {
+      "collect_legal_members": true,
+      "component": "Intel-OpenMP-runtime",
+      "expected_size": null,
+      "format": "tar",
+      "max_bytes": 16777216,
+      "observed_file_version": "5.0.2022.1004",
+      "observed_version_string": "20221004",
+      "required_members": [
+        {
+          "expected_sha256": "0b63b72e3db22583c64f21f4675738152adf9674b3c47011a7acb4744dc7d992",
+          "expected_size": 2030632,
+          "path_suffix": "/bin/libiomp5md.dll",
+          "retain": false
+        }
+      ],
+      "sha256": "c351b0f0472c99de1f989001baf07847036158579706cb97cba35be7160f85e4",
+      "source_identity_evidence": {
+        "git_blob_sha1": "bc8c42b50d5b3e0c256c31375764805bf51bb966",
+        "path": "recipe/meta.yaml",
+        "repository": "AnacondaRecipes/intel_repack-feedstock",
+        "revision": "b030f0efd7c6182fa4f9bba6ac039acd03cf1437",
+        "save_as": "intel-upstream/AnacondaRecipes-recipe-meta.yaml",
+        "sha256": "71308923e26db11882edde3f52e8b1062056d5e7d57d0b6e6f9c43be3ccd7cc6",
+        "size": 23258,
+        "url": "https://raw.githubusercontent.com/AnacondaRecipes/intel_repack-feedstock/b030f0efd7c6182fa4f9bba6ac039acd03cf1437/recipe/meta.yaml"
+      },
+      "url": "https://anaconda.org/intel/intel-openmp/2023.0.0/download/win-64/intel-openmp-2023.0.0-intel_25922.tar.bz2",
+      "version": "2023.0.0-intel_25922"
+    },
+    {
+      "association_limit": "Same original Intel MKL2023.0.0 build25930 family, identified by immutable build script and repack recipe. This legal-source package is not represented as the compiled MKL byte payload in CTranslate2.",
+      "collect_legal_members": true,
+      "component": "Intel-MKL-legal-source",
+      "expected_size": null,
+      "format": "tar",
+      "legal_path_status": "Original archive not fetched locally; legal member paths, counts, hashes, and omissions must be recorded from the verified native extraction.",
+      "max_bytes": 16777216,
+      "required_members": [],
+      "sha256": "0a227354489cc3b5003ae58d984ad10d37ff6dd3f6dbcdda0875251f874cf591",
+      "source_identity_evidence": {
+        "git_blob_sha1": "bc8c42b50d5b3e0c256c31375764805bf51bb966",
+        "path": "recipe/meta.yaml",
+        "repository": "AnacondaRecipes/intel_repack-feedstock",
+        "revision": "b030f0efd7c6182fa4f9bba6ac039acd03cf1437",
+        "save_as": "intel-upstream/AnacondaRecipes-recipe-meta.yaml",
+        "sha256": "71308923e26db11882edde3f52e8b1062056d5e7d57d0b6e6f9c43be3ccd7cc6",
+        "size": 23258,
+        "url": "https://raw.githubusercontent.com/AnacondaRecipes/intel_repack-feedstock/b030f0efd7c6182fa4f9bba6ac039acd03cf1437/recipe/meta.yaml"
+      },
+      "url": "https://anaconda.org/intel/mkl-include/2023.0.0/download/win-64/mkl-include-2023.0.0-intel_25930.tar.bz2",
+      "version": "2023.0.0-intel_25930"
+    }
+  ],
+  "total_download_limit": 83886080
+}

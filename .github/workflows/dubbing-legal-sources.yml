@@ -1,0 +1,55 @@
+name: Dubbing public legal source evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['development/v0.10-dubbing-studio']
+    paths:
+      - .github/workflows/dubbing-legal-sources.yml
+      - scripts/dubbing_legal_sources.py
+      - forge/dubbing_legal_sources_inventory.json
+      - tests/test_dubbing_legal_sources_v10.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-dubbing-legal-sources-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-public-legal-sources:
+    name: Verify immutable public legal documents on Windows
+    runs-on: windows-2022
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONUNBUFFERED: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - name: Preserve exact source bytes
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Download and verify bounded public legal source evidence
+        run: |
+          python scripts/dubbing_legal_sources.py --manifest forge/dubbing_legal_sources_inventory.json --output "$env:RUNNER_TEMP/dubbing-legal-source-evidence" --download-limit-bytes 83886080 --require-clean-source
+          if ($LASTEXITCODE -ne 0) { throw 'Immutable public legal source verification failed; no native code was installed or executed.' }
+      - name: Retain only public report and verified source text
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-public-legal-sources-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/dubbing-legal-source-evidence/PUBLIC_LEGAL_SOURCE_REPORT.json
+            ${{ runner.temp }}/dubbing-legal-source-evidence/public_source_texts/**
+          if-no-files-found: warn
+          retention-days: 30

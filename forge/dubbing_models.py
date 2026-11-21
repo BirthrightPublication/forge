@@ -539,13 +539,27 @@ def compatibility(component, data, settings=None, *, device='auto'):
             'physical_gpu_tested': False, 'hardware_benchmark_available': False}
 
 
-def _runtime_plan():
+def _runtime_plan(*, profiles=None):
     compatible = (3, 11) <= sys.version_info[:2] <= (3, 12)
+    native_windows = os.name == 'nt' and platform.machine().lower() in {'amd64', 'x86_64'}
+    if compatible and native_windows and sys.version_info[:2] == (3, 11):
+        # API compatibility alone does not establish a registered binary profile.
+        # Use the approved private 3.12 base until every requested 3.11 profile
+        # has a complete native lock; never replace the application interpreter.
+        runtime = {'version': platform.python_version()}
+        for spec, device in profiles or [(_spec('qwen3-tts-0.6b-base'), 'cpu')]:
+            try:
+                lock = _load_wheel_lock(spec, runtime, device)
+                complete = lock and _read(_wheel_lock_path(spec, runtime, device)).get('dependency_closure_complete') is True
+            except (ComponentUnavailable, OSError, ValueError, TypeError):
+                complete = False
+            if not complete:
+                compatible = False
+                break
     if compatible:
         return {'kind': 'existing', 'python': str(Path(sys.executable).resolve()), 'version': platform.python_version(), 'download_bytes': 0}
-    if os.name != 'nt' or platform.machine().lower() not in {'amd64', 'x86_64'}:
+    if not native_windows:
         raise ComponentUnavailable('This platform has no registered managed Python artifact; select an existing compatible isolated runtime.')
-    root = None
     return {'kind': 'managed', **MANAGED_PYTHON, 'download_bytes': MANAGED_PYTHON['size']}
 
 
@@ -809,11 +823,14 @@ def installation_plan(components, data, *, device='auto', settings=None, action=
         components = [components]
     if not isinstance(components, list) or not 1 <= len(components) <= 12:
         raise ValueError('Select between one and twelve registered components.')
-    data = Path(data).resolve(); runtime = _runtime_plan(); plans = []
-    for component in dict.fromkeys(components):
-        spec = _spec(component); check = compatibility(component, data, settings, device=device)
+    data = Path(data).resolve(); plans = []
+    requested = [(component, _spec(component), compatibility(component, data, settings, device=device))
+                 for component in dict.fromkeys(components)]
+    for component, spec, check in requested:
         if not check['compatible']:
             raise ComponentUnavailable('; '.join(check['reasons']))
+    runtime = _runtime_plan(profiles=[(spec, check['selected_device']) for _, spec, check in requested])
+    for component, spec, check in requested:
         parts = _parts_plan(spec)
         sources = [_source_plan(source) for source in spec['sources']]
         dependencies = _dependency_plan(spec, runtime, check['selected_device'], data)
@@ -1548,6 +1565,20 @@ def setup_state(data, settings=None, *, asr_model='large-v3-turbo'):
     if not isinstance(asr_model, str) or asr_model not in REPOSITORIES:
         raise ValueError('Choose a registered Whisper model for Dubbing setup.')
     info = hardware(data, settings)
+    try:
+        runtime = _runtime_plan()
+        needed = runtime['kind'] == 'managed'
+        reason = ''
+        if needed:
+            reason = ('Dubbing uses the registered private Python ' + runtime['version'] +
+                      ' wheel profile. Approve its isolated runtime download in the setup quote; '
+                      'the application Python and existing model environments are preserved.')
+        guided_runtime = {'supported': True, 'kind': runtime['kind'], 'version': runtime['version'],
+                          'download_bytes': runtime['download_bytes'], 'installation_needed': needed, 'reason': reason,
+                          'managed_python': copy.deepcopy(MANAGED_PYTHON)}
+    except ComponentUnavailable as error:
+        guided_runtime = {'supported': False, 'kind': 'unavailable', 'installation_needed': False,
+                          'reason': str(error), 'managed_python': copy.deepcopy(MANAGED_PYTHON)}
     models = catalog(data)
     try:
         whisper_state = existing_whisper_state(data, model=asr_model)
@@ -1564,8 +1595,7 @@ def setup_state(data, settings=None, *, asr_model='large-v3-turbo'):
             'ready': all(item['ready'] for item in recommended) and info['ffmpeg'] and info['ffprobe'] and asr_ready,
             'speech_recognition': {**whisper_state, 'model': asr_model, 'ready': asr_ready, 'isolated_ready': bool(isolated_whisper.get('ready'))},
             'audio_processing': {'ready': info['ffmpeg'] and info['ffprobe']},
-            'guided_runtime': {'supported': info['application_python_compatible'] or info['managed_python_available'],
-                               'installation_needed': not info['application_python_compatible'], 'managed_python': copy.deepcopy(MANAGED_PYTHON)},
+            'guided_runtime': guided_runtime,
             'model_storage': str(_roots(data)[0]), 'application_environments_preserved': True,
             'physical_gpu_tested': False, 'manual_python_required': False}
 

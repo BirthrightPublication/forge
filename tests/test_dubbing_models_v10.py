@@ -556,6 +556,87 @@ def test_guided_bootstrap_repairs_only_owned_runtime_and_retains_corrupt_copy(tm
     assert original.read_bytes() == b'Original installed environment'
 
 
+def runtime_host(monkeypatch, version, *, system='Windows', machine='AMD64'):
+    # Patch this adapter's references, never the host process's OS/Python identity.
+    monkeypatch.setattr(models, 'os', SimpleNamespace(**{**vars(models.os), 'name': 'nt' if system == 'Windows' else 'posix'}))
+    monkeypatch.setattr(models, 'sys', SimpleNamespace(version_info=(*version, 99), executable=sys.executable))
+    monkeypatch.setattr(models.platform, 'python_version', lambda: '.'.join(map(str, (*version, 99))))
+    monkeypatch.setattr(models.platform, 'system', lambda: system)
+    monkeypatch.setattr(models.platform, 'machine', lambda: machine)
+
+
+@pytest.mark.parametrize('system,machine,version,kind', [
+    ('Windows', 'AMD64', (3, 11), 'managed'),
+    ('Windows', 'AMD64', (3, 12), 'existing'),
+    ('Windows', 'AMD64', (3, 13), 'managed'),
+    ('Linux', 'x86_64', (3, 11), 'existing'),
+    ('Linux', 'x86_64', (3, 12), 'existing'),
+    ('Linux', 'x86_64', (3, 13), 'unavailable'),
+    ('Windows', 'ARM64', (3, 11), 'existing'),
+])
+def test_runtime_base_uses_registered_windows_profile_without_changing_other_host_policy(
+        tmp_path, monkeypatch, system, machine, version, kind):
+    runtime_host(monkeypatch, version, system=system, machine=machine)
+    monkeypatch.setattr(models, '_wheel_lock_path', lambda *args: tmp_path / 'absent-native-lock.json')
+    monkeypatch.setattr(models, '_fetch_json', lambda *args: pytest.fail('Base selection must not resolve/download packages.'))
+    if kind == 'unavailable':
+        with pytest.raises(models.ComponentUnavailable, match='no registered managed Python'):
+            models._runtime_plan()
+        return
+    runtime = models._runtime_plan()
+    assert runtime['kind'] == kind
+    if kind == 'managed':
+        assert runtime == {'kind': 'managed', **models.MANAGED_PYTHON, 'download_bytes': models.MANAGED_PYTHON['size']}
+    else:
+        assert runtime['download_bytes'] == 0 and runtime['version'] == '.'.join(map(str, (*version, 99)))
+        assert runtime['python'] == str(Path(sys.executable).resolve())
+
+
+@pytest.mark.parametrize('condition', ['complete', 'incomplete', 'invalid_native', 'invalid_hash', 'cuda_absent'])
+def test_future_python311_profile_is_reused_only_for_complete_requested_native_locks(tmp_path, monkeypatch, condition):
+    runtime_host(monkeypatch, (3, 11))
+    spec = models._spec('qwen3-tts-0.6b-base')
+    wheel = {'package': 'owned-fixture', 'version': '1.0', 'name': 'owned_fixture-1.0-py3-none-any.whl',
+             'url': 'https://files.pythonhosted.org/owned-fixture.whl', 'size': 123, 'sha256': 'a' * 64}
+    # A synthetic native-lock contract fixture, not native resolution evidence.
+    lock = {'schema': 1, 'profile': Path(spec['requirements']).stem, 'system': 'windows', 'architecture': 'x64',
+            'python_version': '3.11', 'device': 'cpu', 'cross_resolved': False, 'native_windows_execution': True,
+            'requirements_sha256': models._hash(models.ROOT / spec['requirements']), 'wheels': [wheel],
+            'download_bytes': 123, 'dependency_closure_complete': condition != 'incomplete'}
+    if condition == 'invalid_native':
+        lock['native_windows_execution'] = False
+    if condition == 'invalid_hash':
+        wheel['sha256'] = 'not-a-verified-hash'
+    path = tmp_path / 'native-py311-cpu.json'; json_write(path, lock)
+    monkeypatch.setattr(models, '_wheel_lock_path', lambda spec, runtime, device:
+        path if device == 'cpu' else tmp_path / 'absent-cuda.json')
+    profiles = [(spec, 'cpu'), (spec, 'cuda')] if condition == 'cuda_absent' else None
+    runtime = models._runtime_plan(profiles=profiles)
+    assert runtime['kind'] == ('existing' if condition == 'complete' else 'managed')
+
+
+def test_windows311_quote_includes_managed_download_and_setup_explains_private_profile(managed, monkeypatch, tmp_path):
+    runtime_host(monkeypatch, (3, 11))
+    monkeypatch.setattr(models, '_wheel_lock_path', lambda *args: tmp_path / 'absent-native-lock.json')
+    original = managed.data / '.venv/preserve.txt'
+    before = original.read_bytes()
+    plan = models.installation_plan([managed.component], managed.data, device='cpu')
+    assert plan['runtime']['kind'] == 'managed' and plan['runtime']['version'] == '3.12.16'
+    assert plan['runtime']['download_bytes'] == 47_113_364
+    assert plan['download_bytes'] == managed.blob.stat().st_size + 20 + models.MANAGED_PYTHON['size']
+    assert plan['approval_required'] is True and not (managed.data / 'runtimes').exists()
+    monkeypatch.setattr(models, 'catalog', lambda *_: [])
+    monkeypatch.setattr(models, 'existing_whisper_state', lambda *a, **k: {'ready': False})
+    state = models.setup_state(managed.data, asr_model='tiny')
+    guided = state['guided_runtime']
+    assert state['hardware']['application_python_compatible'] is True
+    assert guided['kind'] == 'managed' and guided['installation_needed'] is True
+    assert guided['version'] == '3.12.16' and guided['download_bytes'] == models.MANAGED_PYTHON['size']
+    assert 'private Python 3.12.16' in guided['reason'] and 'preserved' in guided['reason']
+    assert original.read_bytes() == before
+    assert not (managed.data / 'runtimes').exists()
+
+
 @pytest.fixture
 def publisher_wheel(monkeypatch):
     # Public publisher identity verified separately from pip's missing cache hash.

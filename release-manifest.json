@@ -45,10 +45,10 @@
     "docs/UPDATE_GUIDE.md": "e65c22305ee95ce0a0d4e71e7f02f7ab14cd5f6038e8a8d29fa2b416f1682da3",
     "docs/UPGRADE_INTEGRATION.json": "19081786cddcbeacb7d6332c8241f82daf53253090aa580c47d9e4011de714ed",
     "docs/UPGRADE_INTEGRATION_LOG.txt": "bf6dd6de974aeeed1ee15e11ed5c5f9e88e5c968a3731154464f3abcbdce791d",
-    "docs/V0.10-DEVELOPMENT.md": "888754608c8cbbd65c21a6d60c4fc975b8bf010f544695318bfd3cc54974f8e1",
+    "docs/V0.10-DEVELOPMENT.md": "480be767a5b28ef3ca46bd214753ac9f834d06f9c845799649cc0c00db34d0eb",
     "docs/V0.10-MODEL-INVENTORY.md": "5e7340c16bdb5e4932dbac0ed9d1375383ea0818cacd1c785cd829832a959b70",
     "docs/V0.10-RELEASE-GATE.md": "9d98b6f5a73c3b90379d8d3ff18068a769d69de6276e33e97d57c5b848e5f740",
-    "docs/V0.10-VALIDATION.md": "244c25d101646348829d488c135706096ed6215f903b1821cb055a6735986ab6",
+    "docs/V0.10-VALIDATION.md": "47d5adb4df27eab21c4116da5025d1878499a7bc558a0b50f2e2a5c0e3daf345",
     "docs/V0.6-IMPLEMENTATION.md": "f71b0cdb47717efcb3c26a63b75b1a21e6bc248e66f5601948f523a7d7f97267",
     "docs/V0.6-OPERATIONS.md": "bbb274b7080870159746ef18871946d63b835f0fef3d80cf28d189aa50f4ac80",
     "docs/V0.6_INSTALLATION.md": "3a1f9ebc721d9d67924c25509a62941464aa98e27d83b29bd937b1d497f346d0",
@@ -202,7 +202,7 @@
     "forge/dubbing_api.py": "1f266abc70e3bb8e8b210536745c37b1cedfc3adb58cd4fe6bfc5a6b2b4a393e",
     "forge/dubbing_audio.py": "99240646cb224e6d761173ffff06a9696801f654ca2bf85b63ae9342b5ec6397",
     "forge/dubbing_media.py": "4b20c9bb9506c0d6dc95141e593d4341f1caedc5cc9548fb07b435bec29f53ee",
-    "forge/dubbing_models.py": "6947d5a8f898b5e0a277fe26b1334a2a99830c021ed904554d174fff2ffcac9a",
+    "forge/dubbing_models.py": "3c96958700050dd3e3ae96360d37445f7617775c00798c6ceec9c15019eb7224",
     "forge/dubbing_options.py": "ff8aa7bd356324919f9af6f20832615e412b4759b59079d25b7d6241c578059f",
     "forge/dubbing_pipeline.py": "d47426e83b25efa0f20d54b6a07b2ddbe5393f8ca2e70293484dc50af5d1f6cf",
     "forge/dubbing_recovery.py": "3515a5a1292b1ce8454615ab1eb902dc8ea070c3fdf2b9a5636c2843b094755b",
@@ -337,7 +337,7 @@
     "tests/test_dubbing_black_v10.py": "5a2f7bfc613ef2e8c7eb0e2483f99cab85b77a098df6112e7c0f1c4c96b3a020",
     "tests/test_dubbing_media_v10.py": "ac051f6900e95705bcec4dc0c60689b3b2ff14ed32872080758798833252a0b5",
     "tests/test_dubbing_metadata_v10.py": "0fc23a25dfa7937c8f74e1bd11375c1af0a413267e33a6996b12282283e4426a",
-    "tests/test_dubbing_models_v10.py": "29e68d6777583fb8070c421c071ef8bbd14de8afda9d884d5155820b7fd38430",
+    "tests/test_dubbing_models_v10.py": "ada0e5f90950bf5313220bf1f20f61c4b44e0f7fd5038873ed3b1b0026f1b8fe",
     "tests/test_dubbing_production_v10.py": "f83a8db4b8e578527e415f733598991b66de8b3b75434842cb9a640ba9766417",
     "tests/test_dubbing_queue_v10.py": "2abccc94a1d1d3700211f05a88fde6670a465988d1c237121a01f5438d2ec6c3",
     "tests/test_dubbing_recovery_v10.py": "0f8e9ad833ab2cb5871d1030de567c4dc25c0715a173945629d754ca4f54e92c",
@@ -453,6 +453,9 @@
     "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
     "docs/validation/v0.10/native-cpu-3b1e7c5.json": "acff976d2981cb9d0ff4098b67df954f963173a072d7ca0601cfb57df60442c9",
     "docs/validation/v0.10/native-cpu-3b1e7c5.provenance.json": "860918456925c3fca51fb500bf7fd12263471ff4e2b832b82f1f64220dfecf12",
-    "tests/test_dubbing_context_translation_v10.py": "71d3ad7ba4667337b13b7226d9788a60147b2a0573659b546d212aa4b3d6e4b0"
+    "tests/test_dubbing_context_translation_v10.py": "71d3ad7ba4667337b13b7226d9788a60147b2a0573659b546d212aa4b3d6e4b0",
+    "forge/dubbing_legal_sources_inventory.json": "9eb8c72bd35994fc4dbb7183880eadd82492abc8f3a6a34328fe65f2a12153ba",
+    "scripts/dubbing_legal_sources.py": "0020544c82d9152cf3f022442a2059d41ce991d49beec854c9aa8328b3bfbf53",
+    "tests/test_dubbing_legal_sources_v10.py": "9e70cc2b54fa9bb11a9459c8a736b2919d7a9296f4dca552333800e9b6e64480"
   }
 }
