@@ -180,7 +180,13 @@
     "Any later model changes or different publisher terms require fresh scoped review."
   ],
   "schema": 1,
-  "scope": "Completed scoped review of exact publisher models and retained notice obligations for optional unchanged local installation. Native-library license audit and final release approval remain separate.",
+  "scope": "Completed exact model-term and registered CPU private-local runtime review for the source-only FORGE Windows payload. Future runtime-binary redistribution, GPU acceptance and final release approval remain separate.",
+  "scoped_cpu_runtime_review": {
+    "distribution_approved": false,
+    "path": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+    "reviewed": true,
+    "sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e"
+  },
   "standalone_checkpoint_license_files_present": false,
-  "status": "model_scopes_reviewed_runtime_notice_audit_pending"
+  "status": "model_and_cpu_runtime_scopes_reviewed"
 }

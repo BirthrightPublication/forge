@@ -294,10 +294,24 @@
       "wheel_size": 4673203
     }
   ],
-  "remaining_review": "Primary license labels do not establish a complete static native-library attribution audit or distribution approval. Exact recorded CPU runtime closure/inference is separately evidenced; CUDA closure and physical GPU acceptance remain unverified.",
+  "remaining_review": "Current source-only/private-local CPU and optional CUDA license scopes are reviewed. CUDA runtime closure/inference/GPU, final owner acceptance and any future binary redistribution or hosted-service scope remain unapproved.",
   "schema": 1,
   "scope": "Exact published Windows wheel bytes and contained license/metadata inspection; no installation or native execution.",
-  "status": "primary_labels_verified_review_pending",
+  "scoped_cpu_license_review": {
+    "binary_redistribution_approved": false,
+    "path": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+    "reviewed": true,
+    "sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e"
+  },
+  "scoped_cuda_license_only_review": {
+    "binary_redistribution_approved": false,
+    "path": "docs/V0.10-CUDA-LICENSE-DELTA.json",
+    "reviewed": true,
+    "runtime_verified": false,
+    "sha256": "578296ad4d13cbd0982ec85bdf5282872ed4701cfe160e1ff9a38722b2056a29",
+    "size": 60348
+  },
+  "status": "primary_labels_and_scoped_cpu_runtime_reviewed",
   "updated_wheel_locks": [
     {
       "changes": [
@@ -359,7 +373,12 @@
       "external_execution_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
       "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
       "review_flags_promoted": false,
-      "sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
+      "scoped_cpu_license_review": {
+        "path": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+        "reviewed": true,
+        "sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e"
+      },
+      "sha256": "7d4b631c4771bb07fdd0d073af08c4ee829fd844ef5a80be58b11fc5e3ea52f2"
     },
     {
       "changes": [
@@ -415,7 +434,14 @@
       ],
       "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cuda.json",
       "review_flags_promoted": false,
-      "sha256": "62e19617dc41bab7c3d33f16c50d984205b26adb420563dc73a3bf4cc993e4e3"
+      "scoped_cuda_license_only_review": {
+        "path": "docs/V0.10-CUDA-LICENSE-DELTA.json",
+        "reviewed": true,
+        "runtime_verified": false,
+        "sha256": "578296ad4d13cbd0982ec85bdf5282872ed4701cfe160e1ff9a38722b2056a29",
+        "size": 60348
+      },
+      "sha256": "be17d8a29ddf6e17ef6ac9501633812dae34c7f0d976a6dc4b998af35523c363"
     }
   ],
   "upstream_notice_evidence": [

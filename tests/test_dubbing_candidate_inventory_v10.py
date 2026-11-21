@@ -40,8 +40,8 @@ def test_candidate_matches_fresh_publisher_inventory_and_real_notice_sources():
     legal = read('docs/V0.10-PUBLISHER-LICENSES.json')
     documents = {item['url']: item for item in legal['evidence']}
     assert candidate['schema'] == 1
-    assert candidate['status'] == 'blocked_candidate_inventory'
-    assert candidate['license_reviewed'] is False
+    assert candidate['status'] == 'license_reviewed_acceptance_pending'
+    assert candidate['license_reviewed'] is True
     assert candidate['distribution_approved'] is False
     assert candidate['publisher_inventory_sha256'] == sha(candidate['publisher_inventory'])
     assert candidate['license_evidence_sha256'] == sha(candidate['license_evidence'])
@@ -90,7 +90,7 @@ def test_candidate_matches_fresh_publisher_inventory_and_real_notice_sources():
                 assert {item['id'] for item in license['applied_terms']} == {'Apache-2.0'}
             assert license['attribution_notice'] == legal['application_attribution_notice']
         runtime = configured['runtime']
-        assert runtime['device'] == 'cpu' and runtime['reviewed'] is False
+        assert runtime['device'] == 'cpu' and runtime['reviewed'] is True
         assert runtime['requirements_sha256'] == sha(runtime['requirements'])
         assert runtime['wheel_inventory_sha256'] == sha(runtime['wheel_inventory'])
         assert runtime['license_evidence_sha256'] == sha(runtime['license_evidence'])
@@ -104,7 +104,7 @@ def test_candidate_matches_fresh_publisher_inventory_and_real_notice_sources():
 def test_scoped_model_review_delivers_attribution_terms_and_unchanged_lineage_in_windows_payload():
     legal = read('docs/V0.10-PUBLISHER-LICENSES.json')
     assert legal['model_license_scopes_reviewed'] is True
-    assert legal['status'] == 'model_scopes_reviewed_runtime_notice_audit_pending'
+    assert legal['status'] == 'model_and_cpu_runtime_scopes_reviewed'
     assert legal['distribution_approved'] is False
     assert legal['opus']['scope_reviewed'] is legal['qwen']['scope_reviewed'] is True
     assert legal['opus']['commercial_use_permitted_subject_to_terms'] is legal['qwen']['commercial_use_permitted_subject_to_terms'] is True
@@ -168,12 +168,14 @@ def test_primary_wheel_license_labels_are_bound_to_exact_wheels_and_retained_tex
         assert descriptor['review_flags_promoted'] is False
         lock = read(descriptor['path'])
         assert lock['native_windows_execution'] is True and lock['cross_resolved'] is False
-        assert lock.get('reviewed') is not True and lock['physical_gpu_tested'] is False
+        assert lock['physical_gpu_tested'] is False
         if lock['device'] == 'cpu':
+            assert lock['reviewed'] is True and lock['license_reviewed'] is True
             assert lock['dependency_closure_complete'] is True and lock['model_inference_tested'] is True
             assert lock['dependency_closure_evidence'] == descriptor['external_execution_evidence'] == CPU_CLOSURE
             assert lock['dependency_closure_evidence_sha256'] == descriptor['external_execution_evidence_sha256'] == sha(CPU_CLOSURE)
         else:
+            assert lock.get('reviewed') is not True
             assert lock.get('dependency_closure_complete') is not True and lock['model_inference_tested'] is False
             assert 'external_execution_evidence' not in descriptor
         changes = {item['wheel_sha256']: item for item in descriptor['changes']}
@@ -211,10 +213,14 @@ def test_cpu_closure_binds_real_native_report_source_wheels_and_runtime_recipe()
     assert observed['source_commit'] == closure['source_commit']
     assert observed['wheel_count'] == len(lock['wheels']) == 60
     assert observed['download_bytes'] == lock['download_bytes'] == sum(item['size'] for item in lock['wheels'])
-    assert observed['canonical_wheels_sha256'] == hashlib.sha256(models._canonical(lock['wheels'])).hexdigest()
+    audit = read('docs/V0.10-RUNTIME-LICENSE-AUDIT.json')
+    original_lock = read(audit['native_runtime_evidence']['observed_lock']['path'])
+    assert observed['canonical_wheels_sha256'] == hashlib.sha256(models._canonical(original_lock['wheels'])).hexdigest()
+    fields = ('package', 'version', 'name', 'sha256', 'size', 'url')
+    assert [[row[key] for key in fields] for row in lock['wheels']] == [[row[key] for key in fields] for row in original_lock['wheels']]
     # Reconstruct the exact observed lock by undoing only this later evidence
     # annotation. Wheel bytes, resolver metadata, and all CUDA flags stay fixed.
-    original = dict(lock)
+    original = dict(original_lock)
     for key in ('dependency_closure_complete', 'reviewed', 'dependency_closure_evidence',
                 'dependency_closure_evidence_sha256', 'model_inference_evidence', 'model_inference_evidence_sha256'):
         original.pop(key)
@@ -250,16 +256,38 @@ def test_cpu_closure_binds_real_native_report_source_wheels_and_runtime_recipe()
     assert linked['runtime_id'] == closure['runtime_id'] and linked['reviewed'] is False
 
 
-def test_real_candidate_is_blocked_by_model_license_review_gate(tmp_path):
-    # A temporary manifest binds the real candidate bytes only to exercise the
-    # production validator. It is not a release manifest or acceptance report.
+def test_reviewed_real_candidate_still_requires_separate_complete_release_acceptance(tmp_path):
+    # This temporary manifest exercises the real reviewed inventory. It is not
+    # a release artifact or a replacement for native/hardware/account evidence.
     files = {}
-    for name in ('forge/dubbing_models.py', CANDIDATE):
+    names = {'forge/dubbing_models.py', CANDIDATE}
+    candidate = read(CANDIDATE)
+    audit_name = candidate['runtime_license_review']['path']
+    names.add(audit_name)
+    pending = [read(audit_name)]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            for key in ('path', 'file', 'retained_source_file'):
+                name = node.get(key)
+                if isinstance(name, str) and name.startswith('docs/'):
+                    names.add(name)
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    for component in candidate['components'].values():
+        names.update((component['runtime']['requirements'], component['runtime']['wheel_inventory']))
+        for part in component['parts']:
+            names.add(part['license']['attribution_notice']['file'])
+            names.update(item['retained_source_file'] for item in part['license']['external_evidence'])
+    for name in names:
         destination = tmp_path / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, destination)
         files[name] = gate.digest(destination)
     (tmp_path / 'release-manifest.json').write_text(json.dumps(
         {'app': 'FORGE', 'version': '0.10.0', 'files': files}), 'utf-8')
-    with pytest.raises(gate.GateError, match='model/license inventory has not been reviewed'):
-        gate.static_inventory(tmp_path, 'v0.10.0', read(CANDIDATE)['source_base_commit'])
+    commit = candidate['source_base_commit']
+    assert gate.static_inventory(tmp_path, 'v0.10.0', commit)['status'] == 'inventory_verified'
+    with pytest.raises(gate.GateError, match='missing DUBBING_ACCEPTANCE.json'):
+        gate.verify_evidence(tmp_path, 'v0.10.0', commit, None, run_id='1')

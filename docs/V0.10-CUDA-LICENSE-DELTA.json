@@ -1,0 +1,1542 @@
+{
+  "audit_binaries_outside_repository": true,
+  "cpu_torch_binary_association": "Not inspected by this CUDA audit. Parallel native acceptance agent is checking the complete CPU Torch wheel before any shared-OpenMP binary identity claim.",
+  "cuda_optional_private_install_scope_reviewed": true,
+  "cuda_wheels": [
+    {
+      "full_payload_size_and_sha256_verified": true,
+      "license": "BSD-3-Clause",
+      "name": "torch-2.8.0+cu128-cp312-cp312-win_amd64.whl",
+      "native_members": [
+        {
+          "path": "functorch/_C.cp312-win_amd64.pyd",
+          "size": 185856
+        },
+        {
+          "path": "torch/_C.cp312-win_amd64.pyd",
+          "size": 10752
+        },
+        {
+          "path": "torch/bin/asmjit.dll",
+          "size": 367104
+        },
+        {
+          "path": "torch/bin/fbgemm.dll",
+          "size": 5721600
+        },
+        {
+          "path": "torch/lib/asmjit.dll",
+          "size": 367104
+        },
+        {
+          "path": "torch/lib/c10.dll",
+          "size": 1046528
+        },
+        {
+          "path": "torch/lib/c10_cuda.dll",
+          "size": 406528
+        },
+        {
+          "path": "torch/lib/caffe2_nvrtc.dll",
+          "size": 17408
+        },
+        {
+          "path": "torch/lib/cublas64_12.dll",
+          "size": 113716224
+        },
+        {
+          "path": "torch/lib/cublasLt64_12.dll",
+          "size": 674667520
+        },
+        {
+          "path": "torch/lib/cudart64_12.dll",
+          "size": 573952
+        },
+        {
+          "path": "torch/lib/cudnn64_9.dll",
+          "size": 266288
+        },
+        {
+          "path": "torch/lib/cudnn_adv64_9.dll",
+          "size": 282445872
+        },
+        {
+          "path": "torch/lib/cudnn_cnn64_9.dll",
+          "size": 4618272
+        },
+        {
+          "path": "torch/lib/cudnn_engines_precompiled64_9.dll",
+          "size": 513926688
+        },
+        {
+          "path": "torch/lib/cudnn_engines_runtime_compiled64_9.dll",
+          "size": 20201008
+        },
+        {
+          "path": "torch/lib/cudnn_graph64_9.dll",
+          "size": 2420256
+        },
+        {
+          "path": "torch/lib/cudnn_heuristic64_9.dll",
+          "size": 56823328
+        },
+        {
+          "path": "torch/lib/cudnn_ops64_9.dll",
+          "size": 126508576
+        },
+        {
+          "path": "torch/lib/cufft64_11.dll",
+          "size": 276121600
+        },
+        {
+          "path": "torch/lib/cufftw64_11.dll",
+          "size": 163328
+        },
+        {
+          "path": "torch/lib/cupti64_2025.1.1.dll",
+          "size": 4483664
+        },
+        {
+          "path": "torch/lib/curand64_10.dll",
+          "size": 71955968
+        },
+        {
+          "path": "torch/lib/cusolver64_11.dll",
+          "size": 225683456
+        },
+        {
+          "path": "torch/lib/cusolverMg64_11.dll",
+          "size": 157071360
+        },
+        {
+          "path": "torch/lib/cusparse64_12.dll",
+          "size": 379535872
+        },
+        {
+          "path": "torch/lib/fbgemm.dll",
+          "size": 5721600
+        },
+        {
+          "path": "torch/lib/libiomp5md.dll",
+          "size": 1613680
+        },
+        {
+          "path": "torch/lib/libiompstubs5md.dll",
+          "size": 43888
+        },
+        {
+          "path": "torch/lib/nvJitLink_120_0.dll",
+          "size": 77860352
+        },
+        {
+          "path": "torch/lib/nvrtc-builtins64_128.dll",
+          "size": 6356480
+        },
+        {
+          "path": "torch/lib/nvrtc64_120_0.alt.dll",
+          "size": 86794240
+        },
+        {
+          "path": "torch/lib/nvrtc64_120_0.dll",
+          "size": 86728192
+        },
+        {
+          "path": "torch/lib/shm.dll",
+          "size": 15360
+        },
+        {
+          "path": "torch/lib/torch.dll",
+          "size": 9728
+        },
+        {
+          "path": "torch/lib/torch_cpu.dll",
+          "size": 256088064
+        },
+        {
+          "path": "torch/lib/torch_cuda.dll",
+          "size": 1028847104
+        },
+        {
+          "path": "torch/lib/torch_global_deps.dll",
+          "size": 9728
+        },
+        {
+          "path": "torch/lib/torch_python.dll",
+          "size": 17648640
+        },
+        {
+          "path": "torch/lib/uv.dll",
+          "size": 195072
+        },
+        {
+          "path": "torch/lib/zlibwapi.dll",
+          "size": 89088
+        }
+      ],
+      "notices": [
+        {
+          "path": "torch-2.8.0+cu128.dist-info/LICENSE",
+          "retained_name": "torch-2.8.0+cu128.dist-info--LICENSE",
+          "sha256": "8bc4f2fa9143380a52a0644229bc9a4bcc158e0f9cab8c8340f1eab3f353dbe9",
+          "size": 509053
+        },
+        {
+          "path": "torch-2.8.0+cu128.dist-info/NOTICE",
+          "retained_name": "torch-2.8.0+cu128.dist-info--NOTICE",
+          "sha256": "1c3dec6c0342c7ed9e12af59b296c7bb1d394af5cf881db74191cc8299efce5c",
+          "size": 24088
+        }
+      ],
+      "package": "torch",
+      "sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff",
+      "size": 3461384651,
+      "url": "https://download-r2.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl",
+      "version": "2.8.0+cu128"
+    },
+    {
+      "full_payload_size_and_sha256_verified": true,
+      "license": "BSD-2-Clause",
+      "name": "torchaudio-2.8.0+cu128-cp312-cp312-win_amd64.whl",
+      "native_members": [
+        {
+          "path": "torchaudio/lib/_torchaudio.pyd",
+          "size": 769536
+        },
+        {
+          "path": "torchaudio/lib/libctc_prefix_decoder.pyd",
+          "size": 7079424
+        },
+        {
+          "path": "torchaudio/lib/libtorchaudio.pyd",
+          "size": 4232704
+        },
+        {
+          "path": "torchaudio/lib/pybind11_prefixctc.pyd",
+          "size": 646144
+        },
+        {
+          "path": "torio/lib/_torio_ffmpeg4.pyd",
+          "size": 2110464
+        },
+        {
+          "path": "torio/lib/_torio_ffmpeg5.pyd",
+          "size": 2110464
+        },
+        {
+          "path": "torio/lib/_torio_ffmpeg6.pyd",
+          "size": 2110464
+        },
+        {
+          "path": "torio/lib/libtorio_ffmpeg4.pyd",
+          "size": 1097728
+        },
+        {
+          "path": "torio/lib/libtorio_ffmpeg5.pyd",
+          "size": 1097728
+        },
+        {
+          "path": "torio/lib/libtorio_ffmpeg6.pyd",
+          "size": 1097728
+        }
+      ],
+      "notices": [
+        {
+          "path": "torchaudio-2.8.0+cu128.dist-info/licenses/LICENSE",
+          "retained_name": "torchaudio-2.8.0+cu128.dist-info--licenses--LICENSE",
+          "sha256": "32638e179931bfe551eabf67b0e67a13b483e166b58dd7263634ab7f89f396f5",
+          "size": 1363
+        }
+      ],
+      "package": "torchaudio",
+      "sha256": "cce3a60cd9a97f7360c8f95504ac349311fb7d6b9b826135936764f4de5f782d",
+      "size": 4673203,
+      "url": "https://download-r2.pytorch.org/whl/cu128/torchaudio-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl",
+      "version": "2.8.0+cu128"
+    }
+  ],
+  "dependency_closure_complete": false,
+  "distribution_approved": false,
+  "evidence_files": [
+    {
+      "path": "cuda-wheel-inspection.json",
+      "sha256": "034c21465975c61001211f45e16c91f0a77060c5e76d9689fbcbbddf82fda720",
+      "size": 7008
+    },
+    {
+      "path": "cuda-native-pe-version-evidence.json",
+      "sha256": "e46334d14f7e8dc0944457394244240f334c3e9270af05d59a28dbbe964b8b19",
+      "size": 39873
+    },
+    {
+      "path": "torch-license-cpu-to-cuda.diff",
+      "sha256": "45e0d3b570d9baa7aa8e6ed8a50c5a267c7a09aecd064764af6df5ef08d59e16",
+      "size": 2614
+    },
+    {
+      "path": "vendor-documents/inventory.json",
+      "sha256": "568d1bb731796827ba823beeb4102f9e7842117260c6821d0d6c99341e0217fb",
+      "size": 2011
+    },
+    {
+      "path": "vendor-documents/linked-license-inventory.json",
+      "sha256": "426ce77a91d0e11b6c59d167d47b457fd58e189caf605e475eae01a66653473c",
+      "size": 7646
+    },
+    {
+      "path": "intel-openmp-2025-exact-license-evidence.json",
+      "sha256": "9b6b1e6fac9ee4f06993640fdd8b38b7ead7be0d4e31dd3a0c59512db4692629",
+      "size": 1806
+    }
+  ],
+  "extra_intel_wheel_downloads": {
+    "matching_2025_2_0_bytes": 34021989,
+    "parent_additional_allowance_bytes": 104857600,
+    "total_bytes": 46735486,
+    "unmatched_2025_1_1_bytes": 12713497,
+    "unmatched_candidate_preserved_separately": true
+  },
+  "full_proprietary_document_republication_approved": false,
+  "full_proprietary_documents_outside_repository": true,
+  "installation_performed": false,
+  "intel_evidence": {
+    "distribution_approved": false,
+    "full_payload_size_and_sha256_verified": true,
+    "installation_performed": false,
+    "matching_native_files": [
+      {
+        "exact_match_to_torch_cuda": true,
+        "member": "intel_openmp-2025.2.0.data/data/Library/bin/libiomp5md.dll",
+        "sha256": "d9d66ed25f1a0ea725fa3a41b22cfd5d182c19dbe4771d9c90ca02ad7466f6a1",
+        "size": 1613680
+      },
+      {
+        "exact_match_to_torch_cuda": true,
+        "member": "intel_openmp-2025.2.0.data/data/Library/bin/libiompstubs5md.dll",
+        "sha256": "daeb39e4ced3bfce4a622b63b8b0281613eb8180266f8dd1dc678346df1c7697",
+        "size": 43888
+      }
+    ],
+    "native_execution_performed": false,
+    "notices": [
+      {
+        "file": "intel-2025.2.0-notices/intel_openmp-2025.2.0.data--data--share--doc--compiler--licensing--openmp--third-party-programs.txt",
+        "member": "intel_openmp-2025.2.0.data/data/share/doc/compiler/licensing/openmp/third-party-programs.txt",
+        "sha256": "f8ce918fe7311ce279e68380a2e233f8a42b1cd3dda8f4c48d6de97a0255c1d7",
+        "size": 31578,
+        "text_encoding": "utf-8-sig"
+      },
+      {
+        "file": "intel-2025.2.0-notices/intel_openmp-2025.2.0.dist-info--LICENSE.txt",
+        "member": "intel_openmp-2025.2.0.dist-info/LICENSE.txt",
+        "sha256": "febfb69a5b058f55892dc7f341108a9ca29d50e9fe85723a57eebbb826436958",
+        "size": 25224,
+        "text_encoding": "cp1252"
+      }
+    ],
+    "package": "intel-openmp",
+    "schema": 1,
+    "url": "https://files.pythonhosted.org/packages/bc/37/bab8e9283407798d8782f4d9b374436e51c7a297e1b6dc05073df550c010/intel_openmp-2025.2.0-py2.py3-none-win_amd64.whl",
+    "version": "2025.2.0",
+    "wheel": "intel_openmp-2025.2.0-py2.py3-none-win_amd64.whl",
+    "wheel_sha256": "1710356ae0db744ca028ed380759a2007548ad1819f743be9d675603cb127377",
+    "wheel_size": 34021989
+  },
+  "kind": "scoped_cuda_wheel_legal_delta",
+  "license_reviewed_for_release": false,
+  "model_inference_performed": false,
+  "native_execution_performed": false,
+  "nvidia_legal_metadata": {
+    "docs_site_unavailable": [
+      {
+        "error": "URLError",
+        "status": "blocked_or_unavailable",
+        "url": "https://docs.nvidia.com/cuda/archive/12.8.0/eula/index.html"
+      },
+      {
+        "error": "URLError",
+        "status": "blocked_or_unavailable",
+        "url": "https://docs.nvidia.com/cuda/archive/12.8.1/eula/index.html"
+      },
+      {
+        "error": "URLError",
+        "status": "blocked_or_unavailable",
+        "url": "https://docs.nvidia.com/deeplearning/cudnn/backend/v9.10.2/reference/eula.html"
+      }
+    ],
+    "identity_scope": "Vendor redist metadata is release-versioned. license_path URLs are unversioned observed snapshots with exact hashes and Last-Modified headers; no immutable source/revision identity or official SDK archive byte match is invented. CUDA linked body datedJanuary12,2024; cuDNN agreement/supplementvFebruary22,2022; both linked by the exact relevant release metadata.",
+    "linked_license_documents": [
+      {
+        "file": "CUDA-cudart-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732477935.949134\"",
+          "last-modified": "Thu, 29 Feb 2024 01:21:45 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-cuBLAS-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732480123.111189\"",
+          "last-modified": "Thu, 29 Feb 2024 01:34:00 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-cuFFT-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732482320.415303\"",
+          "last-modified": "Thu, 29 Feb 2024 01:34:34 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-cuRAND-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732483622.632142\"",
+          "last-modified": "Thu, 29 Feb 2024 01:34:44 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-cuSOLVER-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732484007.032565\"",
+          "last-modified": "Thu, 29 Feb 2024 01:35:04 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-cuSPARSE-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732484554.581623\"",
+          "last-modified": "Thu, 29 Feb 2024 01:35:32 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-CUPTI-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732478011.426416\"",
+          "last-modified": "Thu, 29 Feb 2024 01:23:57 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-NVRTC-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732479326.048795\"",
+          "last-modified": "Thu, 29 Feb 2024 01:29:50 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/LICENSE.txt"
+      },
+      {
+        "file": "CUDA-NVJitLink-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"929c95a6164f11b95d0001c9bc136926:1732488044.345675\"",
+          "last-modified": "Thu, 29 Feb 2024 01:36:21 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+        "size": 63021,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/LICENSE.txt"
+      },
+      {
+        "file": "cuDNN-LICENSE.txt",
+        "publisher_headers": {
+          "content-type": "text/plain",
+          "etag": "\"1218c4002db8a047c50a3e07f9e97649:1732291752.856485\"",
+          "last-modified": "Wed, 07 Feb 2024 07:10:15 GMT"
+        },
+        "response_url": "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/LICENSE.txt",
+        "scope": "Official license_path linked by versioned NVIDIA redist metadata; observed vendor bytes, mutable document path, no independent hash/version equivalence asserted.",
+        "sha256": "4fce5a3b1ecaf4d7d202478e969e4563c7220db2718a76067e286c0202e1195f",
+        "size": 29662,
+        "url": "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/LICENSE.txt"
+      }
+    ],
+    "versioned_redist_documents": [
+      {
+        "file": "cuda-12.8.0-redist.json",
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.0.json",
+        "scope": "Official versioned publisher legal/redistribution metadata; observed bytes, not immutable Git identity.",
+        "sha256": "daa0d766b36feaa933592162c27be5fb63b68fc547ca6886c160a35d96ee8891",
+        "size": 50189,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.0.json"
+      },
+      {
+        "file": "cuda-12.8.1-redist.json",
+        "response_url": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.1.json",
+        "scope": "Official versioned publisher legal/redistribution metadata; observed bytes, not immutable Git identity.",
+        "sha256": "249e28a83008d711d5f72880541c8be6253f6d61608461de4fcb715554a6cf17",
+        "size": 50197,
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.1.json"
+      },
+      {
+        "file": "cudnn-9.10.2-redist.json",
+        "response_url": "https://developer.download.nvidia.com/compute/cudnn/redist/redistrib_9.10.2.json",
+        "scope": "Official versioned publisher legal/redistribution metadata; observed bytes, not immutable Git identity.",
+        "sha256": "73a33a12bbb8eb12b105a515b5921db2e328b3ca679f92b6184c7f32fe94a8b0",
+        "size": 5024,
+        "url": "https://developer.download.nvidia.com/compute/cudnn/redist/redistrib_9.10.2.json"
+      }
+    ]
+  },
+  "nvidia_version_associations": [
+    {
+      "component": "cuda_cudart",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.12080",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cudart64_12.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "c2c9a9c22a9bcba90e261825968836787b331038047a26770cffb7a583c28344",
+          "size": 573952,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA Runtime, Version 12.8.90 "
+            ],
+            "FileVersion": [
+              "6,14,11,12080"
+            ],
+            "InternalName": [
+              "CUDART"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 1993 - 2021"
+            ],
+            "OriginalFilename": [
+              "CUDART64_128_90.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA 12.8.90 Runtime"
+            ],
+            "ProductVersion": [
+              "6,14,11,12080"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.8.90",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "cuda_cudart/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libcublas",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1284",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cublas64_12.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "9513540e4ec4c51ee9e7304138c2cc255c29a8c181f9e80c38efa25738becd99",
+          "size": 113716224,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA BLAS Library, Version 12.8.4 "
+            ],
+            "FileVersion": [
+              "6,14,11,1284"
+            ],
+            "InternalName": [
+              "CUBLAS"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2010 - 2025"
+            ],
+            "OriginalFilename": [
+              "CUBLAS.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA BLAS Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1284"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1284",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cublasLt64_12.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "b199d1ff892a81b7fd3d57ba1781549609b41500b36008fef326038393ad46c7",
+          "size": 674667520,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA BLAS Light Library, Version 12.8.4 "
+            ],
+            "FileVersion": [
+              "6,14,11,1284"
+            ],
+            "InternalName": [
+              "CUBLASLT"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2010 - 2025"
+            ],
+            "OriginalFilename": [
+              "CUBLASLT.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA BLAS Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1284"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.8.4.1",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libcublas/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libcufft",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1133",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cufft64_11.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "f4fea9227b14843894ad5436725f9638b172171142c95291fc6ae7a493248221",
+          "size": 276121600,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA FFT Library, Version 11.3.3.83 "
+            ],
+            "FileVersion": [
+              "6,14,11,1133"
+            ],
+            "InternalName": [
+              "CUFFT"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2013 - 2021"
+            ],
+            "OriginalFilename": [
+              "CUFFT.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA FFT Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1133"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1133",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cufftw64_11.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "84c86dcc4d4b770e75766964149ef688c901dc89e380278fe399dd3c03608541",
+          "size": 163328,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA FFTW Library, Version 11.3.3.83 "
+            ],
+            "FileVersion": [
+              "6,14,11,1133"
+            ],
+            "InternalName": [
+              "CUFFTW"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2013 - 2021"
+            ],
+            "OriginalFilename": [
+              "CUFFTW.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA FFTW Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1133"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "11.3.3.83",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libcufft/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libcurand",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1039",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/curand64_10.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "3465fd1b46e551339b8f44c455756a0f2cba8bd846562eb659040d48edb7aaac",
+          "size": 71955968,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA RAND Library, Version 10.3.9.90 "
+            ],
+            "FileVersion": [
+              "6,14,11,1039"
+            ],
+            "InternalName": [
+              "CURAND"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2010 - 2021"
+            ],
+            "OriginalFilename": [
+              "CURAND.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA RAND Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1039"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "10.3.9.90",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libcurand/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libcusolver",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1173",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cusolver64_11.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "3d4f7a66b5f352db56d4bb5962bb453a42d5feb2d831779f4a0bebc9971c36fb",
+          "size": 225683456,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUSOLVER Library, Version 11.7.3.90 "
+            ],
+            "FileVersion": [
+              "6,14,11,1173"
+            ],
+            "InternalName": [
+              "CUSOLVER"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2014 - 2021"
+            ],
+            "OriginalFilename": [
+              "CUSOLVER.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA CUSOLVER Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1173"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1173",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cusolverMg64_11.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "c3377f10606ff0606be2f08401d54aff6c37f137b78d6b6e21be356a5b4d6cc2",
+          "size": 157071360,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUSOLVERMG Library, Version 11.7.3.90 "
+            ],
+            "FileVersion": [
+              "6,14,11,1173"
+            ],
+            "InternalName": [
+              "CUSOLVERMG"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2014 - 2021"
+            ],
+            "OriginalFilename": [
+              "CUSOLVERMG.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA CUSOLVERMG Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1173"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "11.7.3.90",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libcusolver/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libcusparse",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.1258",
+              "product_version": "10.0.10011.16384"
+            }
+          ],
+          "member": "torch/lib/cusparse64_12.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "f4688daa6163c47a0b5293926ec7ae367de6b4af54ea201638b308831b322a0e",
+          "size": 379535872,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUDA SPARSE BLAS Library, Version 12.5.8.93 "
+            ],
+            "FileVersion": [
+              "6,14,11,1258"
+            ],
+            "InternalName": [
+              "CUSPARSE"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2010 - 2023"
+            ],
+            "OriginalFilename": [
+              "CUSPARSE.DLL"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA SPARSE BLAS Library"
+            ],
+            "ProductVersion": [
+              "6,14,11,1258"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.5.8.93",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libcusparse/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "cuda_cupti",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "2025.1.1.0",
+              "product_version": "2025.1.1.0"
+            }
+          ],
+          "member": "torch/lib/cupti64_2025.1.1.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "d026870a2c503d1b6e38a793170823ceca83d776f9b887f63fb0bb5c93d5c525",
+          "size": 4483664,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA CUPTI Library"
+            ],
+            "FileVersion": [
+              "2025.1.1.0"
+            ],
+            "InternalName": [
+              "cupti"
+            ],
+            "LegalCopyright": [
+              "(C) 2025 NVIDIA Corporation. All rights reserved."
+            ],
+            "ProductName": [
+              "NVIDIA CUPTI Library"
+            ],
+            "ProductVersion": [
+              "2025.1.1.0 Build (0)"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.8.90",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "cuda_cupti/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "cuda_nvrtc",
+      "native_members": [
+        {
+          "fixed_version_records": [],
+          "member": "torch/lib/nvrtc-builtins64_128.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "a7afa2a40cbd3f922a33d8bf71c13cb26ca707c7016a9bc5fcde36759ba668f5",
+          "size": 6356480,
+          "version_string_records": {},
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.9000",
+              "product_version": "6.14.11.9000"
+            }
+          ],
+          "member": "torch/lib/nvrtc64_120_0.alt.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "5464ea01b079d78042374dc7819684910c8e9d5c63000e2d2d5aa02298ecf2ae",
+          "size": 86794240,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA NVRTC Library, Version 12.8.93 "
+            ],
+            "FileVersion": [
+              "6.14.11.9000"
+            ],
+            "InternalName": [
+              "NVRTC"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2005 - 2024 "
+            ],
+            "OriginalFilename": [
+              "nvrtc64_120_0.alt.dll"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA 12.8.93 NVRTC Library"
+            ],
+            "ProductVersion": [
+              "6.14.11.9000"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.9000",
+              "product_version": "6.14.11.9000"
+            }
+          ],
+          "member": "torch/lib/nvrtc64_120_0.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "02d2d7ef4690bf1a55dda1d3ac94c86ce8d16920071c87bcd3e70e94ef346e93",
+          "size": 86728192,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA NVRTC Library, Version 12.8.93 "
+            ],
+            "FileVersion": [
+              "6.14.11.9000"
+            ],
+            "InternalName": [
+              "NVRTC"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2005 - 2024 "
+            ],
+            "OriginalFilename": [
+              "nvrtc64_120_0.dll"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA 12.8.93 NVRTC Library"
+            ],
+            "ProductVersion": [
+              "6.14.11.9000"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.8.93",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "cuda_nvrtc/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "libnvjitlink",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "6.14.11.9000",
+              "product_version": "6.14.11.9000"
+            }
+          ],
+          "member": "torch/lib/nvJitLink_120_0.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "959d3cb44527ec884db8dc20772520b584dbe7d622d11b0530e6326417078b3e",
+          "size": 77860352,
+          "version_string_records": {
+            "CompanyName": [
+              "NVIDIA Corporation"
+            ],
+            "FileDescription": [
+              "NVIDIA NVJITLINK Library, Version 12.8.93 "
+            ],
+            "FileVersion": [
+              "6.14.11.9000"
+            ],
+            "InternalName": [
+              "NVJITLINK"
+            ],
+            "LegalCopyright": [
+              "Copyright \u00a9 NVIDIA Corporation 2005 - 2024 "
+            ],
+            "OriginalFilename": [
+              "nvJitLink_120_0.dll"
+            ],
+            "ProductName": [
+              "NVIDIA CUDA 12.8.93 NVJITLINK Library"
+            ],
+            "ProductVersion": [
+              "6.14.11.9000"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "12.8.93",
+      "publisher_license": "CUDA Toolkit",
+      "publisher_license_path": "libnvjitlink/LICENSE.txt",
+      "publisher_release": "CUDA Toolkit 12.8.1",
+      "version_association": "Direct PE ProductName/FileDescription version agrees with publisher component where present; CUPTI2025.1.1 is profiler release numbering within CUDA12.8.1. Versionless builtins are same verified Torch wheel family, not separately version-proven. No byte-equivalence to a separately downloaded NVIDIA SDK archive claimed."
+    },
+    {
+      "component": "cuDNN",
+      "native_members": [
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "9edbcdff73b0af070eb160b2ce66e59feca04aa017351d8eedcc5e8e149967d2",
+          "size": 266288,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn_adv64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "f202e8ff36209ac4292fe2ef79d4539487495b3b948f0c978cc63298f43a1850",
+          "size": 282445872,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN Adv Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn_adv"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn_adv64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN Adv Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn_cnn64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "3f03dec3b81f137f049e1d1c06ff469248eef54ff9424b3b9045fc0f69559d1a",
+          "size": 4618272,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN CNN Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn_cnn"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn_cnn64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN CNN Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn_engines_precompiled64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "ebc2c1f74366b029a4350f7f9a3b109ccd5aa9b4ae02527950793dd29f7b74fb",
+          "size": 513926688,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN Precompiled Engines Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn_engines_precompiled"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn_engines_precompiled64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN Precompiled Engines Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn_engines_runtime_compiled64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "93ab6351ca0f2b6ca842f83d284e56c427525778c14657229801a13cf8121bd8",
+          "size": 20201008,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN ENGINES_RUNTIME_COMPILED Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn_engines_runtime_compiled"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn_engines_runtime_compiled64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN ENGINES_RUNTIME_COMPILED Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [],
+          "member": "torch/lib/cudnn_graph64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "a933efeb280a3252297f92d79f7e83003bcbc6f665872d11645d1dbbab9cb598",
+          "size": 2420256,
+          "version_string_records": {},
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [],
+          "member": "torch/lib/cudnn_heuristic64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "458175f12771a35de0ea39c04250d727c2424d42a7ffe0bc987ae81204748fba",
+          "size": 56823328,
+          "version_string_records": {},
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        },
+        {
+          "fixed_version_records": [
+            {
+              "file_version": "9.10.2.21",
+              "product_version": "9.10.2.21"
+            }
+          ],
+          "member": "torch/lib/cudnn_ops64_9.dll",
+          "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+          "package": "torch",
+          "sha256": "851d8f4191a24b322b0be738d191a3159455f0da4db47a19f5cc7ad6e55edf61",
+          "size": 126508576,
+          "version_string_records": {
+            "CompanyName": [
+              "Windows (R) Win 7 DDK provider"
+            ],
+            "FileDescription": [
+              "NVIDIA cuDNN Ops Library"
+            ],
+            "FileVersion": [
+              "9.10.2.21"
+            ],
+            "InternalName": [
+              "cudnn_ops"
+            ],
+            "LegalCopyright": [
+              "Copyright (c) 2014-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+            ],
+            "OriginalFilename": [
+              "cudnn_ops64_9.dll"
+            ],
+            "ProductName": [
+              "NVIDIA cuDNN Ops Library"
+            ],
+            "ProductVersion": [
+              "9.10.2.21"
+            ]
+          },
+          "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+        }
+      ],
+      "publisher_component_version": "9.10.2.21",
+      "publisher_license": "cudnn",
+      "publisher_license_path": "cudnn/LICENSE.txt",
+      "publisher_release": "9.10.2",
+      "version_association": "Six RT_VERSION resources directly report9.10.2.21; two versionless companions share the independently verified Torch payload. No independent SDK archive byte-equivalence asserted."
+    }
+  ],
+  "observed_at": "2026-11-21T03:49:03.879822+00:00",
+  "owner_acceptance_still_required": [
+    "Exact-source native GUI install/Repair/restart",
+    "Physical owner GPU actual inference/VRAM/timing",
+    "Human translation/listening review",
+    "Owner-approved Google OAuth/private upload/caption readback",
+    "Final source/package/updater release gate and owner merge/publication approval"
+  ],
+  "physical_gpu_tested": false,
+  "private_use_conditions": [
+    {
+      "component": "CUDA Toolkit 12.8.1",
+      "finding": "SDK install/use grant permits this unchanged private local use, with NVIDIA-GPU-only supplement. Preserve proprietary and third-party terms/notices; no reverse engineering/decompilation/disassembly, authentication bypass or source-license conversion. Application-source distribution does not distribute the SDK. Separate conditional distribution grants/listed redistributables are not exercised by source-only package. Codec/patent rights remain separate.",
+      "reviewed": true,
+      "sections": [
+        "1.1.1(1)",
+        "1.1.6",
+        "1.2",
+        "2.1",
+        "2.4",
+        "2.6 Attachment A",
+        "2.7 Attachment B"
+      ]
+    },
+    {
+      "component": "cuDNN9.10.2.21",
+      "finding": "Install/use grant and NVIDIA-GPU supplement permit private local application development/use under retained SDK conditions. Runtime .dll redistributability is conditional and not a blanket binary-bundle approval; full proprietary legal-document republication is not approved. Full bodies stay outside repository.",
+      "reviewed": true,
+      "sections": [
+        "1.1(i)",
+        "1.2",
+        "1.6",
+        "2.1-2.5",
+        "Chapter8 LicenseScope/Distribution",
+        "Notice"
+      ]
+    },
+    {
+      "component": "Intel OpenMP bundled by TorchCUDA",
+      "finding": "Fully verified official Intel OpenMP2025.2.0 wheel contains both exact SHA/size-matching TorchCUDA OpenMP DLLs. Its August2024DeveloperToolsEULA permits personal/business internal copies and product development under2.1A/B; binary distribution2.1D, third-party terms2.2, exclusive owner cloud hosting2.3B and no-SaaS/service-bureau3.1xi remain separate scoped conditions. Original third-party BSD/MIT/Apache2LLVM/legacyIllinois rights continue unchanged; proprietary Intel conditions are not a relicensing of those components. No third-party binary redistribution or full proprietary-document republication is approved.",
+      "reviewed": true,
+      "sections": [
+        "2.1A-B",
+        "2.1D",
+        "2.2",
+        "2.3B",
+        "3.1"
+      ],
+      "third_party_programs": [
+        {
+          "component": "ITT Notify User API",
+          "license": "BSD-3-Clause"
+        },
+        {
+          "component": "hwloc",
+          "license": "BSD-3-Clause"
+        },
+        {
+          "component": "Safe C Library",
+          "license": "MIT"
+        },
+        {
+          "component": "oneTBB Thread Composability Manager",
+          "license": "Intel Simplified Software License October2022",
+          "scope": "Unchanged binary use permitted with notice preservation/no endorsement/no reverse engineering; separate original component rights retained."
+        },
+        {
+          "component": "LLVM OpenMP",
+          "license": "Apache-2.0 WITH LLVM-exception; legacy Illinois/NCSA and MIT notices retained"
+        }
+      ]
+    },
+    {
+      "component": "zlibwapi.dll bundled in TorchCUDA",
+      "finding": "zlib grant permits use for any purpose, including commercial, with origin and altered-source/notice conditions. Observed PE reports1.2.3; vendor text describes1.2.11 and the same zlib grant. Version-specific source or archive byte equivalence is not claimed. No binary/source bundle or relabeling is performed.",
+      "native_identity": {
+        "fixed_version_records": [
+          {
+            "file_version": "1.2.3.0",
+            "product_version": "1.2.3.0"
+          }
+        ],
+        "member": "torch/lib/zlibwapi.dll",
+        "method": "PE resource directory type RT_VERSION parsed as data only; no DLL loading, disassembly or execution.",
+        "package": "torch",
+        "sha256": "1f047faec08d9a35c304fb4a7cf13853589359a8f7cbfdd48c5d5807712dcf05",
+        "size": 89088,
+        "version_string_records": {
+          "FileDescription": [
+            "zlib data compression library"
+          ],
+          "FileVersion": [
+            "1.2.3.0"
+          ],
+          "InternalName": [
+            "zlib"
+          ],
+          "LegalCopyright": [
+            "(C) 1995-2003 Jean-loup Gailly & Mark Adler"
+          ],
+          "OriginalFilename": [
+            "zlib.dll"
+          ],
+          "ProductName": [
+            "ZLib.DLL"
+          ]
+        },
+        "wheel_sha256": "0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff"
+      },
+      "reviewed": true,
+      "source": "Official linked NVIDIA cuDNN license THIRD PARTY LICENSES zlib section"
+    }
+  ],
+  "redistribution_of_third_party_binaries_approved": false,
+  "schema": 1,
+  "scope": "FORGE application-source ZIP with optional user-approved local, unchanged publisher wheel installation for private owner use; not a redistribution approval for bundling third-party wheels/DLLs or full proprietary legal-document bodies.",
+  "source_zip_bundles_models_or_native_binaries": false,
+  "source_zip_scope_reviewed": true,
+  "status": "private_install_terms_reviewed_native_gpu_pending",
+  "torch_license_delta": {
+    "cpu_license_sha256": "d61701e874c39a858d92c47c2cbf3bd8b9e498032a18ae42832fba591752ce1f",
+    "cpu_license_size": 506902,
+    "cuda_license_sha256": "8bc4f2fa9143380a52a0644229bc9a4bcc158e0f9cab8c8340f1eab3f353dbe9",
+    "cuda_license_size": 509053,
+    "difference": "Additional NCCL BSD-3-Clause notice only; source/binary notice preservation, no NVIDIA/LBNL/DOE endorsement. This BSD notice does not replace separately applicable proprietary CUDA/cuDNN runtime terms.",
+    "torchaudio_license_identical_to_verified_cpu_variant": true
+  }
+}

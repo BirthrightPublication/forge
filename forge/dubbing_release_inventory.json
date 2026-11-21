@@ -1,6 +1,5 @@
 {
   "blockers": [
-    "Complete dependency/native-library notice and scoped license review",
     "Exact-source GUI/native Windows install/restart/updater/model acceptance",
     "Physical GPU inference acceptance",
     "Authorized live private YouTube OAuth/upload/captions acceptance"
@@ -249,15 +248,18 @@
         "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
         "device": "cpu",
         "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
-        "license_evidence_sha256": "a93cc2379e759c956ef5971815ec69f650ce26cb77ee93bec291183e2e2b2f4c",
+        "license_evidence_sha256": "39508c0250a375de61fba0e4b76a152386127eae457b7050269fc20d566fcc75",
+        "license_review_evidence": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+        "license_review_evidence_sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e",
+        "license_reviewed": true,
         "model_inference_tested": true,
         "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
         "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
         "requirements": "scripts/requirements-dubbing-core.txt",
         "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
-        "reviewed": false,
+        "reviewed": true,
         "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
-        "wheel_inventory_sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
+        "wheel_inventory_sha256": "7d4b631c4771bb07fdd0d073af08c4ee829fd844ef5a80be58b11fc5e3ea52f2"
       }
     },
     "qwen3-tts-0.6b-base": {
@@ -456,26 +458,40 @@
         "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
         "device": "cpu",
         "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
-        "license_evidence_sha256": "a93cc2379e759c956ef5971815ec69f650ce26cb77ee93bec291183e2e2b2f4c",
+        "license_evidence_sha256": "39508c0250a375de61fba0e4b76a152386127eae457b7050269fc20d566fcc75",
+        "license_review_evidence": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+        "license_review_evidence_sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e",
+        "license_reviewed": true,
         "model_inference_tested": true,
         "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
         "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
         "requirements": "scripts/requirements-dubbing-core.txt",
         "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
-        "reviewed": false,
+        "reviewed": true,
         "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
-        "wheel_inventory_sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
+        "wheel_inventory_sha256": "7d4b631c4771bb07fdd0d073af08c4ee829fd844ef5a80be58b11fc5e3ea52f2"
       }
     }
   },
   "distribution_approved": false,
   "license_evidence": "docs/V0.10-PUBLISHER-LICENSES.json",
-  "license_evidence_sha256": "74da758e89d78054f452cd10f7a739a3b0d51af71e4adc85ed0991f9eff2eb45",
-  "license_reviewed": false,
+  "license_evidence_sha256": "269aee8dbf30b0792c2f80dedb0d92ade3b8e647c8b4c8ebd3c605851cb317c3",
+  "license_review_scope": {
+    "application_distribution": "Normal FORGE Windows updater ZIP includes application source/notices; zero dependency wheels, DLLs, environments or model weights are bundled.",
+    "application_license": "FORGE MIT code scope remains unchanged; third-party grants and bundled conditions are preserved separately.",
+    "commercial_use": "Internal/local personal or business desktop use subject to supplied terms. Intel OpenMP SaaS/service-bureau use is outside this review.",
+    "future_bundling": "Redistribution/rehosting/repackaging runtime binaries, hosted services and whole-SDK completeness are not approved.",
+    "runtime_installation": "User-approved original publisher artifacts are hash-verified and installed unchanged into isolated private local environments, retaining the wheelhouse and provided notices."
+  },
+  "license_reviewed": true,
   "publisher_inventory": "forge/dubbing_publisher_inventory.json",
   "publisher_inventory_sha256": "0f432caacce25358460d6a113eb199636992a3f4c5b2bffffa40f3643dd4112d",
+  "runtime_license_review": {
+    "path": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+    "sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e"
+  },
   "schema": 1,
   "scope": "Machine-readable candidate identities, including real separately sourced notices; not release approval or native/GPU proof.",
   "source_base_commit": "049e82a25bbb573446a526ab338d2eee444f798a",
-  "status": "blocked_candidate_inventory"
+  "status": "license_reviewed_acceptance_pending"
 }

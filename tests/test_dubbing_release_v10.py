@@ -74,7 +74,12 @@ def proof(tmp_path):
             'artifacts': [{'path': name, 'sha256': 'e' * 64, 'size': 11} for name in names]}],
             'runtime': {'requirements': 'scripts/requirements-dubbing-core.txt', 'requirements_sha256': gate.digest(requirements),
                         'wheel_inventory': wheel_name, 'wheel_inventory_sha256': gate.digest(source / wheel_name), 'device': 'cpu'}}
-    dump(source / gate.INVENTORY, {'schema': 1, 'license_reviewed': True, 'components': components})
+    audit_name = 'docs/SYNTHETIC-RUNTIME-REVIEW.json'
+    audit = dump(source / audit_name, {'schema': 1, 'kind': 'scoped_native_cpu_runtime_license_review',
+        'reviewed': True, 'license_reviewed': True, 'binary_redistribution_approved': False,
+        'fixture': 'SYNTHETIC VALIDATOR REVIEW ONLY; never actual runtime license approval.'})
+    dump(source / gate.INVENTORY, {'schema': 1, 'license_reviewed': True, 'components': components,
+         'runtime_license_review': {'path': audit_name, 'sha256': gate.digest(audit)}})
     refresh_manifest(source)
     expected = gate.static_inventory(source, TAG, COMMIT)
     report = dump(evidence / 'reports' / 'acceptance.json', {'fixture': 'SYNTHETIC CONTRACT TEST ONLY; not native/model/GPU proof.'})
@@ -148,6 +153,65 @@ def test_missing_production_inventory_never_becomes_an_empty_success(proof):
     (proof['source'] / gate.INVENTORY).unlink()
     refresh_manifest(proof['source'])
     with pytest.raises(gate.GateError, match='missing or oversized required file'):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+def scoped_runtime_review(proof):
+    source = proof['source']
+    evidence_name = 'docs/SYNTHETIC-RUNTIME-EVIDENCE.json'
+    evidence = dump(source / evidence_name, {'fixture': 'Validator only; never actual runtime acceptance.'})
+    audit_name = 'docs/SYNTHETIC-RUNTIME-REVIEW.json'
+    audit = {'schema': 1, 'kind': 'scoped_native_cpu_runtime_license_review',
+             'reviewed': True, 'license_reviewed': True, 'binary_redistribution_approved': False,
+             'evidence': {'path': evidence_name, 'sha256': gate.digest(evidence), 'size': evidence.stat().st_size}}
+    path = dump(source / audit_name, audit)
+    change_inventory(proof, lambda value: value.update(runtime_license_review={
+        'path': audit_name, 'sha256': gate.digest(path)}))
+    return path, audit, evidence
+
+
+def test_scoped_runtime_review_and_retained_source_evidence_are_bound(proof):
+    scoped_runtime_review(proof)
+    assert gate.static_inventory(proof['source'], TAG, COMMIT)['status'] == 'inventory_verified'
+
+
+@pytest.mark.parametrize('fault', ['missing', 'null'])
+def test_review_flags_cannot_bypass_the_required_scoped_runtime_audit(proof, fault):
+    def mutate(value):
+        if fault == 'missing': value.pop('runtime_license_review')
+        else: value['runtime_license_review'] = None
+    change_inventory(proof, mutate)
+    with pytest.raises(gate.GateError, match='source-bound scoped runtime license review is required'):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+@pytest.mark.parametrize('fault', ['stale_audit_hash', 'unreviewed', 'wrong_kind', 'binary_permission',
+                                 'changed_evidence', 'stale_evidence_size', 'conflicting_duplicate'])
+def test_scoped_review_cannot_outlive_its_exact_evidence_or_scope(proof, fault):
+    path, audit, evidence = scoped_runtime_review(proof)
+    if fault == 'unreviewed': audit['license_reviewed'] = False
+    elif fault == 'wrong_kind': audit['kind'] = 'unreviewed'
+    elif fault == 'binary_permission': audit['binary_redistribution_approved'] = True
+    elif fault == 'changed_evidence': evidence.write_text('Changed retained evidence; source manifest will also be refreshed.')
+    elif fault == 'stale_evidence_size': audit['evidence']['size'] += 1
+    elif fault == 'conflicting_duplicate': audit['conflict'] = {**audit['evidence'], 'sha256': '0' * 64}
+    else: audit['additional'] = 'The previous audit digest must not authorize these changed bytes.'
+    dump(path, audit)
+    if fault == 'stale_audit_hash': refresh_manifest(proof['source'])
+    else:
+        change_inventory(proof, lambda value: value['runtime_license_review'].update(sha256=gate.digest(path)))
+    with pytest.raises(gate.GateError):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+@pytest.mark.parametrize('name', ['forge/runtime.dll', 'scripts/runtime.pyd', 'web/runtime.whl', 'runtime.exe'])
+def test_source_private_install_review_never_authorizes_bundled_runtime_binary(proof, name):
+    scoped_runtime_review(proof)
+    path = proof['source'] / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b'Owned inert policy fixture; not an executable.')
+    refresh_manifest(proof['source'])
+    with pytest.raises(gate.GateError, match='does not approve bundled runtime binaries'):
         gate.static_inventory(proof['source'], TAG, COMMIT)
 
 

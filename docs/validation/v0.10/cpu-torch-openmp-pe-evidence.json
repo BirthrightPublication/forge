@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "kind": "exact_cpu_torch_static_openmp_identity",
+  "package": "torch",
+  "version": "2.8.0+cpu",
+  "wheel": {
+    "name": "torch-2.8.0+cpu-cp312-cp312-win_amd64.whl",
+    "url": "https://download-r2.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp312-cp312-win_amd64.whl",
+    "size": 619352539,
+    "sha256": "2be20b2c05a0cce10430cc25f32b689259640d273232b2de357c35729132256d"
+  },
+  "original_fully_verified_before_inspection": true,
+  "pe_records": [
+    {
+      "member": "torch/lib/libiomp5md.dll",
+      "size": 1613680,
+      "sha256": "d9d66ed25f1a0ea725fa3a41b22cfd5d182c19dbe4771d9c90ca02ad7466f6a1",
+      "version_string_records": {
+        "FileVersion": [
+          "20250422"
+        ],
+        "ProductVersion": [
+          "5.0"
+        ],
+        "ProductName": [
+          "Intel(R) OpenMP* Runtime Library"
+        ],
+        "CompanyName": [
+          "Intel Corporation"
+        ],
+        "LegalCopyright": [
+          "Copyright (C) 1997-2025, Intel Corporation. All rights reserved."
+        ],
+        "FileDescription": [
+          "Intel(R) OpenMP* Runtime Library"
+        ],
+        "OriginalFilename": [
+          "libiomp5md.dll"
+        ],
+        "InternalName": [
+          "libiomp5md.dll"
+        ]
+      },
+      "fixed_version_records": [
+        {
+          "file_version": "5.0.2025.422",
+          "product_version": "5.0.2025.422"
+        }
+      ],
+      "method": "Exact original wheel fully verified before static PE RT_VERSION parsing; no DLL file retained, loaded or executed."
+    },
+    {
+      "member": "torch/lib/libiompstubs5md.dll",
+      "size": 43888,
+      "sha256": "daeb39e4ced3bfce4a622b63b8b0281613eb8180266f8dd1dc678346df1c7697",
+      "version_string_records": {
+        "FileVersion": [
+          "20250422"
+        ],
+        "ProductVersion": [
+          "5.0"
+        ],
+        "ProductName": [
+          "Intel(R) OpenMP* Runtime Library"
+        ],
+        "CompanyName": [
+          "Intel Corporation"
+        ],
+        "LegalCopyright": [
+          "Copyright (C) 1997-2025, Intel Corporation. All rights reserved."
+        ],
+        "FileDescription": [
+          "Intel(R) OpenMP* Runtime Library"
+        ],
+        "OriginalFilename": [
+          "libiompstubs5md.dll"
+        ],
+        "InternalName": [
+          "libiompstubs5md.dll"
+        ]
+      },
+      "fixed_version_records": [
+        {
+          "file_version": "5.0.2025.422",
+          "product_version": "5.0.2025.422"
+        }
+      ],
+      "method": "Exact original wheel fully verified before static PE RT_VERSION parsing; no DLL file retained, loaded or executed."
+    }
+  ],
+  "retained_notice_metadata": [
+    {
+      "member": "torch-2.8.0+cpu.dist-info/LICENSE",
+      "size": 506902,
+      "sha256": "d61701e874c39a858d92c47c2cbf3bd8b9e498032a18ae42832fba591752ce1f",
+      "retained_relative": "notices/LICENSE"
+    },
+    {
+      "member": "torch-2.8.0+cpu.dist-info/METADATA",
+      "size": 29519,
+      "sha256": "5c18087706e9eff80841e770e397ed2521cdcc6bb3f0dd9178f358d781729c86",
+      "retained_relative": "metadata/METADATA"
+    }
+  ],
+  "native_binary_execution": false,
+  "package_installation": false,
+  "model_inference": false,
+  "dll_files_extracted": false,
+  "license_approval": false,
+  "parser_helper_sha256": "4fc4282ab457244d1780e7157ec00bd5c4b4d7f63f529c8b679d845a8924b9a4"
+}

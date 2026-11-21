@@ -143,6 +143,39 @@ def static_inventory(source, tag, source_commit):
     inventory_path = tracked(INVENTORY)
     inventory = read_json(inventory_path)
     require(inventory.get('schema') == 1 and inventory.get('license_reviewed') is True, 'the model/license inventory has not been reviewed.')
+    runtime_review = inventory.get('runtime_license_review')
+    require(isinstance(runtime_review, dict), 'a source-bound scoped runtime license review is required.')
+    review_path = tracked(runtime_review.get('path', ''))
+    require(runtime_review.get('sha256') == digest(review_path), 'runtime license review differs from its source identity.')
+    audit = read_json(review_path)
+    require(audit.get('schema') == 1 and audit.get('kind') == 'scoped_native_cpu_runtime_license_review'
+            and audit.get('reviewed') is True and audit.get('license_reviewed') is True
+            and audit.get('binary_redistribution_approved') is False,
+            'the current scoped runtime license review is incomplete or has changed scope.')
+    # This review covers application source and unchanged private installs.
+    # It cannot authorize a package that starts conveying runtime binaries.
+    for name in files:
+        require(Path(name).suffix.lower() not in {'.dll', '.pyd', '.so', '.dylib', '.whl', '.exe'},
+                'the scoped runtime review does not approve bundled runtime binaries: ' + name + '.')
+    pending, retained, nodes = [audit], {}, 0
+    while pending:
+        node = pending.pop(); nodes += 1
+        require(nodes <= 100000, 'runtime license evidence exceeds its structural bound.')
+        if isinstance(node, dict):
+            for key in ('path', 'file', 'retained_source_file'):
+                name = node.get(key)
+                if isinstance(name, str) and name.startswith('docs/'):
+                    if name not in retained:
+                        evidence_path = tracked(name)
+                        retained[name] = (digest(evidence_path), evidence_path.stat().st_size)
+                    expected_hash, expected_size = retained[name]
+                    require(node.get('sha256') == expected_hash, 'retained runtime license evidence differs: ' + name + '.')
+                    if 'size' in node:
+                        require(type(node['size']) is int and expected_size == node['size'],
+                                'retained runtime license evidence size differs: ' + name + '.')
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
     components = inventory.get('components', {})
     identities = {}
     wheel_hashes = {}
