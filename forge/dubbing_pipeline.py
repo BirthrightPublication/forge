@@ -518,10 +518,14 @@ def _voice(project, context, options, stage_dir, data, result):
     for entry in prepared:
         original, value = entry['original'], entry['audio']
         value = {key: item for key, item in value.items() if key not in {'fingerprint', 'schema', 'key'}}
-        value.update(model_revision=entry['revision'], engine=entry['component'], cache_key=entry['key'])
-        updates.append(_update(original, audio=value, voice_profile_id=entry['fingerprint']['profile_id']))
+        # Resolving a speaker/project fallback must not rewrite the reviewed
+        # segment recipe. Keep its effective identity with derived audio only.
+        value.update(model_revision=entry['revision'], engine=entry['component'], cache_key=entry['key'],
+                     voice_profile_id=entry['fingerprint']['profile_id'])
+        updates.append(_update(original, audio=value))
         artifacts.append(_file(value['path'], 'voice_segment', settings, media=True, segment_id=original['id'],
-                               model_revision=entry['revision'], cache_key=entry['key'], preview=preview))
+                               model_revision=entry['revision'], cache_key=entry['key'],
+                               voice_profile_id=entry['fingerprint']['profile_id'], preview=preview))
         outputs.append({'id': original['id'], 'path': value['path'], 'duration': value['duration'],
                         'cached': value.get('cached', False), 'model_revision': entry['revision']})
         if value.get('peak_normalization_db'):

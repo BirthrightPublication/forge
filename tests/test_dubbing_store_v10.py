@@ -104,6 +104,45 @@ def test_panel_changes_do_not_change_review_but_voice_or_text_edits_do(library):
     assert review_fingerprint(value)!=before
 
 
+@pytest.mark.parametrize('stages,finishing,prior_status,prior_stale,expected', [
+    (['dubbing_export'], 0, 'completed', [], 'completed'),
+    (['dubbing_mix'], 0, 'completed', [], 'completed'),
+    (['dubbing_mix', 'dubbing_export'], 0, 'completed', [], 'running'),
+    (['dubbing_align', 'dubbing_export'], 1, 'queued', [], 'running'),
+    (['dubbing_align', 'dubbing_export'], 1, 'failed', [], 'running'),
+    (['dubbing_align', 'dubbing_export'], 1, 'cancelled', [], 'running'),
+    (['dubbing_align', 'dubbing_export'], 1, 'completed', ['first'], 'running'),
+    (['dubbing_translate'], 0, 'completed', [], 'review_required'),
+    (['dubbing_review', 'dubbing_export'], 1, 'completed', [], 'running'),
+])
+def test_run_completion_follows_successful_planned_jobs_and_preserves_gates(library, stages, finishing, prior_status, prior_stale, expected):
+    original=project(library)
+    jobs=[library.store.add_job(stage, 'Owned completion state fixture', {}) for stage in stages]
+    receipts={}
+    for job in jobs[:finishing]:
+        library.store.update_job(job['id'],status=prior_status)
+        receipts[job['tool']]={'job_id':job['id'],'stale_segments':prior_stale}
+    run=library.save_run({'project_id':original['id'],'snapshot':original,'status':'running','stages':stages,
+        'jobs':[job['id'] for job in jobs],'results':receipts,'review_approved':False})
+    current=jobs[finishing]
+    library.store.update_job(current['id'],status='running')
+    current['payload']={'dubbing':{'project':original,'run_id':run['id']}}
+    library.apply_result(current, {'dubbing_result':{'stage_settings_hash':stage_fingerprint(original,current['tool'])}})
+    assert library.run(run['id'])['status']==expected
+
+
+def test_last_result_with_changed_production_settings_stays_stale(library):
+    original=project(library)
+    job=library.store.add_job('dubbing_export','Owned final state fixture',{})
+    run=library.save_run({'project_id':original['id'],'snapshot':original,'status':'running',
+        'stages':['dubbing_export'],'jobs':[job['id']]})
+    changed=copy.deepcopy(original);changed['options']['export']['container']='mkv'
+    library.save_project(changed,original['revision'])
+    job['payload']={'dubbing':{'project':original,'run_id':run['id']}}
+    library.apply_result(job,{'dubbing_result':{'stage_settings_hash':stage_fingerprint(original,'dubbing_export')}})
+    assert library.run(run['id'])['status']=='stale'
+
+
 def test_only_registered_verified_artifacts_are_served_and_edits_mark_downstream_stale(library,tmp_path):
     value=project(library)
     output=tmp_path/'owned-fixture.wav';output.write_bytes(b'Synthetic owned artifact; file-serving unit fixture only')

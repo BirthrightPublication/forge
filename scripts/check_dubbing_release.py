@@ -35,7 +35,7 @@ RECOMMENDED = {'opus-en-ru': 'Helsinki-NLP/opus-mt-en-ru',
 CHECKS = ('gui_recommended_install', 'restart_model_persistence', 'timed_english_asr',
           'russian_translation', 'reference_russian_tts', 'playable_outputs',
           'windows_v09_upgrade', 'protected_userdata_preservation', 'external_windows_updater',
-          'rollback_recovery', 'running_backend_version')
+          'rollback_recovery', 'running_backend_version', 'youtube_private_acceptance')
 MAX_BYTES = 128 * 1024 * 1024
 MAX_FILE = 16 * 1024 * 1024
 MAX_FILES = 1000
@@ -251,6 +251,26 @@ def verify_evidence(source, tag, source_commit, evidence, *, run_id):
             and checks['playable_outputs'].get('decoded_and_probed') is True
             and checks['running_backend_version'].get('version') == tag[1:],
             'GUI installation, restart persistence, playable output decoding and the running tagged backend must be verified.')
+    youtube = checks['youtube_private_acceptance']
+    receipt_name = youtube.get('receipt')
+    require(isinstance(receipt_name, str) and receipt_name in youtube['evidence']
+            and receipt_name in verified and Path(receipt_name).suffix.lower() == '.json',
+            'YouTube acceptance requires its hashed sanitized live receipt.')
+    youtube_receipt = read_json(safe_file(evidence.parent, receipt_name))
+    require(youtube_receipt.get('schema') == 1 and youtube_receipt.get('app') == 'FORGE'
+            and youtube_receipt.get('kind') == 'youtube_private_acceptance'
+            and youtube_receipt.get('status') == 'passed'
+            and youtube_receipt.get('version') == tag[1:]
+            and youtube_receipt.get('source_commit') == source_commit
+            and youtube_receipt.get('source_manifest_sha256') == expected['source_manifest_sha256'],
+            'YouTube acceptance is foreign, unbound or a protocol fixture.')
+    for flag in ('live_google', 'native_windows_execution', 'explicit_private_review', 'channel_verified',
+                 'private_visibility_verified', 'captions_verified', 'private_inputs_not_embedded', 'credentials_not_embedded'):
+        require(youtube_receipt.get(flag) is True, 'missing real private YouTube acceptance: ' + flag + '.')
+    for field in ('media_sha256', 'subtitle_sha256', 'approved_channel_sha256', 'observed_channel_sha256', 'video_id_sha256'):
+        require(SHA.fullmatch(str(youtube_receipt.get(field, ''))), 'invalid sanitized YouTube identity: ' + field + '.')
+    require(youtube_receipt['approved_channel_sha256'] == youtube_receipt['observed_channel_sha256'],
+            'YouTube readback differs from the explicitly approved channel.')
     gpu = value.get('physical_gpu', {})
     passed(gpu, 'physical_gpu; no V0.8 GPU exception applies to V0.10')
     require(gpu.get('physical_gpu_tested') is True and gpu.get('inference_tested') is True and gpu.get('device_name')

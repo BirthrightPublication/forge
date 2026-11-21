@@ -453,6 +453,26 @@ class DubbingStore:
                     saved_options=copy.deepcopy(run.get('snapshot',{}).get('options',project['options']))
                     run['snapshot']=copy.deepcopy(project)
                     run['snapshot']['options']=saved_options
-                    run['status']='stale' if stale or not content_matches else 'review_required' if job['tool']=='dubbing_translate' else 'running'
-                    if job['tool']=='dubbing_prepare_upload' and not stale and content_matches: run['status']='completed'
+                    run['status']='stale' if stale or not content_matches or not settings_match else 'review_required' if job['tool']=='dubbing_translate' else 'running'
+                    # A custom workflow may end at any production stage. Only
+                    # its final published result can complete it, with bound
+                    # successful receipts for every earlier production job.
+                    identities=run.get('jobs',[])
+                    stages=run.get('stages',[])
+                    complete=(run['status']=='running' and bool(identities) and len(identities)==len(stages)
+                              and identities[-1]==job['id'] and stages[-1]==job['tool'])
+                    if complete:
+                        for index,identity in enumerate(identities):
+                            queued=self.store.db.execute('SELECT tool,status FROM jobs WHERE id=?',(identity,)).fetchone()
+                            if (not queued or queued['tool']!=stages[index]
+                                    or (identity!=job['id'] and queued['status']!='completed')
+                                    or queued['status'] in {'blocked','cancelling','cancelled'}):
+                                complete=False;break
+                            if queued['tool']=='dubbing_review':
+                                if not run.get('review_approved'): complete=False;break
+                                continue
+                            receipt=run['results'].get(queued['tool'],{})
+                            if receipt.get('job_id')!=identity or receipt.get('stale_segments')!=[]:
+                                complete=False;break
+                    if complete: run['status']='completed'
                     self.save_run(run)

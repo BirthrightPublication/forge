@@ -76,13 +76,22 @@ def proof(tmp_path):
     checks['timed_english_asr'].update(timings_verified=True, segment_count=3)
     checks['russian_translation']['target_language'] = 'ru'
     checks['reference_russian_tts'].update(language='ru', reference_consent=True, reference_sha256='f' * 64)
+    youtube = {'schema': 1, 'app': 'FORGE', 'version': TAG[1:], 'kind': 'youtube_private_acceptance',
+        'status': 'passed', 'source_commit': COMMIT, 'source_manifest_sha256': expected['source_manifest_sha256'],
+        **{key: True for key in ('live_google', 'native_windows_execution', 'explicit_private_review', 'channel_verified',
+             'private_visibility_verified', 'captions_verified', 'private_inputs_not_embedded', 'credentials_not_embedded')},
+        **{key: 'f' * 64 for key in ('media_sha256', 'subtitle_sha256', 'approved_channel_sha256', 'observed_channel_sha256', 'video_id_sha256')},
+        'fixture': 'Explicit synthetic gate fixture, never actual live acceptance evidence.'}
+    youtube_path = dump(evidence / 'reports' / 'youtube-private.json', youtube)
+    checks['youtube_private_acceptance'].update(receipt='reports/youtube-private.json', evidence=['reports/youtube-private.json'])
     value = {**expected, 'schema': 1, 'app': 'FORGE', 'status': 'passed', 'repository': gate.REPOSITORY,
         'actions_run_id': RUN, 'native_windows_execution': True, 'inference_substituted': False,
         'synthetic_only': False, 'reference_consent': True, 'private_inputs_not_embedded': True,
         'checks': checks, 'physical_gpu': {'status': 'passed', 'evidence': ['reports/acceptance.json'],
             'physical_gpu_tested': True, 'inference_tested': True, 'device_name': 'Explicit synthetic validator device',
             'peak_vram_bytes': 1000},
-        'artifacts': [{'path': 'reports/acceptance.json', 'sha256': gate.digest(report), 'size': report.stat().st_size}]}
+        'artifacts': [{'path': 'reports/acceptance.json', 'sha256': gate.digest(report), 'size': report.stat().st_size},
+                      {'path': 'reports/youtube-private.json', 'sha256': gate.digest(youtube_path), 'size': youtube_path.stat().st_size}]}
     path = dump(evidence / 'DUBBING_ACCEPTANCE.json', value)
     return {'source': source, 'path': path, 'value': value, 'expected': expected, 'wheel_name': wheel_name}
 
@@ -196,6 +205,21 @@ def test_physical_gpu_pass_is_required_without_inherited_cpu_release_exception(p
     else: gpu['peak_vram_bytes'] = 0
     dump(proof['path'], proof['value'])
     with pytest.raises(gate.GateError):
+        verify(proof)
+
+
+@pytest.mark.parametrize('field,value', [('live_google', False), ('native_windows_execution', False),
+    ('explicit_private_review', False), ('channel_verified', False), ('private_visibility_verified', False),
+    ('captions_verified', False), ('credentials_not_embedded', False), ('status', 'protocol_fixture_verified'),
+    ('source_commit', '0' * 40), ('observed_channel_sha256', '0' * 64), ('media_sha256', '')])
+def test_live_youtube_acceptance_cannot_be_replaced_by_summary_or_protocol_fixture(proof, field, value):
+    path = proof['path'].parent / 'reports/youtube-private.json'
+    receipt = json.loads(path.read_text()); receipt[field] = value; dump(path, receipt)
+    for artifact in proof['value']['artifacts']:
+        if artifact['path'] == 'reports/youtube-private.json':
+            artifact.update(sha256=gate.digest(path), size=path.stat().st_size)
+    dump(proof['path'], proof['value'])
+    with pytest.raises(gate.GateError, match='YouTube'):
         verify(proof)
 
 

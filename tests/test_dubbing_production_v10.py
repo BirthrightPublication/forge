@@ -371,6 +371,52 @@ def test_frozen_model_revisions_are_used_without_mutating_project_settings(tmp_p
     assert value == original
 
 
+@pytest.mark.parametrize('assignment', ['project', 'speaker', 'segment'])
+def test_resolving_voice_fallback_keeps_reviewed_recipe_and_next_stage_approval(tmp_path, monkeypatch, media_tools, assignment):
+    import threading
+    from types import SimpleNamespace
+    from forge.core import Store
+    from forge.dubbing_api import DubbingService
+    from forge.dubbing_store import review_fingerprint
+    calls=model_fixture(monkeypatch)
+    source=video(tmp_path/'owned-voice-fallback.mp4')
+    reference=tone(tmp_path/'permitted-reference.wav',3)
+    store=Store(tmp_path/'data')
+    manager=SimpleNamespace(lock=threading.RLock(),check_accepting=lambda:None)
+    service=DubbingService(SimpleNamespace(),store,manager,lambda *args:None)
+    service.models=lambda:SimpleNamespace(catalog=lambda data:[{'id':'qwen3-tts-0.6b-base','ready':True,'model_revision':'a'*40}],
+                                        existing_whisper_state=lambda *args:{'ready':False})
+    try:
+        profile=service.library.save_record('voices',voice_profile(reference)['my-voice'],trusted=True)
+        value=project(source);stat=source.stat();value['source'].update(size=stat.st_size,mtime_ns=stat.st_mtime_ns)
+        value['options']['audio'].pop('normalize',None)
+        value['segments']=value['segments'][:1]
+        value['options']['tts']['voice_profile_id']='my-voice' if assignment=='project' else ''
+        value['speakers']={'speaker1':{'voice_profile_id':'my-voice'}} if assignment=='speaker' else {}
+        if assignment=='segment':value['segments'][0]['voice_profile_id']='my-voice'
+        value.pop('revision',None)
+        saved=service.library.save_project(value,trusted=True)
+        approved_hash=review_fingerprint(saved)
+        started=service.enqueue(saved,['dubbing_voice','dubbing_align'])
+        first=store.job(started['jobs'][0]['id']);assert service.prepare_job(first)
+        first=store.job(first['id'])
+        _,_,result=pipeline.process(first['payload'],tmp_path/'voice',store.data)
+        service.library.apply_result(first,{'dubbing_result':result})
+        store.update_job(first['id'],status='completed')
+        current=service.library.project(saved['id'])
+        assert review_fingerprint(current)==approved_hash
+        assert current['segments'][0].get('voice_profile_id','')==saved['segments'][0].get('voice_profile_id','')
+        assert current['segments'][0]['audio']['voice_profile_id']=='my-voice'
+        assert all(item['voice_profile_id']=='my-voice' for item in result['artifacts'] if item['kind']=='voice_segment')
+        following=store.job(started['jobs'][1]['id']);assert service.prepare_job(following)
+        changed=copy.deepcopy(profile);changed['name']='Edited permitted reference'
+        service.library.save_record('voices',changed,profile['revision'],trusted=True)
+        assert not service.prepare_job(store.job(following['id']))
+        assert calls and 'Review' in store.job(following['id'])['message']
+    finally:
+        store.close()
+
+
 def test_voice_caches_unaffected_segments_across_selected_regeneration(tmp_path, monkeypatch, media_tools):
     calls = model_fixture(monkeypatch)
     reference = tone(tmp_path/'permitted-reference.wav', 3)

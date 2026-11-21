@@ -1,0 +1,80 @@
+name: Native Dubbing model acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['development/v0.10-dubbing-studio']
+    paths:
+      - .github/workflows/dubbing-model-acceptance.yml
+      - scripts/dubbing_cpu_acceptance.py
+      - scripts/dubbing_runtime.py
+      - scripts/requirements-dubbing-core.txt
+      - forge/dubbing_models.py
+      - forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-dubbing-models-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-cpu-models:
+    name: Install verified packs and run real Russian CPU inference on Windows
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONUNBUFFERED: '1'
+      PYTHONUTF8: '1'
+      PIP_NO_CACHE_DIR: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+    steps:
+      - name: Preserve exact source bytes
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install only controller prerequisites
+        run: |
+          python -m pip install --disable-pip-version-check --timeout 30 --retries 1 --only-binary=:all: -r requirements-core.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Controller prerequisite installation failed.' }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Controller dependency verification failed.' }
+      - name: Require real native media executables
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'Verified native FFmpeg/FFprobe prerequisite installation failed.' }
+          }
+          Import-Module "$env:ChocolateyInstall/helpers/chocolateyProfile.psm1"
+          refreshenv
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+            throw 'Native media tools are unavailable; no skipped or synthetic substitute is accepted.'
+          }
+          ffmpeg -version | Select-Object -First 1
+          ffprobe -version | Select-Object -First 1
+      - name: Install immutable isolated CPU packs and test real offline inference
+        run: |
+          python scripts/dubbing_cpu_acceptance.py --data-root "$env:RUNNER_TEMP/dubbing-model-data" --output "$env:RUNNER_TEMP/dubbing-model-evidence" --device cpu --approve-install --require-native-windows --require-clean-source
+          if ($LASTEXITCODE -ne 0) { throw 'Real native model acceptance failed; inspect the sanitized JSON report.' }
+      - name: Retain sanitized model evidence only
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-native-cpu-${{ github.run_id }}
+          path: ${{ runner.temp }}/dubbing-model-evidence/DUBBING_MODEL_SMOKE.json
+          if-no-files-found: warn
+          retention-days: 30
