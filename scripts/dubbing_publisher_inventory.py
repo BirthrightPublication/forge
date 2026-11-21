@@ -33,8 +33,10 @@ def verify_component(component, cache, *, discover=False):
         if not descriptor.get('revision') and not discover:
             raise models.ComponentUnavailable('Unpinned discovery requires --discover; review evidence never activates a model.')
         part = models.discover_part(descriptor)
+        notices = models._notice_plan(descriptor)
+        part['external_license_evidence'] = notices
         card_verified = False
-        for artifact in part['artifacts']:
+        for artifact in [*part['artifacts'], *notices]:
             artifact['content_download_verified'] = False
             if artifact['algorithm'] == 'sha256':
                 artifact['sha256'] = artifact['digest']
@@ -44,6 +46,8 @@ def verify_component(component, cache, *, discover=False):
             if downloaded_bytes > SMALL_TOTAL_LIMIT:
                 raise models.ComponentUnavailable('The public evidence exceeds its small-file download allowance.')
             path = models._download(artifact, cache)
+            if artifact.get('origin') == 'external_license_evidence' and models._hash(path) != artifact['digest']:
+                raise models.ComponentUnavailable('An external notice differs from its registered immutable hash.')
             artifact['sha256'] = models._hash(path)
             artifact['content_download_verified'] = True
             if artifact['name'] == 'README.md':
@@ -61,10 +65,12 @@ def verify_component(component, cache, *, discover=False):
             'license_files': [item['name'] for item in part['artifacts']
                               if Path(item['name']).name.upper().startswith(('LICENSE', 'NOTICE'))],
             'distribution_approved': False, 'full_notice_review_pending': True,
+            'external_notice_count': len(notices), 'scope_conflict': part.get('license_scope_conflict') is True,
         }
         parts.append(part)
     return {'component': component, 'status': 'publisher_metadata_verified', 'parts': parts,
             'model_bytes': sum(part['bytes'] for part in parts), 'small_artifact_bytes_verified': downloaded_bytes,
+            'external_notice_bytes': sum(item['size'] for part in parts for item in part['external_license_evidence']),
             'installed': False, 'inference_tested': False, 'native_windows_execution': False,
             'physical_gpu_tested': False}
 

@@ -151,7 +151,7 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
         if name not in {'app.js','v2.js','v3.js','v4.js','v4.css','style.css','forge.ico',
                         'black_scripting.js','black_scripting.css','generators.js','generators.css','media_v4.js',
                         'privacy_v5.js','privacy_v5.css','v6.js','v6.css','v7.js','v7.css','downloads_v7.js','downloads_v9.css','speech_v8.js','speech_v8.css',
-                        'dubbing_v10.js','dubbing_v10.css'}:
+                        'dubbing_v10.js','dubbing_v10.css','dubbing_acceptance.js','publishing_acceptance_v10.js'}:
             raise HTTPException(404)
         return FileResponse(ROOT / 'web' / name)
 
@@ -497,4 +497,8 @@ def create_app(data: Path, token: str, port: int, *, workers=True):
     mount_dubbing(app,store,manager,destination)
     from .language_publishing import mount as mount_language_publishing
     mount_language_publishing(app,store,manager,destination)
+    from .dubbing_acceptance import mount as mount_dubbing_acceptance
+    mount_dubbing_acceptance(app,store,manager)
+    from .publishing_acceptance import mount as mount_publishing_acceptance
+    mount_publishing_acceptance(app,app.state.language_publishing)
     return app

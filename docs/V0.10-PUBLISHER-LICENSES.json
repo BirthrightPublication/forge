@@ -47,6 +47,13 @@
       "scope": "official_publisher_apache_license_text",
       "size": 11343,
       "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655"
+    },
+    {
+      "file": "docs/model-notices/Apache-2.0-canonical.txt",
+      "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt",
+      "scope": "canonical_text_for_opus_publisher_apache_declaration",
+      "size": 11359,
+      "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7"
     }
   ],
   "standalone_checkpoint_license_files_present": false,

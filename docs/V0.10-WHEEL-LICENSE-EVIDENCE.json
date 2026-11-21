@@ -1,0 +1,494 @@
+{
+  "dependency_closure_approved": false,
+  "distribution_approved": false,
+  "native_execution_performed_by_this_review": false,
+  "records": [
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE"
+      ],
+      "license_files": [
+        {
+          "member": "torchaudio-2.8.0+cpu.dist-info/licenses/LICENSE",
+          "retained_source_file": "docs/model-notices/wheel-torchaudio-LICENSE-32638e179931.txt",
+          "sha256": "32638e179931bfe551eabf67b0e67a13b483e166b58dd7263634ab7f89f396f5",
+          "size": 1363
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "4cea36045e9ffe70aca628f2b26db1da22c321a3a0b5e8dc897b0656784f85a5",
+      "metadata_size": 7376,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "torchaudio",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "BSD-2-Clause",
+      "url": "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.8.0%2Bcpu-cp312-cp312-win_amd64.whl",
+      "version": "2.8.0+cpu",
+      "wheel": "torchaudio-2.8.0+cpu-cp312-cp312-win_amd64.whl",
+      "wheel_sha256": "9b302192b570657c1cc787a4d487ae4bbb7f2aab1c01b1fcc46757e7f86f391e",
+      "wheel_size": 2495725
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": true,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: Apache Software License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [],
+      "license_files": [],
+      "license_metadata": null,
+      "metadata_sha256": "5ad9bccf21ae53d45f812703c80c7c03ecea300823655a2968f9e6778779bdb3",
+      "metadata_size": 7428,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "tokenizers",
+      "primary_license_evidence_scope": "Exact wheel metadata and corresponding official release source license; full license absent from wheel",
+      "primary_license_identified": "Apache-2.0",
+      "url": "https://files.pythonhosted.org/packages/65/71/0670843133a43d43070abeb1949abfdef12a86d490bea9cd9e18e37c5ff7/tokenizers-0.22.2-cp39-abi3-win_amd64.whl",
+      "version": "0.22.2",
+      "wheel": "tokenizers-0.22.2-cp39-abi3-win_amd64.whl",
+      "wheel_sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48",
+      "wheel_size": 2747786
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: Apache Software License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE"
+      ],
+      "license_files": [
+        {
+          "member": "safetensors-0.8.0.dist-info/licenses/LICENSE",
+          "retained_source_file": "docs/model-notices/wheel-safetensors-LICENSE-1eb85fc97224.txt",
+          "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+          "size": 11558
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "597731d1baf7a94219753fa0a74abd1a8a18562d50d98b2e25d91e11e3224d36",
+      "metadata_size": 4249,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "safetensors",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "Apache-2.0",
+      "url": "https://files.pythonhosted.org/packages/1b/6d/3fba214c1e5e0f69991677ec3bc17023f0421776975e1de0c682dca475e2/safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+      "version": "0.8.0",
+      "wheel": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+      "wheel_sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f",
+      "wheel_size": 355540
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": true,
+      "installed": false,
+      "license_classifiers": [],
+      "license_expression": null,
+      "license_file_metadata": [],
+      "license_files": [],
+      "license_metadata": null,
+      "metadata_sha256": "3de0de19c0bf383a6946bc0494b5c428e7216cb7d94a4607db4cb430f5e23abb",
+      "metadata_size": 10254,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "sentencepiece",
+      "primary_license_evidence_scope": "Exact wheel metadata and corresponding official release source license; full license absent from wheel",
+      "primary_license_identified": "Apache-2.0",
+      "upstream_supplemental_notice_licenses": {
+        "absl": "Apache-2.0",
+        "darts_clone": "BSD-3-Clause",
+        "esaxx": "MIT",
+        "protobuf-lite": "BSD-3-Clause"
+      },
+      "url": "https://files.pythonhosted.org/packages/2d/81/92df5673c067148c2545b1bfe49adfd775bcc3a169a047f5a0e6575ddaca/sentencepiece-0.2.1-cp312-cp312-win_amd64.whl",
+      "version": "0.2.1",
+      "wheel": "sentencepiece-0.2.1-cp312-cp312-win_amd64.whl",
+      "wheel_sha256": "4cdc7c36234fda305e85c32949c5211faaf8dd886096c7cea289ddc12a2d02de",
+      "wheel_size": 1054671
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE"
+      ],
+      "license_files": [
+        {
+          "member": "sacremoses-0.1.1.dist-info/LICENSE",
+          "retained_source_file": "docs/model-notices/wheel-sacremoses-LICENSE-efe03a5e303b.txt",
+          "sha256": "efe03a5e303b216ad2008b100da2ac2fbe6aa3ca442f2cfb931227f996fd2ebe",
+          "size": 1066
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "249c7c18d37c85c7552cb8107a12eb17f3ac36b545b7c6eb7613c1dcf7563014",
+      "metadata_size": 8257,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "sacremoses",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "MIT",
+      "url": "https://files.pythonhosted.org/packages/0b/f0/89ee2bc9da434bd78464f288fdb346bc2932f2ee80a90b2a4bbbac262c74/sacremoses-0.1.1-py3-none-any.whl",
+      "version": "0.1.1",
+      "wheel": "sacremoses-0.1.1-py3-none-any.whl",
+      "wheel_sha256": "31e04c98b169bfd902144824d191825cd69220cdb4ae4bcf1ec58a7db5587b1a",
+      "wheel_size": 897476
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE.txt"
+      ],
+      "license_files": [
+        {
+          "member": "colorama-0.4.6.dist-info/licenses/LICENSE.txt",
+          "retained_source_file": "docs/model-notices/wheel-colorama-LICENSE-cac35c02686e.txt",
+          "sha256": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318",
+          "size": 1491
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "7baed29eb50c3b29bdb33ff84e3177bf1bc05784f7685ecdcaa4471c7dd810cc",
+      "metadata_size": 17158,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "colorama",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "BSD-3-Clause",
+      "url": "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",
+      "version": "0.4.6",
+      "wheel": "colorama-0.4.6-py2.py3-none-any.whl",
+      "wheel_sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+      "wheel_size": 25335
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE.txt"
+      ],
+      "license_files": [
+        {
+          "member": "jinja2-3.1.6.dist-info/licenses/LICENSE.txt",
+          "retained_source_file": "docs/model-notices/wheel-jinja2-LICENSE-3b49dcee4105.txt",
+          "sha256": "3b49dcee4105eb37bac10faf1be260408fe85d252b8e9df2e0979fc1e094437b",
+          "size": 1475
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "68c5548fb67c4132a13898d9b31ec50c6bea2abdd915d921f214355c3a6499c8",
+      "metadata_size": 2871,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "Jinja2",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "BSD-3-Clause",
+      "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",
+      "version": "3.1.6",
+      "wheel": "jinja2-3.1.6-py3-none-any.whl",
+      "wheel_sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "wheel_size": 134899
+    },
+    {
+      "commercial_use_permitted_subject_to_terms": true,
+      "devices": [
+        "cuda"
+      ],
+      "full_license_absent_from_wheel": false,
+      "installed": false,
+      "license_classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "license_file_metadata": [
+        "LICENSE"
+      ],
+      "license_files": [
+        {
+          "member": "torchaudio-2.8.0+cu128.dist-info/licenses/LICENSE",
+          "retained_source_file": "docs/model-notices/wheel-torchaudio-LICENSE-32638e179931.txt",
+          "sha256": "32638e179931bfe551eabf67b0e67a13b483e166b58dd7263634ab7f89f396f5",
+          "size": 1363
+        }
+      ],
+      "license_metadata": null,
+      "metadata_sha256": "63528fc1f478d1001481297b4213b233fedd9e1a92736c38bb8ae7021c3a1161",
+      "metadata_size": 7384,
+      "native_execution_or_distribution_approval": false,
+      "native_windows_execution": false,
+      "package": "torchaudio",
+      "primary_license_evidence_scope": "Exact wheel-contained license",
+      "primary_license_identified": "BSD-2-Clause",
+      "url": "https://download-r2.pytorch.org/whl/cu128/torchaudio-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl",
+      "version": "2.8.0+cu128",
+      "wheel": "torchaudio-2.8.0+cu128-cp312-cp312-win_amd64.whl",
+      "wheel_sha256": "cce3a60cd9a97f7360c8f95504ac349311fb7d6b9b826135936764f4de5f782d",
+      "wheel_size": 4673203
+    }
+  ],
+  "remaining_review": "These seven primary labels do not establish a complete static native-library attribution audit or installed dependency closure.",
+  "schema": 1,
+  "scope": "Exact published Windows wheel bytes and contained license/metadata inspection; no installation or native execution.",
+  "status": "primary_labels_verified_review_pending",
+  "updated_wheel_locks": [
+    {
+      "changes": [
+        {
+          "license": "BSD-2-Clause",
+          "package": "torchaudio",
+          "previous_license": "See publisher LICENSE",
+          "version": "2.8.0+cpu",
+          "wheel_sha256": "9b302192b570657c1cc787a4d487ae4bbb7f2aab1c01b1fcc46757e7f86f391e"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "tokenizers",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.22.2",
+          "wheel_sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "safetensors",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.8.0",
+          "wheel_sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "sentencepiece",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.2.1",
+          "wheel_sha256": "4cdc7c36234fda305e85c32949c5211faaf8dd886096c7cea289ddc12a2d02de"
+        },
+        {
+          "license": "MIT",
+          "package": "sacremoses",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.1.1",
+          "wheel_sha256": "31e04c98b169bfd902144824d191825cd69220cdb4ae4bcf1ec58a7db5587b1a"
+        },
+        {
+          "license": "BSD-3-Clause",
+          "package": "colorama",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.4.6",
+          "wheel_sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
+        },
+        {
+          "license": "BSD-3-Clause",
+          "package": "Jinja2",
+          "previous_license": "See publisher LICENSE",
+          "version": "3.1.6",
+          "wheel_sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"
+        }
+      ],
+      "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
+      "review_flags_promoted": false,
+      "sha256": "870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c"
+    },
+    {
+      "changes": [
+        {
+          "license": "BSD-2-Clause",
+          "package": "torchaudio",
+          "previous_license": "See publisher LICENSE",
+          "version": "2.8.0+cu128",
+          "wheel_sha256": "cce3a60cd9a97f7360c8f95504ac349311fb7d6b9b826135936764f4de5f782d"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "tokenizers",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.22.2",
+          "wheel_sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "safetensors",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.8.0",
+          "wheel_sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f"
+        },
+        {
+          "license": "Apache-2.0",
+          "package": "sentencepiece",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.2.1",
+          "wheel_sha256": "4cdc7c36234fda305e85c32949c5211faaf8dd886096c7cea289ddc12a2d02de"
+        },
+        {
+          "license": "MIT",
+          "package": "sacremoses",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.1.1",
+          "wheel_sha256": "31e04c98b169bfd902144824d191825cd69220cdb4ae4bcf1ec58a7db5587b1a"
+        },
+        {
+          "license": "BSD-3-Clause",
+          "package": "colorama",
+          "previous_license": "See publisher LICENSE",
+          "version": "0.4.6",
+          "wheel_sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
+        },
+        {
+          "license": "BSD-3-Clause",
+          "package": "Jinja2",
+          "previous_license": "See publisher LICENSE",
+          "version": "3.1.6",
+          "wheel_sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"
+        }
+      ],
+      "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cuda.json",
+      "review_flags_promoted": false,
+      "sha256": "62e19617dc41bab7c3d33f16c50d984205b26adb420563dc73a3bf4cc993e4e3"
+    }
+  ],
+  "upstream_notice_evidence": [
+    {
+      "file": "tokenizers-upstream-LICENSE",
+      "license": "Apache-2.0",
+      "other_upstream_license_notice_paths": [
+        "LICENSE",
+        "bindings/node/LICENSE",
+        "tokenizers/LICENSE",
+        "tokenizers/examples/unstable_wasm/www/LICENSE-APACHE",
+        "tokenizers/examples/unstable_wasm/www/LICENSE-MIT"
+      ],
+      "package": "tokenizers",
+      "retained_source_file": "docs/model-notices/wheel-tokenizers-upstream-LICENSE.txt",
+      "scope": "Exact corresponding upstream release full license, not an invented wheel member.",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "size": 11357,
+      "source_path": "LICENSE",
+      "source_repository": "huggingface/tokenizers",
+      "source_revision": "f383101a26663708484cac0727792aad74f78234",
+      "source_tag": "v0.22.2",
+      "supplemental_source_notices": [
+        {
+          "contents": "../LICENSE",
+          "full_license_text": false,
+          "kind": "source_license_symlink_target_text",
+          "resolved_full_license_source_path": "LICENSE",
+          "sha256": "1e881ecf2862d01e6e5bc2b861e46886d2a6fb01499c0c508a209a7271b13cf2",
+          "size": 10,
+          "source_path": "tokenizers/LICENSE",
+          "url": "https://raw.githubusercontent.com/huggingface/tokenizers/f383101a26663708484cac0727792aad74f78234/tokenizers/LICENSE"
+        }
+      ],
+      "url": "https://raw.githubusercontent.com/huggingface/tokenizers/f383101a26663708484cac0727792aad74f78234/LICENSE",
+      "version": "0.22.2"
+    },
+    {
+      "file": "sentencepiece-upstream-LICENSE",
+      "license": "Apache-2.0",
+      "other_upstream_license_notice_paths": [
+        "LICENSE",
+        "third_party/absl/LICENSE",
+        "third_party/darts_clone/LICENSE",
+        "third_party/esaxx/LICENSE",
+        "third_party/protobuf-lite/LICENSE"
+      ],
+      "package": "sentencepiece",
+      "retained_source_file": "docs/model-notices/wheel-sentencepiece-upstream-LICENSE.txt",
+      "scope": "Exact corresponding upstream release full license, not an invented wheel member.",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358,
+      "source_path": "LICENSE",
+      "source_repository": "google/sentencepiece",
+      "source_revision": "31646a467d2051eb904e0b45de3a73e91fe1c1e3",
+      "source_tag": "v0.2.1",
+      "supplemental_source_notices": [
+        {
+          "retained_source_file": "docs/model-notices/wheel-sentencepiece-third-party-absl-license.txt",
+          "sha256": "d3e2f59e1d71176dfdb555ece6a41f7a5aa0f52ff21211010ace314f57695f6b",
+          "size": 11365,
+          "source_path": "third_party/absl/LICENSE",
+          "url": "https://raw.githubusercontent.com/google/sentencepiece/31646a467d2051eb904e0b45de3a73e91fe1c1e3/third_party/absl/LICENSE"
+        },
+        {
+          "retained_source_file": "docs/model-notices/wheel-sentencepiece-third-party-darts-clone-license.txt",
+          "sha256": "155f59997298ee336602c49f9c1110f268ac394ca2197eb02647a3555935ad52",
+          "size": 1481,
+          "source_path": "third_party/darts_clone/LICENSE",
+          "url": "https://raw.githubusercontent.com/google/sentencepiece/31646a467d2051eb904e0b45de3a73e91fe1c1e3/third_party/darts_clone/LICENSE"
+        },
+        {
+          "retained_source_file": "docs/model-notices/wheel-sentencepiece-third-party-esaxx-license.txt",
+          "sha256": "7c28553d1d3312d65fe309f76a22ebaf33a3d76c8c1e3b98a88ee4654ecb53db",
+          "size": 1112,
+          "source_path": "third_party/esaxx/LICENSE",
+          "url": "https://raw.githubusercontent.com/google/sentencepiece/31646a467d2051eb904e0b45de3a73e91fe1c1e3/third_party/esaxx/LICENSE"
+        },
+        {
+          "retained_source_file": "docs/model-notices/wheel-sentencepiece-third-party-protobuf-lite-license.txt",
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+          "size": 1732,
+          "source_path": "third_party/protobuf-lite/LICENSE",
+          "url": "https://raw.githubusercontent.com/google/sentencepiece/31646a467d2051eb904e0b45de3a73e91fe1c1e3/third_party/protobuf-lite/LICENSE"
+        }
+      ],
+      "url": "https://raw.githubusercontent.com/google/sentencepiece/31646a467d2051eb904e0b45de3a73e91fe1c1e3/LICENSE",
+      "version": "0.2.1"
+    }
+  ],
+  "wheel_bytes_verified": 12384635
+}

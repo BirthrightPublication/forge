@@ -33,6 +33,9 @@ def relocated(value, paths):
 
 def dubbing_component(payload,stage_dir,data):
     from . import dubbing_models
+    if 'dubbing_acceptance_run' in payload:
+        from .dubbing_acceptance import run_worker
+        return run_worker(payload,stage_dir,data,progress=progress)
     options=payload['options'];component=options.get('component','');action=options.get('action','install')
     meta={}
     if payload['tool']=='dubbing_install':

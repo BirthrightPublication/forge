@@ -57,17 +57,20 @@ def source_identity(root=None, additional_files=()):
         raise AcceptanceBlocked('Source identity requires ordinary application-relative source files.')
     files = {name: digest(root / name) for name in names}
     manifest = root / 'release-manifest.json'
+    value = json.loads(manifest.read_text('utf-8'))
+    if any(value.get('files', {}).get(name) != sha for name, sha in files.items()):
+        raise AcceptanceBlocked('The installed adapter bytes do not match the application manifest. Use the normal verified FORGE updater.')
     identity = {'source_files_sha256': files, 'source_manifest_sha256': digest(manifest)}
     if (root / '.git').exists():
         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        committed_manifest = subprocess.check_output(['git', 'show', 'HEAD:release-manifest.json'], cwd=root)
+        if committed_manifest != manifest.read_bytes():
+            raise AcceptanceBlocked('The source manifest differs from its committed identity. Commit verified source before acceptance.')
         identity.update(source_commit=commit, source_kind='git', source_checkout_clean=not bool(
             subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True).strip()))
     else:
-        value = json.loads(manifest.read_text('utf-8'))
         package = value.get('package', {})
         commit = package.get('source_commit', '')
-        if any(value.get('files', {}).get(name) != sha for name, sha in files.items()):
-            raise AcceptanceBlocked('The installed adapter bytes do not match the application manifest. Use the normal verified FORGE updater.')
         original = package.get('source_manifest_sha256', '')
         if not isinstance(original, str) or not re.fullmatch('[a-f0-9]{64}', original):
             raise AcceptanceBlocked('This package has no verified original source manifest identity.')
@@ -106,6 +109,11 @@ def _controller_identity():
 
 def _safe_error(error, data_root, output):
     detail = type(error).__name__ + ': ' + str(error)
+    context = getattr(error, 'stderr', None)
+    if isinstance(context, bytes):
+        context = context.decode('utf-8', errors='replace')
+    if isinstance(context, str) and context.strip():
+        detail += '\n' + context[-2000:]
     for path in sorted({str(data_root), str(output), str(ROOT), str(Path.home()), str(sys.executable)}, key=len, reverse=True):
         if path:
             detail = detail.replace(path, '<local path>')

@@ -21,6 +21,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from unittest.mock import patch
 
 import uvicorn
 from playwright.sync_api import sync_playwright
@@ -195,6 +196,13 @@ def main():
                 check('Independent backend change retained during revision merge', saved()['name'] == 'Независимое название проекта')
                 check('No unsafe conflict overwrite required', not page.locator('#dialog').is_visible())
 
+                page.get_by_role('tab', name='Voice', exact=True).click()
+                check('Recognition default remains Turbo until explicitly selected', page.locator('#dv-asr-model').input_value() == 'large-v3-turbo')
+                page.locator('#dv-asr-model').select_option('tiny');page.locator('#dv-save').click()
+                wait(lambda: saved()['options']['asr']['model'] == 'tiny')
+                check('Explicit Tiny recognition choice saved through the project API', saved()['options']['asr']['model'] == 'tiny')
+                page.reload();page.wait_for_selector('#dv-asr-model')
+                check('Saved recognition choice survives editor reload', page.locator('#dv-asr-model').input_value() == 'tiny')
                 page.get_by_role('tab', name='Timing', exact=True).click()
                 page.locator('#dv-max-tempo').fill('1.08'); page.locator('#dv-max-tempo').press('Tab')
                 page.locator('#dv-save').click()
@@ -220,7 +228,43 @@ def main():
                 page.get_by_role('heading', name='Set Up Dubbing Studio', exact=True).wait_for()
                 check('Guided setup opens', page.get_by_role('heading', name='Set Up Dubbing Studio', exact=True).is_visible())
                 check('Setup exposes model components before approval', page.locator('[data-dv-component]').count() == len(api('dubbing/state')['models']))
-                page.locator('#dialog form button').click()
+                recommended_components = api('dubbing/state?project_id=' + identity)['setup']['recommended_components']
+                checked_components = page.locator('[data-dv-component]:checked').evaluate_all('(els)=>els.map(el=>el.dataset.dvComponent)')
+                check('Setup defaults use backend recommended component IDs', set(checked_components) == set(recommended_components))
+                check('Recommended setup includes the selected missing ASR component', 'whisper-tiny' in recommended_components)
+                original_processing_device = saved()['options']['tts']['device']
+                check('Setup device initializes from the saved project without editing it', page.locator('#dv-setup-device').input_value() == original_processing_device)
+                installation_requests=[]
+                page.on('request',lambda request: installation_requests.append(request.url) if request.url.endswith('/api/dubbing/setup/install') else None)
+                for index,storage_field in enumerate(['required_storage_bytes','required_disk_bytes','storage_bytes',None]):
+                    captured=[]
+                    def controlled_quote(components,data,**kwargs):
+                        captured.append({'components':components,'device':kwargs.get('device')})
+                        quote={'schema':1,'action':kwargs.get('action','install'),'created':time.time(),'expires':time.time()+3600,
+                               'components':[{'component':component,'label':component,
+                                              'device':'cpu' if component.startswith('whisper-') or kwargs.get('device')!='cuda' else 'cuda'} for component in components],
+                               'download_bytes':1234567,'destination':str(home/'data'/'models'/'dubbing')}
+                        if storage_field:quote[storage_field]=9876543
+                        return quote
+                    if index == 0:
+                        page.locator('#dv-setup-device').select_option('cuda')
+                    with patch('forge.dubbing_models.installation_plan',side_effect=controlled_quote):
+                        page.locator('#dv-install-recommended').click()
+                        page.get_by_role('heading',name='Review component installation',exact=True).wait_for()
+                    check('Recommended request includes backend ASR selection '+str(index), len(captured)==1 and captured[0]['components']==recommended_components and not installation_requests)
+                    if index == 0:
+                        check('Setup CUDA choice reaches the real plan API',captured[0]['device']=='cuda')
+                        quoted_components=page.locator('.dv-plan').inner_text()
+                        check('Quote shows actual CPU recognition and CUDA generation profiles', 'whisper-tiny · CPU' in quoted_components and 'qwen3-tts-0.6b-base · CUDA' in quoted_components)
+                        check('Setup device selection does not change the saved production recipe',saved()['options']['tts']['device']==original_processing_device)
+                    check('Installation remains disabled before consent '+str(index),page.locator('#dv-install-confirm').is_disabled())
+                    page.locator('#dv-install-consent').check()
+                    check('Storage quote consent is bounded '+str(index), page.locator('#dv-install-confirm').is_enabled() is bool(storage_field))
+                    page.locator('#dialog form button').click()
+                    if index<3:
+                        page.locator('#dv-setup').click()
+                        page.get_by_role('heading',name='Set Up Dubbing Studio',exact=True).wait_for()
+                assert not installation_requests
                 page.get_by_role('tab', name='Lip sync', exact=True).click()
                 check('Lip sync is opt-in', page.locator('#dv-lip-mode').input_value() == 'off')
                 check('Lip preview disabled without installed engine and approval', page.locator('#dv-lip-preview').is_disabled())

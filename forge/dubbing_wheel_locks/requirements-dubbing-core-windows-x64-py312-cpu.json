@@ -25,7 +25,7 @@
       "version": "2.8.0+cpu"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "BSD-2-Clause",
       "name": "torchaudio-2.8.0+cpu-cp312-cp312-win_amd64.whl",
       "package": "torchaudio",
       "sha256": "9b302192b570657c1cc787a4d487ae4bbb7f2aab1c01b1fcc46757e7f86f391e",
@@ -43,7 +43,7 @@
       "version": "4.57.3"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "Apache-2.0",
       "name": "tokenizers-0.22.2-cp39-abi3-win_amd64.whl",
       "package": "tokenizers",
       "sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48",
@@ -115,7 +115,7 @@
       "version": "0.8.2"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "Apache-2.0",
       "name": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
       "package": "safetensors",
       "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f",
@@ -124,7 +124,7 @@
       "version": "0.8.0"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "Apache-2.0",
       "name": "sentencepiece-0.2.1-cp312-cp312-win_amd64.whl",
       "package": "sentencepiece",
       "sha256": "4cdc7c36234fda305e85c32949c5211faaf8dd886096c7cea289ddc12a2d02de",
@@ -133,7 +133,7 @@
       "version": "0.2.1"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "MIT",
       "name": "sacremoses-0.1.1-py3-none-any.whl",
       "package": "sacremoses",
       "sha256": "31e04c98b169bfd902144824d191825cd69220cdb4ae4bcf1ec58a7db5587b1a",
@@ -448,7 +448,7 @@
       "version": "8.5.1"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "BSD-3-Clause",
       "name": "colorama-0.4.6-py2.py3-none-any.whl",
       "package": "colorama",
       "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
@@ -493,7 +493,7 @@
       "version": "25.12.19"
     },
     {
-      "license": "See publisher LICENSE",
+      "license": "BSD-3-Clause",
       "name": "jinja2-3.1.6-py3-none-any.whl",
       "package": "Jinja2",
       "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",

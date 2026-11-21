@@ -2,6 +2,7 @@
   "components": [
     {
       "component": "opus-en-ru",
+      "external_notice_bytes": 36350,
       "inference_tested": false,
       "installed": false,
       "model_bytes": 311479440,
@@ -96,16 +97,124 @@
             }
           ],
           "bytes": 311479440,
+          "external_license_evidence": [
+            {
+              "algorithm": "sha256",
+              "content_download_verified": true,
+              "digest": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+              "license_id": "Apache-2.0",
+              "name": "notices/publisher-declaration-Apache-2.0.txt",
+              "origin": "external_license_evidence",
+              "scope": "canonical_text_for_publisher_apache_declaration",
+              "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+              "size": 11359,
+              "source_path": "LICENSE.txt",
+              "source_repository": "apache/commons-lang",
+              "source_revision": "9e224bc34f8003041375d207be859b951ce505b4",
+              "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt"
+            },
+            {
+              "algorithm": "sha256",
+              "content_download_verified": true,
+              "digest": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-models-LICENSE.txt",
+              "origin": "external_license_evidence",
+              "scope": "upstream_pretrained_model_terms",
+              "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
+              "size": 18652,
+              "source_path": "models/LICENSE",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/LICENSE"
+            },
+            {
+              "algorithm": "sha256",
+              "content_download_verified": true,
+              "digest": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-README.md",
+              "origin": "external_license_evidence",
+              "scope": "upstream_scope_and_attribution",
+              "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
+              "size": 4525,
+              "source_path": "README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/README.md"
+            },
+            {
+              "algorithm": "sha256",
+              "content_download_verified": true,
+              "digest": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-en-ru-README.md",
+              "origin": "external_license_evidence",
+              "scope": "original_checkpoint_identity",
+              "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
+              "size": 1814,
+              "source_path": "models/en-ru/README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/en-ru/README.md"
+            }
+          ],
+          "external_license_notices": [
+            {
+              "license_id": "Apache-2.0",
+              "name": "notices/publisher-declaration-Apache-2.0.txt",
+              "scope": "canonical_text_for_publisher_apache_declaration",
+              "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+              "size": 11359,
+              "source_path": "LICENSE.txt",
+              "source_repository": "apache/commons-lang",
+              "source_revision": "9e224bc34f8003041375d207be859b951ce505b4"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-models-LICENSE.txt",
+              "scope": "upstream_pretrained_model_terms",
+              "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
+              "size": 18652,
+              "source_path": "models/LICENSE",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-README.md",
+              "scope": "upstream_scope_and_attribution",
+              "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
+              "size": 4525,
+              "source_path": "README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "name": "notices/upstream-en-ru-README.md",
+              "scope": "original_checkpoint_identity",
+              "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
+              "size": 1814,
+              "source_path": "models/en-ru/README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8"
+            }
+          ],
           "id": "translation",
           "license": "apache-2.0",
           "license_evidence": {
             "distribution_approved": false,
+            "external_notice_count": 4,
             "full_notice_review_pending": true,
             "license_files": [],
             "model_card": "README.md",
             "model_card_content_verified": true,
-            "publisher_declared_id": "apache-2.0"
+            "publisher_declared_id": "apache-2.0",
+            "scope_conflict": true
           },
+          "license_review_pending": true,
+          "license_scope_conflict": true,
           "repository": "Helsinki-NLP/opus-mt-en-ru",
           "required_files": [
             "config.json",
@@ -117,11 +226,12 @@
         }
       ],
       "physical_gpu_tested": false,
-      "small_artifact_bytes_verified": 4487547,
+      "small_artifact_bytes_verified": 4523897,
       "status": "publisher_metadata_verified"
     },
     {
       "component": "qwen3-tts-0.6b-base",
+      "external_notice_bytes": 11343,
       "inference_tested": false,
       "installed": false,
       "model_bytes": 2516104532,
@@ -249,16 +359,49 @@
             }
           ],
           "bytes": 2516104532,
+          "external_license_evidence": [
+            {
+              "algorithm": "sha256",
+              "content_download_verified": true,
+              "digest": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+              "license_id": "Apache-2.0",
+              "name": "notices/publisher-Apache-2.0.txt",
+              "origin": "external_license_evidence",
+              "scope": "official_publisher_apache_license_text",
+              "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+              "size": 11343,
+              "source_path": "LICENSE",
+              "source_repository": "QwenLM/Qwen3-TTS",
+              "source_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+              "url": "https://raw.githubusercontent.com/QwenLM/Qwen3-TTS/022e286b98fbec7e1e916cb940cdf532cd9f488e/LICENSE"
+            }
+          ],
+          "external_license_notices": [
+            {
+              "license_id": "Apache-2.0",
+              "name": "notices/publisher-Apache-2.0.txt",
+              "scope": "official_publisher_apache_license_text",
+              "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+              "size": 11343,
+              "source_path": "LICENSE",
+              "source_repository": "QwenLM/Qwen3-TTS",
+              "source_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e"
+            }
+          ],
           "id": "voice",
           "license": "apache-2.0",
           "license_evidence": {
             "distribution_approved": false,
+            "external_notice_count": 1,
             "full_notice_review_pending": true,
             "license_files": [],
             "model_card": "README.md",
             "model_card_content_verified": true,
-            "publisher_declared_id": "apache-2.0"
+            "publisher_declared_id": "apache-2.0",
+            "scope_conflict": false
           },
+          "license_review_pending": true,
+          "license_scope_conflict": false,
           "repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
           "required_files": [
             "config.json",
@@ -276,11 +419,12 @@
         }
       ],
       "physical_gpu_tested": false,
-      "small_artifact_bytes_verified": 4467168,
+      "small_artifact_bytes_verified": 4478511,
       "status": "publisher_metadata_verified"
     },
     {
       "component": "whisper-tiny",
+      "external_notice_bytes": 0,
       "inference_tested": false,
       "installed": false,
       "model_bytes": 78205610,
@@ -344,16 +488,22 @@
             }
           ],
           "bytes": 78205610,
+          "external_license_evidence": [],
+          "external_license_notices": [],
           "id": "asr",
           "license": "mit",
           "license_evidence": {
             "distribution_approved": false,
+            "external_notice_count": 0,
             "full_notice_review_pending": true,
             "license_files": [],
             "model_card": "README.md",
             "model_card_content_verified": true,
-            "publisher_declared_id": "mit"
+            "publisher_declared_id": "mit",
+            "scope_conflict": false
           },
+          "license_review_pending": true,
+          "license_scope_conflict": false,
           "repository": "Systran/faster-whisper-tiny",
           "required_files": [
             "config.json",
@@ -368,13 +518,13 @@
       "status": "publisher_metadata_verified"
     }
   ],
-  "observed_at": "2026-11-21T01:48:21.605146+00:00",
+  "observed_at": "2026-11-21T02:00:21.412835+00:00",
   "schema": 1,
   "scope": "Official publisher metadata and bounded small-artifact verification; no large-weight inference or distribution approval.",
   "source_checkout_clean": false,
-  "source_commit": "bdb0c5fc0fe2c94d645e6c103fecdfbcf247d65c",
+  "source_commit": "049e82a25bbb573446a526ab338d2eee444f798a",
   "source_files_sha256": {
-    "forge/dubbing_models.py": "0e0e4786347340fba237138d8a6e7829d5022303314e9f2341e947b9dba0a2bc",
-    "scripts/dubbing_publisher_inventory.py": "d448286b6e8672de42424265f0566ed15443317d463961321b96ac7be85dec03"
+    "forge/dubbing_models.py": "6947d5a8f898b5e0a277fe26b1334a2a99830c021ed904554d174fff2ffcac9a",
+    "scripts/dubbing_publisher_inventory.py": "8cbfcf7a168c4fce907b0b38828e74fc587e8a037764bff6403856da4eeaa1bd"
   }
 }

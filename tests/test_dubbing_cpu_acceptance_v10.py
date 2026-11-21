@@ -8,6 +8,7 @@ import math
 import os
 import shutil
 import struct
+import subprocess
 import wave
 
 import pytest
@@ -51,6 +52,43 @@ def test_source_identity_rejects_extra_path_escape(tmp_path):
     root = packaged_source(tmp_path)
     with pytest.raises(acceptance.AcceptanceBlocked, match='application-relative'):
         acceptance.source_identity(root, additional_files=('../outside.py',))
+
+
+def git_source(tmp_path):
+    root = packaged_source(tmp_path)
+    subprocess.run(['git', 'init', '--quiet', str(root)], check=True)
+    subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
+    subprocess.run(['git', '-C', str(root), '-c', 'user.name=FORGE test',
+                    '-c', 'user.email=fixture@example.invalid', '-c', 'core.autocrlf=false',
+                    'commit', '--quiet', '-m', 'Owned source identity fixture'], check=True)
+    return root
+
+
+def test_git_identity_binds_actual_adapter_bytes_and_committed_manifest(tmp_path):
+    root = git_source(tmp_path)
+    identity = acceptance.source_identity(root)
+    assert identity['source_kind'] == 'git' and identity['source_checkout_clean'] is True
+    changed = root / acceptance.SOURCE_FILES[0]
+    changed.write_bytes(b'# Changed uncommitted adapter\n')
+    with pytest.raises(acceptance.AcceptanceBlocked, match='adapter bytes'):
+        acceptance.source_identity(root)
+    # Updating only the local manifest cannot attach changed bytes to HEAD.
+    manifest_path = root / 'release-manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    manifest['files'][acceptance.SOURCE_FILES[0]] = acceptance.digest(changed)
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(acceptance.AcceptanceBlocked, match='committed identity'):
+        acceptance.source_identity(root)
+
+
+def test_clean_committed_adapter_with_stale_manifest_cannot_supply_acceptance(tmp_path):
+    root = git_source(tmp_path)
+    (root / acceptance.SOURCE_FILES[0]).write_bytes(b'# Changed committed adapter\n')
+    subprocess.run(['git', '-C', str(root), '-c', 'user.name=FORGE test',
+                    '-c', 'user.email=fixture@example.invalid', 'commit', '--quiet', '-am',
+                    'Intentionally stale manifest fixture'], check=True)
+    with pytest.raises(acceptance.AcceptanceBlocked, match='adapter bytes'):
+        acceptance.source_identity(root)
 
 
 def test_cpu_and_gpu_claims_require_matching_actual_inference_metrics():
@@ -110,6 +148,15 @@ def test_existing_evidence_is_never_overwritten(tmp_path):
     with pytest.raises(FileExistsError):
         acceptance.run_acceptance(tmp_path / 'data', output)
     assert sentinel.read_text() == 'Retain original evidence.'
+
+
+def test_subprocess_failure_keeps_actionable_cause_but_redacts_private_context(tmp_path):
+    data = tmp_path / 'private-model-data'
+    error = subprocess.CalledProcessError(1, ['owned-fixture'], stderr=(
+        'No installed English SAPI voice. ' + str(data) + ' token=owned-private-value https://example.invalid/private'))
+    detail = acceptance._safe_error(error, data, tmp_path / 'evidence')
+    assert 'No installed English SAPI voice' in detail
+    assert str(data) not in detail and 'owned-private-value' not in detail and 'example.invalid' not in detail
 
 
 @pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='Real FFmpeg decoding is required.')

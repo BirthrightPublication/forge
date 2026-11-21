@@ -57,8 +57,11 @@ class DubbingService:
         from . import dubbing_models
         return dubbing_models
 
-    def state(self):
-        setup=self.models().setup_state(self.store.data,self.store.settings())
+    def state(self,project_id=None):
+        selected={}
+        if project_id:
+            selected['asr_model']=self._project(project_id)['options']['asr']['model']
+        setup=self.models().setup_state(self.store.data,self.store.settings(),**selected)
         return {'projects':self.library.projects(),'models':setup.get('models',[]),'setup':setup,
                 'voices':self.library.records('voices'),'glossaries':self.library.records('glossaries'),
                 'presets':[self.preset(),*self.library.records('presets')],
@@ -443,7 +446,7 @@ def mount(app,store,manager,destination):
     async def revision_conflict(request,error): return JSONResponse({'detail':str(error)},status_code=409)
 
     @app.get('/api/dubbing/state')
-    def state(): return service.state()
+    def state(project_id:str=''): return service.state(project_id or None)
 
     @app.get('/api/dubbing/projects')
     def projects(): return {'projects':library.projects()}

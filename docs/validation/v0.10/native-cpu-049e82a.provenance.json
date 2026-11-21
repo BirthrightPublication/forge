@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "kind": "historical_native_cpu_evidence_provenance",
+  "repository": "BirthrightPublication/forge",
+  "source_commit": "049e82a25bbb573446a526ab338d2eee444f798a",
+  "workflow_run_id": 44852854880,
+  "job_id": 136688042641,
+  "artifact_id": 14685873950,
+  "workflow_run_url": "https://github.com/BirthrightPublication/forge/actions/runs/44852854880",
+  "job_url": "https://github.com/BirthrightPublication/forge/actions/runs/44852854880/job/136688042641",
+  "artifact_url": "https://github.com/BirthrightPublication/forge/actions/runs/44852854880/artifacts/14685873950",
+  "downloaded_archive_sha256": "1662225f328ae16400cf392ca2253b39512c02dea1c82abd9c6a5ada256abe39",
+  "report_file": "native-cpu-049e82a.json",
+  "report_sha256": "d1a8a5c30b2e98a7d87a5aedba7a92efd2df0f1ee18a48771452d1237bbbc742",
+  "report_bytes": 12229,
+  "scope": "Real native Windows CPU OPUS/Qwen/Whisper inference at the exact source above using generated text and a locally generated Windows SAPI reference. Historical development milestone; does not approve current source, GUI installation, physical GPU, human translation/voice quality, live YouTube, updater acceptance or release."
+}

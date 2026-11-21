@@ -78,10 +78,42 @@ MODEL_PINS: dict[str, str] = {
     'Systran/faster-whisper-tiny': 'd90ca5fe260221311c53c58e660288d3deb8d356',
 }
 
+# These are separate upstream notice documents, not invented files in the
+# Hugging Face checkpoint snapshots. Keep the conflicting OPUS scopes visible.
+MODEL_LICENSE_NOTICES = {
+    'Helsinki-NLP/opus-mt-en-ru': [
+        {'name': 'notices/publisher-declaration-Apache-2.0.txt', 'source_repository': 'apache/commons-lang',
+         'source_revision': '9e224bc34f8003041375d207be859b951ce505b4', 'source_path': 'LICENSE.txt',
+         'scope': 'canonical_text_for_publisher_apache_declaration', 'license_id': 'Apache-2.0', 'size': 11359,
+         'sha256': 'b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7'},
+        {'name': 'notices/upstream-models-LICENSE.txt', 'source_repository': 'Helsinki-NLP/OPUS-MT-train',
+         'source_revision': 'd5e932c96d77596378010aa7e7f1caeb8ccaa9f8', 'source_path': 'models/LICENSE',
+         'scope': 'upstream_pretrained_model_terms', 'license_id': 'CC-BY-4.0', 'size': 18652,
+         'sha256': '945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9'},
+        {'name': 'notices/upstream-README.md', 'source_repository': 'Helsinki-NLP/OPUS-MT-train',
+         'source_revision': 'd5e932c96d77596378010aa7e7f1caeb8ccaa9f8', 'source_path': 'README.md',
+         'scope': 'upstream_scope_and_attribution', 'license_id': 'CC-BY-4.0', 'size': 4525,
+         'sha256': 'a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e'},
+        {'name': 'notices/upstream-en-ru-README.md', 'source_repository': 'Helsinki-NLP/OPUS-MT-train',
+         'source_revision': 'd5e932c96d77596378010aa7e7f1caeb8ccaa9f8', 'source_path': 'models/en-ru/README.md',
+         'scope': 'original_checkpoint_identity', 'license_id': 'CC-BY-4.0', 'size': 1814,
+         'sha256': '7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7'},
+    ],
+    'Qwen/Qwen3-TTS-12Hz-0.6B-Base': [
+        {'name': 'notices/publisher-Apache-2.0.txt', 'source_repository': 'QwenLM/Qwen3-TTS',
+         'source_revision': '022e286b98fbec7e1e916cb940cdf532cd9f488e', 'source_path': 'LICENSE',
+         'scope': 'official_publisher_apache_license_text', 'license_id': 'Apache-2.0', 'size': 11343,
+         'sha256': 'a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655'},
+    ],
+}
+
 
 def _part(id, repository, patterns, required, license):
     return {'id': id, 'repository': repository, 'revision': MODEL_PINS.get(repository, ''),
-            'allow_patterns': patterns, 'required_files': required, 'license': license}
+            'allow_patterns': patterns, 'required_files': required, 'license': license,
+            'external_license_notices': copy.deepcopy(MODEL_LICENSE_NOTICES.get(repository, [])),
+            'license_scope_conflict': repository == 'Helsinki-NLP/opus-mt-en-ru',
+            'license_review_pending': True}
 
 
 def _base_specs():
@@ -352,6 +384,32 @@ def discover_part(part, *, revision=None):
             'bytes': sum(item['size'] for item in artifacts)}
 
 
+def _notice_plan(part):
+    """Validate separately sourced legal evidence before quoting its bytes."""
+    notices = part.get('external_license_notices', [])
+    if not isinstance(notices, list) or len(notices) > 20:
+        raise ComponentUnavailable('The registered external notice inventory is invalid.')
+    result = []; names = set()
+    for notice in notices:
+        if not isinstance(notice, dict):
+            raise ComponentUnavailable('The registered external notice inventory is invalid.')
+        name = str(_safe_relative(notice.get('name', '')))
+        source_path = str(_safe_relative(notice.get('source_path', '')))
+        repository, revision = notice.get('source_repository', ''), notice.get('source_revision', '')
+        if (not name.startswith('notices/') or name.casefold() in names
+                or not isinstance(repository, str) or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository)
+                or not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{40}', revision)
+                or type(notice.get('size')) is not int or not 0 < notice['size'] <= 500_000
+                or not isinstance(notice.get('sha256'), str) or not SHA256.fullmatch(notice['sha256'])
+                or not notice.get('scope') or not notice.get('license_id')):
+            raise ComponentUnavailable('An external license notice lacks its immutable source, size, hash or scope.')
+        names.add(name.casefold())
+        result.append({**copy.deepcopy(notice), 'name': name, 'origin': 'external_license_evidence',
+                       'algorithm': 'sha256', 'digest': notice['sha256'],
+                       'url': f'https://raw.githubusercontent.com/{repository}/{revision}/' + urllib.parse.quote(source_path, safe='/')})
+    return result
+
+
 def _parts_plan(spec):
     result = []
     for part in spec.get('parts', []):
@@ -369,6 +427,13 @@ def _parts_plan(spec):
             if not re.fullmatch(r'[0-9a-f]{40}', part.get('revision', '')):
                 raise ComponentUnavailable('The model publisher inventory has not been verified for this build. Check Compatibility after the reviewed model catalog is available.')
             value = discover_part(part)
+        notices = _notice_plan(part)
+        names = {artifact['name'].casefold() for artifact in value['artifacts']}
+        if any(notice['name'].casefold() in names for notice in notices):
+            raise ComponentUnavailable('An external notice conflicts with a checkpoint artifact filename.')
+        value['external_license_evidence'] = notices
+        value['artifacts'].extend(copy.deepcopy(notices))
+        value['bytes'] = sum(artifact['size'] for artifact in value['artifacts'])
         result.append(value)
     if not result:
         raise ComponentUnavailable('No verified model artifacts are registered for this component.')
@@ -767,6 +832,14 @@ def installation_plan(components, data, *, device='auto', settings=None, action=
                       'destination': str(_component_root(_roots(data)[0], component) / model_revision), 'requirements': spec['requirements'],
                       'runner': spec['runner'], 'smoke': spec.get('smoke', ''), 'family': spec['family'], 'capabilities': spec['capabilities']})
         plans[-1]['repair_runtime'] = action == 'repair'
+        plans[-1]['license_information'] = [
+            {'part': part['id'], 'publisher_declared_id': part.get('license', ''),
+             'external_notices': [{key: notice[key] for key in ('name', 'license_id', 'scope', 'source_repository', 'source_revision', 'source_path', 'sha256', 'size')}
+                                  for notice in part.get('external_license_evidence', [])],
+             'scope_conflict': part.get('license_scope_conflict') is True,
+             'review_pending': part.get('license_review_pending', True) is True,
+             'distribution_approved': False}
+            for part in parts]
     # A conservative staged-copy allowance is separate from the measured download size.
     unique = {}
     for plan in plans:
@@ -1088,6 +1161,31 @@ def _validate_plan(plan, data, component):
     return selected
 
 
+def _cached_bundle_matches_plan(root, receipt, selected):
+    if receipt.get('runtime_id') != selected['runtime_id'] or receipt.get('device') != selected['device']:
+        return False
+    expected = {}
+    for part in selected['parts']:
+        prefix = PurePosixPath('parts') / _safe_relative(part['id'])
+        for artifact in part['artifacts']:
+            name = str(prefix / _safe_relative(artifact['name']))
+            if name in expected:
+                return False
+            expected[name] = artifact
+    files = receipt.get('files') or {}
+    if set(expected) != set(files):
+        return False
+    for name, artifact in expected.items():
+        if files[name].get('size') != artifact['size']:
+            return False
+        algorithm = artifact.get('algorithm', 'sha256')
+        digest = artifact.get('digest') or artifact.get('sha256')
+        actual = files[name].get('sha256') if algorithm == 'sha256' else _hash(Path(root) / name, algorithm)
+        if actual != digest:
+            return False
+    return True
+
+
 def install(component, data, *, consent=False, device='auto', progress=None, plan=None, repair=False, action=None, **kwargs):
     if consent is not True:
         raise ValueError('Approve the displayed component downloads and installation destination first.')
@@ -1109,8 +1207,8 @@ def install(component, data, *, consent=False, device='auto', progress=None, pla
             try:
                 receipt = _verify_bundle(root)
                 if not repair:
-                    if receipt.get('runtime_id') != selected['runtime_id'] or receipt.get('device') != selected['device']:
-                        raise ComponentUnavailable('The cached component uses another device or runtime. Review Repair for the selected profile.')
+                    if not _cached_bundle_matches_plan(root, receipt, selected):
+                        raise ComponentUnavailable('The cached component does not match the approved artifacts, device or runtime. Review Repair for the selected profile.')
                     resolved = resolve(component, data, receipt['model_revision'])
                     _activate(component, data, receipt['model_revision'])
                     return {'status': 'ready', 'component': component, 'model_revision': receipt['model_revision'], 'cached': True,
@@ -1131,7 +1229,7 @@ def install(component, data, *, consent=False, device='auto', progress=None, pla
                 files[name] = {'sha256': _hash(target), 'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns}
         receipt = {'schema': 1, 'component': component, 'model_revision': selected['model_revision'],
                    'runtime_id': environment.name, 'device': selected['device'],
-                   'parts': [{key: part[key] for key in ('id', 'revision', 'repository', 'license') if key in part} for part in selected['parts']],
+                   'parts': [{key: part[key] for key in ('id', 'revision', 'repository', 'license', 'external_license_evidence', 'license_scope_conflict', 'license_review_pending') if key in part} for part in selected['parts']],
                    'files': files, 'installed': time.time(), 'publisher_verified': True, 'inference_tested': False}
         json_write(staging / 'forge-dubbing-model.json', receipt)
         _verify_bundle(staging)
@@ -1445,23 +1543,26 @@ def existing_whisper_state(data, model='large-v3-turbo'):
             'reason': '' if compatible and cached else 'Install the isolated Whisper component through Set Up Dubbing Studio; the existing environment and cache are retained.'}
 
 
-def setup_state(data, settings=None):
+def setup_state(data, settings=None, *, asr_model='large-v3-turbo'):
+    from .model_cache import REPOSITORIES
+    if not isinstance(asr_model, str) or asr_model not in REPOSITORIES:
+        raise ValueError('Choose a registered Whisper model for Dubbing setup.')
     info = hardware(data, settings)
     models = catalog(data)
     try:
-        whisper_state = existing_whisper_state(data)
+        whisper_state = existing_whisper_state(data, model=asr_model)
     except (OSError, ValueError):
         whisper_state = {'ready': False, 'installed_models': [], 'dependencies_ready': False, 'model_cached': False}
     recommended = [item for item in models if item.get('recommended')]
-    isolated_whisper = next((item for item in models if item['id'] == 'whisper-large-v3-turbo'), {})
+    isolated_whisper = next((item for item in models if item['id'] == 'whisper-' + asr_model), {})
     asr_ready = whisper_state['ready'] or bool(isolated_whisper.get('ready'))
     if not asr_ready:
-        recommended.extend([item for item in models if item['id'] == 'whisper-large-v3-turbo'])
+        recommended.extend([item for item in models if item['id'] == 'whisper-' + asr_model])
     return {'title': 'Russian Dubbing', 'hardware': info, 'models': models,
             'recommended_components': [item['id'] for item in recommended],
             'missing_recommended': [item['id'] for item in recommended if not item['ready']],
             'ready': all(item['ready'] for item in recommended) and info['ffmpeg'] and info['ffprobe'] and asr_ready,
-            'speech_recognition': {**whisper_state, 'ready': asr_ready, 'isolated_ready': bool(isolated_whisper.get('ready'))},
+            'speech_recognition': {**whisper_state, 'model': asr_model, 'ready': asr_ready, 'isolated_ready': bool(isolated_whisper.get('ready'))},
             'audio_processing': {'ready': info['ffmpeg'] and info['ffprobe']},
             'guided_runtime': {'supported': info['application_python_compatible'] or info['managed_python_available'],
                                'installation_needed': not info['application_python_compatible'], 'managed_python': copy.deepcopy(MANAGED_PYTHON)},
