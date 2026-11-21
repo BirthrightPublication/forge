@@ -290,6 +290,53 @@ def archive_members(archive, kind):
     handle.close()
 
 
+def legal_member(name):
+    parts = PurePosixPath(name).parts
+    if not parts:
+        return False
+    normalized = lambda value: re.sub(r'[^a-z0-9]', '', value.lower())
+    return (normalized(parts[-1]).startswith(('license', 'licence', 'copying', 'notice', 'copyright',
+                                             'eula', 'thirdparty', 'tpp', 'authors', 'redist'))
+            or any(normalized(part) in {'license', 'licenses', 'licence', 'licences',
+                                        'notice', 'notices', 'thirdparty', 'thirdpartynotices',
+                                        'thirdpartylicenses', 'thirdpartylicences'} for part in parts[:-1]))
+
+
+def archive_index(archive, kind):
+    """Expose bounded candidate names/types, including unextracted links."""
+    names = hashlib.sha256()
+    candidates = []
+    count = 0
+    if kind == 'zip':
+        handle = zipfile.ZipFile(archive)
+        entries = ((entry.filename, entry.file_size,
+                    'directory' if entry.is_dir() else
+                    'file' if stat.S_IFMT(entry.external_attr >> 16) in {0, stat.S_IFREG} else 'link_or_special')
+                   for entry in handle.infolist())
+    elif kind == 'tar':
+        handle = tarfile.open(archive, 'r:*')
+        entries = ((entry.name, entry.size, 'file' if entry.isfile() else
+                    'directory' if entry.isdir() else 'link_or_special') for entry in handle)
+    else:
+        raise EvidenceError('archive_format_invalid', 'Only bounded tar/ZIP evidence archives are registered.')
+    with handle:
+        for name, size, entry_kind in entries:
+            count += 1
+            if count > 50000:
+                raise EvidenceError('archive_member_count_bound', 'Source archive contains too many members.')
+            clean = str(relative(name.rstrip('/') if entry_kind == 'directory' else name))
+            row = {'path': clean, 'size': size, 'kind': entry_kind}
+            names.update(json.dumps(row, sort_keys=True, separators=(',', ':')).encode('utf-8') + b'\n')
+            if legal_member(clean):
+                candidates.append(row)
+                if len(candidates) > 2000 or len(json.dumps(candidates).encode('utf-8')) > 512 * 1024:
+                    raise EvidenceError('archive_legal_index_bound', 'The complete legal candidate index exceeded its bound.')
+    return {'archive_entry_count': count, 'canonical_entry_index_sha256': names.hexdigest(),
+            'legal_candidates': candidates, 'legal_candidate_count': len(candidates),
+            'legal_candidates_complete': True,
+            'index_scope': 'All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.'}
+
+
 def collect_archive(archive, item, output):
     wanted = item.get('required_members', [])
     if not isinstance(wanted, list) or len(wanted) > 100:
@@ -309,8 +356,7 @@ def collect_archive(archive, item, output):
         matches = [(index, required) for index, required in enumerate(wanted)
                    if required.get('path') == stripped or required.get('path') == str(path)
                    or required.get('path_suffix') and ('/' + str(path)).endswith(required['path_suffix'])]
-        legal = item.get('collect_legal_members') is True and any(
-            token in path.name.lower() for token in ('license', 'copying', 'copyright', 'notice', 'eula', 'thirdparty'))
+        legal = item.get('collect_legal_members') is True and legal_member(str(path))
         if not matches and not legal:
             continue
         if name.casefold() in seen:
@@ -412,8 +458,10 @@ def main():
             try:
                 destination = args.output / 'archives' / (name + '.verified-archive')
                 result = download(archive, destination, budget, staging=args.output / '.transfer-staging')
+                indexed = archive_index(destination, archive.get('format', 'tar'))
                 documents = collect_archive(destination, archive, args.output / 'public_source_texts' / name)
-                report['downloads'].append({'kind': 'verified_archive', 'component': name, **result, 'documents': documents})
+                report['downloads'].append({'kind': 'verified_archive', 'component': name, **result,
+                                            'archive_index': indexed, 'documents': documents})
             except Exception as error:
                 report['errors'].append({'component': name, **error_record(error)})
     report['downloaded_bytes'] = budget['used']

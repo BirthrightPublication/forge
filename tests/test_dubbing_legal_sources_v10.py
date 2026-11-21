@@ -810,3 +810,104 @@ def test_alternative_transfer_cannot_reset_shared_budget_after_failed_bytes(tmp_
         legal.download(item, target, budget)
     assert budget['used'] == 3 + len(data)
     assert state.requests == [state.primary] and not target.exists()
+
+
+@pytest.mark.parametrize('name', ['release/tpp.txt', 'release/third-party-programs.txt', 'release/AUTHORS',
+                                  'release/redist.txt', 'release/redist-notices.txt', 'release/LICENCE.txt',
+                                  'release/licenses/component.spdx',
+                                  'release/third-party-notices/component.txt',
+                                  'release/third_party_notices/component.spdx'])
+def test_public_legal_document_detection_includes_vendor_notice_names_and_directories(name):
+    assert legal.legal_member(name) is True
+
+
+@pytest.mark.parametrize('name', ['release/README.md', 'release/configure', 'release/bin/ordinary.dll',
+                                  'release/src/component.cpp'])
+def test_ordinary_archive_files_are_not_assumed_legal_documents(name):
+    assert legal.legal_member(name) is False
+
+
+def test_collects_tpp_authors_redist_and_nested_spdx_without_assuming_unknown_required_paths(tmp_path):
+    members = [('vendor/tpp.txt', b'Owned third-party program fixture.'),
+               ('vendor/third-party-programs.txt', b'Owned additional vendor terms fixture.'),
+               ('vendor/AUTHORS', b'Owned authorship fixture.'),
+               ('vendor/redist.txt', b'Owned redistribution fixture.'),
+               ('vendor/licenses/component.spdx', b'SPDX-License-Identifier: MIT\n'),
+               ('vendor/README', b'Ordinary unselected fixture.')]
+    archive = zip_fixture(tmp_path / 'vendor.zip', members)
+    output = tmp_path / 'legal'
+    records = legal.collect_archive(archive, {'component': 'fixture', 'format': 'zip',
+                                  'collect_legal_members': True, 'required_members': []}, output)
+    assert {row['member'] for row in records} == {name for name, _ in members[:-1]}
+    assert all(row['retained'] is True for row in records)
+    for name, data in members[:-1]:
+        assert (output / name.split('/', 1)[1]).read_bytes() == data
+
+
+def test_binary_in_legal_directory_is_hash_recorded_without_retaining_or_executing_it(tmp_path):
+    data = b'MZ\x00\xffEXPLICITLY SYNTHETIC NATIVE FIXTURE'
+    archive = zip_fixture(tmp_path / 'vendor.zip', [('vendor/licenses/helper.dll', data)])
+    output = tmp_path / 'legal'
+    records = legal.collect_archive(archive, {'component': 'fixture', 'format': 'zip',
+                                  'collect_legal_members': True, 'required_members': []}, output)
+    assert len(records) == 1 and records[0]['member'] == 'vendor/licenses/helper.dll'
+    assert records[0]['sha256'] == sha(data) and records[0]['size'] == len(data)
+    assert records[0]['retained'] is False and records[0]['text_omission'] == 'not_utf8_plain_text'
+    assert not list(output.rglob('*.dll'))
+
+
+@pytest.mark.parametrize('has_tpp', [False, True])
+def test_complete_archive_index_distinguishes_observed_tpp_presence_from_absence(tmp_path, has_tpp):
+    members = [('vendor/README', b'Ordinary member.'), ('vendor/LICENSE', b'Owned terms.')]
+    if has_tpp:
+        members.append(('vendor/tpp.txt', b'Owned third-party terms.'))
+    archive = zip_fixture(tmp_path / 'vendor.zip', members)
+    result = legal.archive_index(archive, 'zip')
+    assert result['archive_entry_count'] == len(members)
+    assert result['legal_candidates_complete'] is True
+    assert result['legal_candidate_count'] == (2 if has_tpp else 1)
+    assert {row['path'] for row in result['legal_candidates']} == ({'vendor/LICENSE', 'vendor/tpp.txt'} if has_tpp else {'vendor/LICENSE'})
+    assert all(row['kind'] == 'file' for row in result['legal_candidates'])
+    assert len(result['canonical_entry_index_sha256']) == 64
+    assert result['canonical_entry_index_sha256'] == legal.archive_index(archive, 'zip')['canonical_entry_index_sha256']
+
+
+def test_full_archive_index_hash_includes_unselected_ordinary_names(tmp_path):
+    first = zip_fixture(tmp_path / 'first.zip', [('vendor/README', b'Ordinary.'), ('vendor/LICENSE', b'Owned terms.')])
+    second = zip_fixture(tmp_path / 'second.zip', [('vendor/CHANGELOG', b'Ordinary.'), ('vendor/LICENSE', b'Owned terms.')])
+    left, right = legal.archive_index(first, 'zip'), legal.archive_index(second, 'zip')
+    assert left['legal_candidates'] == right['legal_candidates']
+    assert left['archive_entry_count'] == right['archive_entry_count'] == 2
+    assert left['canonical_entry_index_sha256'] != right['canonical_entry_index_sha256']
+
+
+@pytest.mark.parametrize('kind', ['zip', 'tar'])
+def test_archive_index_keeps_legal_file_directory_and_link_types_explicit(tmp_path, kind):
+    archive = tmp_path / ('vendor.' + kind)
+    text = b'SPDX-License-Identifier: MIT\n'
+    if kind == 'zip':
+        link = zipfile.ZipInfo('vendor/tpp.txt')
+        link.create_system = 3
+        link.external_attr = (stat.S_IFLNK | 0o777) << 16
+        with zipfile.ZipFile(archive, 'w') as handle:
+            handle.writestr('vendor/licenses/', b'')
+            handle.writestr('vendor/licenses/component.spdx', text)
+            handle.writestr(link, b'../original-tpp.txt')
+    else:
+        with tarfile.open(archive, 'w') as handle:
+            directory = tarfile.TarInfo('vendor/licenses')
+            directory.type = tarfile.DIRTYPE
+            handle.addfile(directory)
+            member = tarfile.TarInfo('vendor/licenses/component.spdx')
+            member.size = len(text)
+            handle.addfile(member, io.BytesIO(text))
+            link = tarfile.TarInfo('vendor/tpp.txt')
+            link.type = tarfile.SYMTYPE
+            link.linkname = '../original-tpp.txt'
+            handle.addfile(link)
+    result = legal.archive_index(archive, kind)
+    assert result['archive_entry_count'] == result['legal_candidate_count'] == 3
+    assert result['legal_candidates_complete'] is True
+    types = {row['path']: row['kind'] for row in result['legal_candidates']}
+    assert types == {'vendor/licenses': 'directory', 'vendor/licenses/component.spdx': 'file',
+                     'vendor/tpp.txt': 'link_or_special'}
