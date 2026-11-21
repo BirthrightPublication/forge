@@ -9,6 +9,7 @@ import stat
 import sys
 import tarfile
 from types import SimpleNamespace
+import urllib.error
 import zipfile
 
 import pytest
@@ -572,3 +573,240 @@ def test_main_never_uploads_unverified_immutable_asset_or_partial_bytes(cli, ope
     report = json.loads((cli.output / 'PUBLIC_LEGAL_SOURCE_REPORT.json').read_text('utf-8'))
     assert report['status'] == 'blocked' and report['downloads'] == []
     assert report['license_reviewed'] is report['distribution_approved'] is False
+
+
+@pytest.mark.parametrize('with_git_blob', [False, True])
+def test_verified_utf8_source_with_control_bytes_is_omitted_without_identity_failure(tmp_path, opener, with_git_blob):
+    # Synthetic reproduction of the native pkg.py finding: valid UTF-8, 7652
+    # bytes, and an ESC byte at offset4410. This is not the upstream artifact.
+    data = bytearray(b'# Explicit synthetic source fixture.\n'.ljust(7652, b' '))
+    data[4410] = 0x1B
+    opener.data = bytes(data)
+    item = descriptor(opener.data)
+    if with_git_blob:
+        item['git_blob_sha1'] = blob(opener.data)
+    public = tmp_path / 'public_source_texts'
+    target = public / 'immutable/pkg.py'
+    result = legal.download(item, target, {'limit': 8192, 'used': 0})
+    assert result['identity_verified'] is True and result['retained'] is False
+    assert result['sha256'] == sha(opener.data) and result['size'] == len(opener.data)
+    assert result['text_omission'] == 'non_text_control_bytes'
+    assert not target.exists() and not [path for path in public.rglob('*') if path.is_file()]
+
+
+def test_main_records_verified_hash_only_source_omission_without_reading_missing_public_file(cli, opener, monkeypatch):
+    opener.data = b'# Explicit synthetic source with an ANSI escape:\x1b[31mred\x1b[0m\n'
+    cli.value['immutable_assets'] = [{**descriptor(opener.data), 'git_blob_sha1': blob(opener.data), 'save_as': 'pkg.py'}]
+    cli.manifest.write_text(json.dumps(cli.value), 'utf-8')
+    monkeypatch.setattr(legal, 'source_identity', lambda *args: dict(cli.identity))
+    monkeypatch.setattr(sys, 'argv', [value for value in sys.argv if value != '--metadata-only'])
+    assert legal.main() == 0
+    report = json.loads((cli.output / 'PUBLIC_LEGAL_SOURCE_REPORT.json').read_text('utf-8'))
+    assert report['status'] == 'identities_verified_legal_review_pending' and report['errors'] == []
+    assert len(report['downloads']) == 1
+    result = report['downloads'][0]
+    assert result['identity_verified'] is True and result['retained'] is False
+    assert result['text_omission'] == 'non_text_control_bytes'
+    assert result['sha256'] == sha(opener.data) and result['size'] == len(opener.data)
+    assert 'path' not in result and 'retained_path' not in result
+    assert not [path for path in (cli.output / 'public_source_texts').rglob('*') if path.is_file()]
+    assert report['license_reviewed'] is report['distribution_approved'] is False
+
+
+@pytest.mark.parametrize('status', [403, 404])
+def test_http_error_exposes_numeric_status_without_signed_url_path_or_server_message(cli, monkeypatch, status):
+    data = b'Public immutable fixture.'
+    cli.value['immutable_assets'] = [{**descriptor(data), 'save_as': 'LICENSE'}]
+    cli.manifest.write_text(json.dumps(cli.value), 'utf-8')
+    monkeypatch.setattr(legal, 'source_identity', lambda *args: dict(cli.identity))
+    class Opener:
+        def open(self, *args, **kwargs):
+            raise urllib.error.HTTPError(
+                'https://publisher.example.test/source?X-Amz-Signature=synthetic-secret-value',
+                status, 'Synthetic private path /private/owner/source and untrusted server detail', {}, None)
+    monkeypatch.setattr(legal.urllib.request, 'build_opener', lambda *args: Opener())
+    assert legal.main() == 2
+    text = (cli.output / 'PUBLIC_LEGAL_SOURCE_REPORT.json').read_text('utf-8')
+    report = json.loads(text)
+    error = report['errors'][0]
+    assert error['error'] == 'HTTPError' and error['reason_code'] == 'http_error'
+    assert type(error['http_status']) is int and error['http_status'] == status
+    for private in ('X-Amz-Signature', 'synthetic-secret-value', '/private/owner/source', 'untrusted server detail'):
+        assert private not in text
+
+
+def test_external_value_error_cannot_impersonate_a_controlled_integrity_reason(cli, monkeypatch):
+    data = b'Public immutable fixture.'
+    cli.value['immutable_assets'] = [{**descriptor(data), 'save_as': 'LICENSE'}]
+    cli.manifest.write_text(json.dumps(cli.value), 'utf-8')
+    monkeypatch.setattr(legal, 'source_identity', lambda *args: dict(cli.identity))
+    class Opener:
+        def open(self, *args, **kwargs):
+            raise ValueError('artifact_sha256_mismatch: /private/owner/source https://publisher.example.test/?token=synthetic-secret-value')
+    monkeypatch.setattr(legal.urllib.request, 'build_opener', lambda *args: Opener())
+    assert legal.main() == 2
+    text = (cli.output / 'PUBLIC_LEGAL_SOURCE_REPORT.json').read_text('utf-8')
+    error = json.loads(text)['errors'][0]
+    assert error['error'] == 'ValueError' and error['reason_code'] == 'external_value_error'
+    for private in ('artifact_sha256_mismatch:', '/private/owner/source', 'synthetic-secret-value'):
+        assert private not in text
+
+
+@pytest.mark.parametrize('fault,code', [('invalid_sha', 'expected_sha256_invalid'),
+                                      ('wrong_sha', 'artifact_sha256_mismatch'),
+                                      ('wrong_size', 'artifact_size_mismatch'),
+                                      ('wrong_git_blob', 'git_blob_mismatch')])
+def test_internal_integrity_errors_keep_typed_reason_codes_without_changing_error_class(cli, opener, monkeypatch, fault, code):
+    item = {**descriptor(opener.data), 'save_as': 'LICENSE'}
+    if fault == 'invalid_sha':
+        item['sha256'] = 'malformed'
+    elif fault == 'wrong_sha':
+        item['sha256'] = 'f' * 64
+    elif fault == 'wrong_size':
+        opener.data = opener.data[:-3]
+    else:
+        item['git_blob_sha1'] = 'f' * 40
+    cli.value['immutable_assets'] = [item]
+    cli.manifest.write_text(json.dumps(cli.value), 'utf-8')
+    monkeypatch.setattr(legal, 'source_identity', lambda *args: dict(cli.identity))
+    assert legal.main() == 2
+    error = json.loads((cli.output / 'PUBLIC_LEGAL_SOURCE_REPORT.json').read_text('utf-8'))['errors'][0]
+    assert error['error'] == 'ValueError' and error['reason_code'] == code
+    if fault == 'invalid_sha':
+        assert not opener.requests
+
+
+@pytest.fixture
+def fallback_sources(monkeypatch):
+    """Explicit source alternatives serve fixtures only; no real network."""
+    state = SimpleNamespace(primary='https://publisher.example.test/source.tar.gz',
+                            alternative='https://mirror.example.test/source.tar.gz',
+                            routes={}, requests=[], on_read=None)
+    class Response(io.BytesIO):
+        def __init__(self, data):
+            super().__init__(data)
+            self.headers = {'Content-Length': str(len(data))}
+        def read(self, limit=-1):
+            if state.on_read is not None:
+                state.on_read()
+            return super().read(limit)
+    class Opener:
+        def open(self, request, timeout):
+            state.requests.append(request.full_url)
+            assert request.full_url in state.routes, 'Unregistered synthetic alternative was requested.'
+            value = state.routes[request.full_url]
+            if isinstance(value, BaseException):
+                raise value
+            return Response(value)
+    monkeypatch.setattr(legal.urllib.request, 'build_opener', lambda *args: Opener())
+    return state
+
+
+@pytest.mark.parametrize('first_failure,reason', [('http404', 'http_error'),
+                                                ('wrong_sha', 'artifact_sha256_mismatch')])
+def test_explicit_alternative_preserves_exact_identity_and_publication_guards(tmp_path, fallback_sources, monkeypatch, first_failure, reason):
+    state = fallback_sources
+    data = b'Identical verified public source bytes.'
+    if first_failure == 'http404':
+        primary = urllib.error.HTTPError(
+            'https://redirect.example.test/?signature=synthetic-hidden-value', 404,
+            'Synthetic private /private/source path and server message', {}, None)
+    else:
+        primary = b'X' + data[1:]
+    state.routes = {state.primary: primary, state.alternative: data}
+    item = descriptor(data, url=state.primary, alternative_urls=[state.alternative], git_blob_sha1=blob(data))
+    public = tmp_path / 'public_source_texts'
+    target = public / 'immutable/LICENSE'
+    def check_public():
+        assert not [path for path in public.rglob('*') if path.is_file()]
+    state.on_read = check_public
+    seen = []
+    original = legal._download_one
+    def inspect_identity(attempt, *args, **kwargs):
+        seen.append({key: attempt[key] for key in ('sha256', 'expected_size', 'git_blob_sha1')})
+        return original(attempt, *args, **kwargs)
+    monkeypatch.setattr(legal, '_download_one', inspect_identity)
+    budget = {'limit': 256, 'used': 0}
+    result = legal.download(item, target, budget)
+    expected = {key: item[key] for key in ('sha256', 'expected_size', 'git_blob_sha1')}
+    assert seen == [expected, expected]
+    assert state.requests == [state.primary, state.alternative]
+    assert target.read_bytes() == data and result['sha256'] == sha(data)
+    assert result['identity_verified'] is True and result['retained'] is True
+    attempts = result['source_attempts']
+    assert [attempt['source_index'] for attempt in attempts] == [0, 1]
+    assert attempts[0]['reason_code'] == reason
+    if first_failure == 'http404':
+        assert attempts[0]['http_status'] == 404
+    assert attempts[1]['status'] == 'identity_verified'
+    text = json.dumps(attempts)
+    for private in ('redirect.example.test', 'synthetic-hidden-value', '/private/source', 'server message'):
+        assert private not in text
+    assert budget['used'] == len(data) * (2 if first_failure == 'wrong_sha' else 1)
+
+
+def test_all_explicit_sources_failed_reports_only_bounded_safe_attempts(tmp_path, fallback_sources):
+    state = fallback_sources
+    for url, status in ((state.primary, 403), (state.alternative, 404)):
+        state.routes[url] = urllib.error.HTTPError(
+            'https://redirect.example.test/private?signature=synthetic-secret-value', status,
+            'Private path /private/source and untrusted reason', {}, None)
+    item = descriptor(b'Public source fixture.', url=state.primary, alternative_urls=[state.alternative])
+    target = tmp_path / 'public_source_texts/immutable/LICENSE'
+    with pytest.raises(legal.EvidenceError) as failure:
+        legal.download(item, target, {'limit': 256, 'used': 0})
+    result = legal.error_record(failure.value)
+    assert result['reason_code'] == 'all_sources_failed' and result['error'] == 'ValueError'
+    attempts = result['source_attempts']
+    assert [attempt['source_index'] for attempt in attempts] == [0, 1]
+    assert [attempt['http_status'] for attempt in attempts] == [403, 404]
+    assert all(type(attempt['http_status']) is int and attempt['reason_code'] == 'http_error' for attempt in attempts)
+    text = json.dumps(result)
+    for private in ('signature=', 'synthetic-secret-value', 'redirect.example.test', '/private/source', 'untrusted reason'):
+        assert private not in text
+    assert not target.exists()
+
+
+@pytest.mark.parametrize('alternatives', [
+    ['http://mirror.example.test/source'], ['https://user:password@mirror.example.test/source'],
+    ['https://mirror.example.test/source#fragment'], [None],
+    ['https://mirror.example.test/source'] * 6, 'https://mirror.example.test/source',
+])
+def test_every_alternative_is_preflighted_before_any_network(tmp_path, fallback_sources, alternatives):
+    state = fallback_sources
+    item = descriptor(b'Public fixture.', url=state.primary, alternative_urls=alternatives)
+    with pytest.raises(ValueError):
+        legal.download(item, tmp_path / 'LICENSE', {'limit': 256, 'used': 0})
+    assert state.requests == []
+
+
+@pytest.mark.parametrize('fault', ['invalid_sha', 'invalid_size', 'existing_destination'])
+def test_alternatives_never_retry_invalid_metadata_or_replace_existing_evidence(tmp_path, fallback_sources, fault):
+    state = fallback_sources
+    item = descriptor(b'Public fixture.', url=state.primary, alternative_urls=[state.alternative])
+    target = tmp_path / 'LICENSE'
+    if fault == 'invalid_sha':
+        item['sha256'] = 'invalid'
+    elif fault == 'invalid_size':
+        item['expected_size'] = 0
+    else:
+        target.write_bytes(b'Preexisting evidence remains unchanged.')
+    with pytest.raises(ValueError):
+        legal.download(item, target, {'limit': 256, 'used': 0})
+    assert state.requests == []
+    if fault == 'existing_destination':
+        assert target.read_bytes() == b'Preexisting evidence remains unchanged.'
+
+
+def test_alternative_transfer_cannot_reset_shared_budget_after_failed_bytes(tmp_path, fallback_sources):
+    state = fallback_sources
+    data = b'Exact immutable public source fixture.'
+    state.routes = {state.primary: b'X' + data[1:], state.alternative: data}
+    item = descriptor(data, url=state.primary, alternative_urls=[state.alternative])
+    # The rejected primary consumes real bytes; the fallback no longer fits.
+    budget = {'limit': 2 * len(data) + 2, 'used': 3}
+    target = tmp_path / 'public_source_texts/immutable/LICENSE'
+    with pytest.raises(ValueError):
+        legal.download(item, target, budget)
+    assert budget['used'] == 3 + len(data)
+    assert state.requests == [state.primary] and not target.exists()

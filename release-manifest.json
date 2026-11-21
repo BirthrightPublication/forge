@@ -45,7 +45,7 @@
     "docs/UPDATE_GUIDE.md": "e65c22305ee95ce0a0d4e71e7f02f7ab14cd5f6038e8a8d29fa2b416f1682da3",
     "docs/UPGRADE_INTEGRATION.json": "19081786cddcbeacb7d6332c8241f82daf53253090aa580c47d9e4011de714ed",
     "docs/UPGRADE_INTEGRATION_LOG.txt": "bf6dd6de974aeeed1ee15e11ed5c5f9e88e5c968a3731154464f3abcbdce791d",
-    "docs/V0.10-DEVELOPMENT.md": "480be767a5b28ef3ca46bd214753ac9f834d06f9c845799649cc0c00db34d0eb",
+    "docs/V0.10-DEVELOPMENT.md": "6a61ebc58353935bead5ba5112bdc814868872d26a0b5773be8c9c120df809ef",
     "docs/V0.10-MODEL-INVENTORY.md": "5e7340c16bdb5e4932dbac0ed9d1375383ea0818cacd1c785cd829832a959b70",
     "docs/V0.10-RELEASE-GATE.md": "9d98b6f5a73c3b90379d8d3ff18068a769d69de6276e33e97d57c5b848e5f740",
     "docs/V0.10-VALIDATION.md": "47d5adb4df27eab21c4116da5025d1878499a7bc558a0b50f2e2a5c0e3daf345",
@@ -289,7 +289,7 @@
     "scripts/is_running.py": "cff34ea0c7ec630f85320a9a7ad57e1d3ec74709bc18842ed75e1db083ee974a",
     "scripts/managed_install.py": "8eafff294e2584dbbb6de8c34fe2f3dd17a8f29496c4f18fac01ac5dfb1f6824",
     "scripts/native_picker.py": "4abee0675dc7615ff3af61af5ef78f66fb590dc4429ebad4c2cabdcd74fabf8c",
-    "scripts/package_release.py": "598fc9f7b1ce43c52f0d8ddabe4833886d62a50a2c0d24d07813c68e160f765e",
+    "scripts/package_release.py": "438c2a9d0d681776eca4e073544393685b1468bc3ae2428b39ae8c626e6d9e31",
     "scripts/package_windows_release.py": "3cd70e815731d39432f12469ef3b17631b2c54ab8b570be165ce6ca4bb43f179",
     "scripts/publish_windows_release.py": "7ac90b79147f5d58566414cc6bb6ea502c5af8ed6c6ec7ad1ce2a06148b00e3f",
     "scripts/request_maintenance.py": "219b5321089825c9eecf234bf265867f07b40d0f3010d6d5a2e7a2b87b66dbfb",
@@ -454,8 +454,9 @@
     "docs/validation/v0.10/native-cpu-3b1e7c5.json": "acff976d2981cb9d0ff4098b67df954f963173a072d7ca0601cfb57df60442c9",
     "docs/validation/v0.10/native-cpu-3b1e7c5.provenance.json": "860918456925c3fca51fb500bf7fd12263471ff4e2b832b82f1f64220dfecf12",
     "tests/test_dubbing_context_translation_v10.py": "71d3ad7ba4667337b13b7226d9788a60147b2a0573659b546d212aa4b3d6e4b0",
-    "forge/dubbing_legal_sources_inventory.json": "9eb8c72bd35994fc4dbb7183880eadd82492abc8f3a6a34328fe65f2a12153ba",
-    "scripts/dubbing_legal_sources.py": "0020544c82d9152cf3f022442a2059d41ce991d49beec854c9aa8328b3bfbf53",
-    "tests/test_dubbing_legal_sources_v10.py": "9e70cc2b54fa9bb11a9459c8a736b2919d7a9296f4dca552333800e9b6e64480"
+    "forge/dubbing_legal_sources_inventory.json": "2d583d8631f02ae668161bb6bfb3a45630fcdbc99f4959c437f9d62f0592dd83",
+    "scripts/dubbing_legal_sources.py": "c061ba756c8cb61500071851fb64fe56d9cdd35208a704e5a9c4713284ffeb47",
+    "tests/test_dubbing_legal_sources_v10.py": "0b75576cdeae692f28c4ed0f086e87510608f7485d7fa88a2592456436e80f51",
+    "tests/test_legacy_package_v10.py": "2b39aac814633179e1c29fb1bc2d6ca5b614bbc004487f42b01c27b74601e1ff"
   }
 }

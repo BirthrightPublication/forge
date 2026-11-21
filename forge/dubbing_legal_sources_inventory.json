@@ -297,6 +297,12 @@
       "version": "4.2"
     },
     {
+      "alternative_source_integrity": "Official publisher-channel aliases for the same independently pinned artifact SHA256; shared byte allowance, no checksum/size waiver.",
+      "alternative_urls": [
+        "https://conda.anaconda.org/intel/win-64/intel-openmp-2023.0.0-intel_25922.tar.bz2",
+        "https://api.anaconda.org/download/intel/intel-openmp/2023.0.0/win-64/intel-openmp-2023.0.0-intel_25922.tar.bz2",
+        "https://software.repos.intel.com/python/conda/win-64/intel-openmp-2023.0.0-intel_25922.tar.bz2"
+      ],
       "collect_legal_members": true,
       "component": "Intel-OpenMP-runtime",
       "expected_size": null,
@@ -327,6 +333,12 @@
       "version": "2023.0.0-intel_25922"
     },
     {
+      "alternative_source_integrity": "Official publisher-channel aliases for the same independently pinned artifact SHA256; shared byte allowance, no checksum/size waiver.",
+      "alternative_urls": [
+        "https://conda.anaconda.org/intel/win-64/mkl-include-2023.0.0-intel_25930.tar.bz2",
+        "https://api.anaconda.org/download/intel/mkl-include/2023.0.0/win-64/mkl-include-2023.0.0-intel_25930.tar.bz2",
+        "https://software.repos.intel.com/python/conda/win-64/mkl-include-2023.0.0-intel_25930.tar.bz2"
+      ],
       "association_limit": "Same original Intel MKL2023.0.0 build25930 family, identified by immutable build script and repack recipe. This legal-source package is not represented as the compiled MKL byte payload in CTranslate2.",
       "collect_legal_members": true,
       "component": "Intel-MKL-legal-source",

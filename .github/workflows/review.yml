@@ -207,7 +207,7 @@ jobs:
           if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
             throw 'Previously verified native V0.10 media prerequisites are missing; acceptance cannot be skipped.'
           }
-          $nativeOutput = & python -m pytest -q tests/test_v10_maintenance.py tests/test_language_publishing_v10.py tests/test_v10_voice_preview.py tests/test_dubbing_store_v10.py tests/test_verification_launch_v10.py --junitxml="$env:RUNNER_TEMP/v010-native.xml" 2>&1
+          $nativeOutput = & python -m pytest -q tests/test_v10_maintenance.py tests/test_language_publishing_v10.py tests/test_v10_voice_preview.py tests/test_dubbing_store_v10.py tests/test_verification_launch_v10.py tests/test_legacy_package_v10.py --junitxml="$env:RUNNER_TEMP/v010-native.xml" 2>&1
           $nativeCode = $LASTEXITCODE
           $nativeOutput | Write-Output
           $nativeOutput | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/v010-native-results.txt"

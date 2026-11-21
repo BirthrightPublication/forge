@@ -8,7 +8,12 @@ import hashlib
 import json
 import zipfile
 from pathlib import Path
-from update import APP_DIRS, ROOT_FILES, safe_relative, installed_version, inspect_release
+if __package__:
+    from .update import APP_DIRS, ROOT_FILES, safe_relative, installed_version, inspect_release
+    from .package_windows_release import source_identity
+else:
+    from update import APP_DIRS, ROOT_FILES, safe_relative, installed_version, inspect_release
+    from package_windows_release import source_identity
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -29,6 +34,15 @@ def build(output: Path):
     manifest={'app':'FORGE','format':1,'version':version,'minimum_from':'0.1.0',
         'note':'Checksums detect corruption, not publisher authenticity. Original scripts already present are never replaced.',
         'files':{name:hashlib.sha256(data).hexdigest() for name,data in files.items()}}
+    if (ROOT/'.git').exists():
+        original=(ROOT/'release-manifest.json').read_bytes()
+        commit=source_identity(ROOT,original)
+        source_manifest=json.loads(original)
+        if (source_manifest.get('app')!='FORGE' or source_manifest.get('format')!=1
+                or source_manifest.get('version')!=version or source_manifest.get('files')!=manifest['files']):
+            raise ValueError('The committed source manifest does not match the complete legacy application payload.')
+        manifest['package']={'type':'source','layout':'legacy','source_commit':commit,
+            'source_manifest_sha256':hashlib.sha256(original).hexdigest()}
     output.mkdir(parents=True,exist_ok=True)
     short=version[:-2] if version.endswith('.0') else version
     archive=output/f'FORGE-v{short}.zip';prefix=f'FORGE-v{short}/'
