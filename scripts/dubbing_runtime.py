@@ -102,27 +102,77 @@ def _glossary(value):
     return result
 
 
-def protected_pieces(text, glossary):
-    """Separate exact glossary terms, URLs, citations and numeric/date tokens.
+def _protection_expression(terms, *, exact_terms=False, terms_first=False):
+    # Source links/citations take precedence over terms inside them. Numeric matches
+    # also cover identifiers such as RTX5080, so added digits cannot hide there.
+    # A numeric citation remains one exact bracketed token, including spaces,
+    # tabs and range punctuation. The character class excludes all newlines.
+    patterns = [r'(?P<url>(?i:https?://[^\s<>]+))', r'(?P<citation>\[[ \t]*[0-9][0-9,; \t–—-]*\])']
+    if terms:
+        literal = '|'.join(re.escape(term) for term in sorted(terms, key=lambda item: (-len(item), item)))
+        if not exact_terms:
+            literal = '(?i:' + literal + ')'
+        term = r'(?P<term>(?<!\w)(?:' + literal + r')(?!\w))'
+        if terms_first:
+            patterns.insert(0, term)
+        else:
+            patterns.append(term)
+    patterns.append(r'(?P<number>[+-]?\d+(?:[.,:/-]\d+)*%?)')
+    return re.compile('|'.join(patterns))
 
-    Their content never enters a generation model, so placeholder hallucination
-    cannot erase or alter an explicitly protected name or number.
-    """
-    terms = sorted(glossary, key=lambda item: (-len(item), item))
-    patterns = [r'(?<!\w)' + re.escape(term) + r'(?!\w)' for term in terms]
-    patterns += [r'https?://[^\s<>]+', r'\[[0-9]+(?:[,; -][0-9]+)*\]',
-                 r'(?<!\w)[+-]?\d+(?:[.,:/-]\d+)*(?:%|\b)']
-    expression = re.compile('|'.join('(?:' + pattern + ')' for pattern in patterns), re.IGNORECASE)
-    lower = {key.casefold(): value for key, value in glossary.items()}
+
+def _protection_matches(text, glossary, *, exact_terms=False, terms_first=False):
+    lookup = glossary if exact_terms else {key.casefold(): value for key, value in glossary.items()}
+    for match in _protection_expression(glossary, exact_terms=exact_terms, terms_first=terms_first).finditer(text):
+        value = match.group()
+        if match.lastgroup == 'term':
+            value = lookup[value if exact_terms else value.casefold()]
+        yield match, (match.lastgroup, value)
+
+
+def protected_pieces(text, glossary):
+    """Fallback pieces retain exact terms, links, citations and numeric tokens."""
     position = 0
-    for match in expression.finditer(text):
+    for match, (_, value) in _protection_matches(text, glossary):
         if match.start() > position:
             yield False, text[position:match.start()]
-        value = match.group()
-        yield True, lower.get(value.casefold(), value)
+        yield True, value
         position = match.end()
     if position < len(text):
         yield False, text[position:]
+
+
+def _context_translation(paragraph, glossary, generate):
+    pieces = list(protected_pieces(paragraph, glossary))
+    if not any(not protected and any(char.isalpha() for char in value) for protected, value in pieces):
+        return ''.join(value for _, value in pieces), False
+    protected = list(_protection_matches(paragraph, glossary))
+    unchanged = {match.group(): value for match, (kind, value) in protected if kind == 'term'}
+    targets = {value: value for value in unchanged.values()}
+    draft = generate(paragraph)
+    if unchanged:
+        # Replace only an exact original spelling. Do not rewrite an already
+        # correct target, a substring, a translated synonym, or anything in a URL.
+        expression = _protection_expression({**unchanged, **targets}, exact_terms=True)
+        draft = expression.sub(lambda match: unchanged.get(match.group(), match.group())
+                               if match.lastgroup == 'term' and match.group() not in targets else match.group(), draft)
+    def sequence(text):
+        return [value for _, value in _protection_matches(text, targets, exact_terms=True, terms_first=True)]
+    # Normalize canonical values with the same matcher: a glossary target may
+    # itself be a number, URL or citation. Keep entire target units and their
+    # ordering, while independently checking every complete literal protection
+    # so a target prefix cannot conceal an altered URL or invented digits.
+    expected = [value for _, (_, canonical) in protected for value in sequence(canonical)]
+    literals = lambda text: [value for _, value in _protection_matches(text, {})]
+    expected_literals = [value for _, (_, canonical) in protected for value in literals(canonical)]
+    def retained(text):
+        return sequence(text) == expected and literals(text) == expected_literals
+    if retained(draft):
+        return draft, False
+    fallback = ''.join(value if fixed else generate(value) for fixed, value in pieces)
+    if not retained(fallback):
+        raise RuntimeError('Translation could not retain exact glossary/link/citation/number values. Review and translate this segment manually; its source was preserved.')
+    return fallback, True
 
 
 def translate(request):
@@ -190,7 +240,10 @@ def translate(request):
         for paragraph in paragraphs:
             if paragraph in {'\n', '\r\n'}:
                 translated.append(paragraph); continue
-            translated.append(''.join(value if protected else unit(value) for protected, value in protected_pieces(paragraph, glossary)))
+            text, fallback = _context_translation(paragraph, glossary, unit)
+            translated.append(text)
+            if fallback:
+                warnings.append(segment['id'] + ': Full-context translation changed protected glossary/link/citation/number values; a protected-fragment draft was retained and requires manual review.')
         result.append({**segment, 'source_text': source, 'text': ''.join(translated),
                        'reviewed': False, 'manual_edit': False, 'translation_skipped': False})
         progress(100 * (index + 1) / len(segments), f'Translated segment {index + 1}/{len(segments)}', 'Translation', True)

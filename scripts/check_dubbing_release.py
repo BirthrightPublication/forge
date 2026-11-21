@@ -119,6 +119,15 @@ def static_inventory(source, tag, source_commit):
         require(isinstance(files, dict) and files.get(name) == digest(path), 'source manifest does not verify ' + name + '.')
         return path
 
+    def retained_notice(descriptor, field, label):
+        require(isinstance(descriptor, dict)
+                and SHA.fullmatch(str(descriptor.get('sha256', '')))
+                and type(descriptor.get('size')) is int and descriptor['size'] > 0,
+                'missing or invalid retained ' + label + ' descriptor.')
+        path = tracked(descriptor.get(field, ''))
+        require(path.stat().st_size == descriptor['size'] and digest(path) == descriptor['sha256'],
+                'retained ' + label + ' bytes differ from the reviewed license inventory.')
+
     declarations = {}
     for node in ast.parse(tracked('forge/dubbing_models.py').read_text('utf-8')).body:
         target = node.target if isinstance(node, ast.AnnAssign) else node.targets[0] if isinstance(node, ast.Assign) and len(node.targets) == 1 else None
@@ -152,6 +161,14 @@ def static_inventory(source, tag, source_commit):
             license = part.get('license', {})
             require(isinstance(license, dict) and license.get('reviewed') is True and license.get('commercial_use') is True and license.get('id'),
                     'model checkpoint commercial-use/license review is missing: ' + component + '.')
+            retained_notice(license.get('attribution_notice'), 'file', 'model attribution notice')
+            external = license.get('external_evidence', [])
+            require(isinstance(external, list) and len(external) <= MAX_FILES,
+                    'invalid retained external license evidence inventory: ' + component + '.')
+            for entry in external:
+                require(isinstance(entry, dict), 'invalid retained external license evidence descriptor.')
+                if 'retained_source_file' in entry:
+                    retained_notice(entry, 'retained_source_file', 'external license evidence')
             artifacts = part.get('artifacts', [])
             require(isinstance(artifacts, list) and 1 <= len(artifacts) <= MAX_FILES, 'model artifact hashes/sizes are missing: ' + component + '.')
             names = set()
@@ -193,7 +210,7 @@ def static_inventory(source, tag, source_commit):
         for wheel in wheels:
             require(isinstance(wheel, dict) and SHA.fullmatch(str(wheel.get('sha256', ''))) and type(wheel.get('size')) is int
                     and wheel['size'] > 0 and wheel.get('name', '').endswith('.whl') and wheel.get('package') and wheel.get('version')
-                    and wheel.get('license') and not re.search(r'unknown|unreviewed|see publisher', str(wheel['license']), re.I),
+                    and wheel.get('license') and not re.search(r'unknown|unreviewed|see\s+(?:the\s+)?(?:publisher|package)', str(wheel['license']), re.I),
                     'a binary wheel lacks reviewed version/hash/size/license evidence.')
         require(sum(wheel['size'] for wheel in wheels) == lock.get('download_bytes'), 'the wheel byte inventory is inconsistent.')
         wheel_hashes[component] = lock_sha

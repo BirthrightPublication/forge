@@ -55,15 +55,46 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Controller dependency verification failed.' }
       - name: Require real native media executables
         run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
-            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output
-            if ($LASTEXITCODE -ne 0) { throw 'Verified native FFmpeg/FFprobe prerequisite installation failed.' }
+          function Refresh-MediaPath {
+            # Preserve setup-python's process PATH while importing package-manager
+            # changes. A plain refreshenv can discard the selected interpreter.
+            $paths = @($env:Path,
+              [Environment]::GetEnvironmentVariable('Path', 'Machine'),
+              [Environment]::GetEnvironmentVariable('Path', 'User'))
+            if ($env:ChocolateyInstall) { $paths += (Join-Path $env:ChocolateyInstall 'bin') }
+            $env:Path = ((($paths -join ';') -split ';' | Where-Object { $_ } | Select-Object -Unique) -join ';')
           }
-          Import-Module "$env:ChocolateyInstall/helpers/chocolateyProfile.psm1"
-          refreshenv
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or -not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
-            throw 'Native media tools are unavailable; no skipped or synthetic substitute is accepted.'
+          function Test-NativeMedia {
+            foreach ($tool in @('ffmpeg', 'ffprobe')) {
+              if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { return $false }
+              & $tool -version *> $null
+              if ($LASTEXITCODE -ne 0) { return $false }
+            }
+            return $true
           }
+          Refresh-MediaPath
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            if (Test-NativeMedia) { break }
+            # Retry transient feed failures with the same pinned package and
+            # normal Chocolatey checksum verification; no alternate payload.
+            choco install ffmpeg --version=7.1.1 --yes --no-progress --limit-output --execution-timeout=180
+            $installCode = $LASTEXITCODE
+            Refresh-MediaPath
+            if (Test-NativeMedia) { break }
+            if ($attempt -eq 3) {
+              throw "Native media prerequisites remain unavailable after three verified package attempts (last exit $installCode). Tests are not skipped."
+            }
+            Write-Warning "Pinned FFmpeg prerequisite attempt $attempt did not provide both working executables (exit $installCode); retrying the same package."
+            Start-Sleep -Seconds (5 * $attempt)
+          }
+          if (-not (Test-NativeMedia)) { throw 'Both native media executables are required before acceptance.' }
+          # Persist real tool paths, retaining the selected Python ahead of any
+          # package-manager shims when the next step starts a fresh process.
+          $selectedPython = Split-Path -Parent (Get-Command python).Source
+          foreach ($tool in @('ffmpeg', 'ffprobe')) {
+            Split-Path -Parent (Get-Command $tool).Source | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+          $selectedPython | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           ffmpeg -version | Select-Object -First 1
           ffprobe -version | Select-Object -First 1
       - name: Install immutable isolated CPU packs and test real offline inference
@@ -75,6 +106,8 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dubbing-native-cpu-${{ github.run_id }}
-          path: ${{ runner.temp }}/dubbing-model-evidence/DUBBING_MODEL_SMOKE.json
+          path: |
+            ${{ runner.temp }}/dubbing-model-evidence/DUBBING_MODEL_SMOKE.json
+            ${{ runner.temp }}/dubbing-model-evidence/DUBBING_RUNTIME_NOTICES.json
           if-no-files-found: warn
           retention-days: 30

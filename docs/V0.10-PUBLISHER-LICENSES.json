@@ -1,67 +1,129 @@
 {
-  "schema": 1,
-  "scope": "Read-only exact publisher/card and full license evidence; no model installation or distribution approval.",
+  "application_attribution_notice": {
+    "file": "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+    "origin": "FORGE-authored attribution and unchanged-artifact status, separate from unmodified upstream evidence",
+    "sha256": "6d3b6662aeed735785150094d5dabb7671c4ffacb18fda445b99914e2b12d53a",
+    "size": 4558
+  },
   "checkpoint_revisions": {
     "Helsinki-NLP/opus-mt-en-ru": "bb09c99d180016eac6819df3dae68edb1690fdee",
     "Qwen/Qwen3-TTS-12Hz-0.6B-Base": "5d83992436eae1d760afd27aff78a71d676296fc"
   },
+  "distribution_approved": false,
   "evidence": [
     {
       "file": "docs/model-notices/opus-README.md",
-      "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/README.md",
       "scope": "checkpoint_publisher_declaration",
+      "sha256": "020bfd697b7d0da0338611cf445eb44ae45dda27ff49f2bf64e21ee46882b48b",
       "size": 1123,
-      "sha256": "020bfd697b7d0da0338611cf445eb44ae45dda27ff49f2bf64e21ee46882b48b"
+      "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/README.md"
     },
     {
       "file": "docs/model-notices/qwen-README.md",
-      "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/README.md",
       "scope": "checkpoint_publisher_declaration",
+      "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
       "size": 3640,
-      "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea"
+      "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/README.md"
     },
     {
       "file": "docs/model-notices/opus-models-LICENSE.txt",
-      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/LICENSE",
       "scope": "upstream_pretrained_model_terms",
+      "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
       "size": 18652,
-      "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9"
+      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/LICENSE"
     },
     {
       "file": "docs/model-notices/opus-train-README.md",
-      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/README.md",
       "scope": "upstream_scope_and_attribution",
+      "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
       "size": 4525,
-      "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e"
+      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/README.md"
     },
     {
       "file": "docs/model-notices/opus-en-ru-upstream-README.md",
-      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/en-ru/README.md",
       "scope": "original_checkpoint_identity",
+      "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
       "size": 1814,
-      "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7"
+      "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/en-ru/README.md"
     },
     {
       "file": "docs/model-notices/qwen-source-LICENSE.txt",
-      "url": "https://raw.githubusercontent.com/QwenLM/Qwen3-TTS/022e286b98fbec7e1e916cb940cdf532cd9f488e/LICENSE",
       "scope": "official_publisher_apache_license_text",
+      "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
       "size": 11343,
-      "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655"
+      "url": "https://raw.githubusercontent.com/QwenLM/Qwen3-TTS/022e286b98fbec7e1e916cb940cdf532cd9f488e/LICENSE"
     },
     {
       "file": "docs/model-notices/Apache-2.0-canonical.txt",
-      "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt",
       "scope": "canonical_text_for_opus_publisher_apache_declaration",
+      "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
       "size": 11359,
-      "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7"
+      "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt"
     }
   ],
-  "standalone_checkpoint_license_files_present": false,
+  "model_license_scopes_reviewed": true,
+  "notice_delivery": {
+    "exact_release_archive_verified": false,
+    "model_installation_notice_behavior": "Registered checkpoint cards and five immutable separately sourced license/attribution documents are retained by the installer with exact hashes. Application payload also carries this complete notice packet.",
+    "no_model_weights_bundled": true,
+    "normal_updater_payload": true,
+    "packaging_policy_checked": true,
+    "source_and_windows_payload_files": [
+      "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+      "docs/model-notices/opus-README.md",
+      "docs/model-notices/qwen-README.md",
+      "docs/model-notices/opus-models-LICENSE.txt",
+      "docs/model-notices/opus-train-README.md",
+      "docs/model-notices/opus-en-ru-upstream-README.md",
+      "docs/model-notices/qwen-source-LICENSE.txt",
+      "docs/model-notices/Apache-2.0-canonical.txt"
+    ]
+  },
   "opus": {
+    "applied_terms": [
+      {
+        "id": "CC-BY-4.0",
+        "scope": "Original OPUS-MT pretrained material; its grant and downstream rights continue unchanged."
+      },
+      {
+        "id": "Apache-2.0",
+        "scope": "Separate exact converted-checkpoint publisher-card declaration; not a replacement of upstream CC-BY-4.0 rights."
+      }
+    ],
     "checkpoint_card_declared_license": "Apache-2.0",
-    "original_pretrained_model_terms": "CC-BY-4.0",
-    "source_code_terms_separate": "MIT",
+    "commercial_use": "Both identified model license texts permit commercial use subject to conditions; no noncommercial restriction appears in the reviewed terms.",
+    "commercial_use_permitted_subject_to_terms": true,
     "finding": "The HF card identifies the exact original opus-2020-02-11.zip; upstream README applies CC-BY-4.0 to pretrained models. Do not replace upstream terms with the converted-checkpoint card identifier.",
+    "fulfilled_conditions": [
+      {
+        "condition": "CC-BY-4.0 sections 2(a)(5), 2(a)(6), 3(a)(1)(A) and 3(a)(1)(C): preserve grant, attribution, supplied notices, source and license/disclaimer",
+        "evidence": [
+          "opus-models-LICENSE.txt",
+          "opus-train-README.md",
+          "opus-en-ru-upstream-README.md",
+          "opus-README.md",
+          "FORGE-MODEL-ATTRIBUTION.txt"
+        ]
+      },
+      {
+        "condition": "CC-BY-4.0 section 3(a)(1)(B): retain original/converted lineage and identify FORGE unchanged installation",
+        "evidence": [
+          "opus-README.md",
+          "opus-en-ru-upstream-README.md",
+          "FORGE-MODEL-ATTRIBUTION.txt"
+        ]
+      },
+      {
+        "condition": "Apache-2.0 section 4: supply full text and preserve supplied notices; no registered model file is changed by FORGE",
+        "evidence": [
+          "Apache-2.0-canonical.txt",
+          "opus-README.md",
+          "FORGE-MODEL-ATTRIBUTION.txt"
+        ]
+      }
+    ],
+    "notice_obligation_expression": "Apache-2.0 AND CC-BY-4.0",
+    "original_pretrained_model_terms": "CC-BY-4.0",
     "practical_requirements": [
       "Retain unmodified checkpoint card and its source links.",
       "Retain CC-BY-4.0 terms and upstream attribution/citation information.",
@@ -69,27 +131,56 @@
       "Identify any conversion/modification without suggesting upstream endorsement.",
       "Do not label the upstream source MIT license as a weight license."
     ],
-    "commercial_use": "Both identified model license texts permit commercial use subject to conditions; no noncommercial restriction appears in the reviewed terms."
+    "scope_resolution": "Preserve cumulative scoped notices and conditions. Both grants permit commercial use; no noncommercial restriction or requirement for separate publisher/owner permission appears in the reviewed terms. FORGE adds no restriction to original CC-BY-4.0 rights.",
+    "scope_reviewed": true,
+    "source_code_terms_separate": "MIT"
   },
+  "production_gate_suggestion": "Use separate hashed publisher-declaration, scoped full terms/attribution, application attribution notice and runtime-license review records. No nonexistent HF LICENSE file or separate owner/legal acknowledgement is required.",
   "qwen": {
+    "applied_terms": [
+      {
+        "id": "Apache-2.0",
+        "scope": "Exact Qwen model publisher declaration with official full terms and copyright notice."
+      }
+    ],
     "checkpoint_card_declared_license": "Apache-2.0",
+    "commercial_use_permitted_subject_to_terms": true,
+    "finding": "Exact model card declares Apache-2.0. The official publisher full Apache text matches the LICENSE already retained from the pinned API wheel. That is supporting separate notice evidence, not a nonexistent HF checkpoint LICENSE file.",
+    "fulfilled_conditions": [
+      {
+        "condition": "Apache-2.0 section 4: retain exact model declaration, full terms, supplied Alibaba Cloud copyright and attribution, unchanged model-file status",
+        "evidence": [
+          "qwen-README.md",
+          "qwen-source-LICENSE.txt",
+          "FORGE-MODEL-ATTRIBUTION.txt"
+        ]
+      }
+    ],
     "full_text_copyright_notice": "Copyright 2026 Alibaba Cloud",
     "pinned_api_wheel": {
-      "url": "https://files.pythonhosted.org/packages/31/01/95f3ae26f5b7eb2105f69ad2c15af5a28b9ebdd1258a0b27541f5ebd6225/qwen_tts-0.1.1-py3-none-any.whl",
-      "size": 113529,
-      "sha256": "11a290d8dabc7ef91a90c54478c8ab19b3edb1d85c0882313721892bdc4af15d",
       "license_member": "qwen_tts-0.1.1.dist-info/licenses/LICENSE",
+      "license_member_sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
       "license_member_size": 11343,
-      "license_member_sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655"
+      "sha256": "11a290d8dabc7ef91a90c54478c8ab19b3edb1d85c0882313721892bdc4af15d",
+      "size": 113529,
+      "url": "https://files.pythonhosted.org/packages/31/01/95f3ae26f5b7eb2105f69ad2c15af5a28b9ebdd1258a0b27541f5ebd6225/qwen_tts-0.1.1-py3-none-any.whl"
     },
-    "finding": "Exact model card declares Apache-2.0. The official publisher full Apache text matches the LICENSE already retained from the pinned API wheel. That is supporting separate notice evidence, not a nonexistent HF checkpoint LICENSE file.",
     "requirements": [
       "Retain the model card/declaration.",
       "Retain Apache-2.0 text and supplied notices/attribution.",
       "Keep voice/reference consent independent from model-license rights.",
       "Do not reuse upstream remote clone.wav as a permitted reference without separate permission."
-    ]
+    ],
+    "scope_reviewed": true
   },
-  "production_gate_suggestion": "Use separate hashed publisher-declaration and full-terms/supporting-attribution records. Do not invent LICENSE paths in a HF snapshot or silently weaken license review to card string equality.",
-  "distribution_approved": false
+  "review_limits": [
+    "No new license grant or FORGE code relicensing.",
+    "No blanket approval to bundle model weights or every native runtime binary.",
+    "Voice/reference permission and release/hardware acceptance remain independent.",
+    "Any later model changes or different publisher terms require fresh scoped review."
+  ],
+  "schema": 1,
+  "scope": "Completed scoped review of exact publisher models and retained notice obligations for optional unchanged local installation. Native-library license audit and final release approval remain separate.",
+  "standalone_checkpoint_license_files_present": false,
+  "status": "model_scopes_reviewed_runtime_notice_audit_pending"
 }

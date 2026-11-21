@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 
@@ -31,10 +32,154 @@ sys.path.insert(0, str(ROOT))
 from forge import dubbing_models as models
 
 REPORT_NAME = 'DUBBING_MODEL_SMOKE.json'
+RUNTIME_NOTICES_NAME = 'DUBBING_RUNTIME_NOTICES.json'
 COMPONENTS = ('opus-en-ru', 'qwen3-tts-0.6b-base', 'whisper-tiny')
 SOURCE_FILES = ('forge/dubbing_models.py', 'scripts/dubbing_runtime.py', 'scripts/dubbing_cpu_acceptance.py')
 REFERENCE_TEXT = 'Hello. This is a local speech recognition test. The next meeting is on Friday at ten in the morning.'
 RUSSIAN_TEXT = 'Привет. Это проверка русского голоса.'
+
+# This probe executes only stdlib metadata/hash code in the resolved interpreter.
+# It never imports model libraries, follows external RECORD paths or scans media.
+RUNTIME_METADATA_PROBE = r'''
+import base64, csv, hashlib, importlib.metadata as metadata, io, json, os, pathlib, re, sys
+MAX_FILES, MAX_HASH_BYTES, MAX_FILE_BYTES = 2000, 64 * 1024 * 1024, 4 * 1024 * 1024
+MAX_TEXT_BYTES, MAX_ONE_TEXT = 2 * 1024 * 1024, 256 * 1024
+request = json.loads(sys.stdin.buffer.read(128 * 1024 + 1))
+prefix = pathlib.Path(sys.prefix).resolve()
+if prefix != pathlib.Path(request['environment']).resolve():
+    raise ValueError('The metadata probe did not execute in its resolved environment.')
+if '.'.join(map(str, sys.version_info[:3])) != request['python_version']:
+    raise ValueError('The actual interpreter version differs from the runtime marker.')
+normalize = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+def ordinary(path):
+    path = pathlib.Path(path)
+    if not path.resolve().is_relative_to(prefix):
+        raise ValueError('A distribution metadata or notice file escapes its runtime.')
+    for item in (path, *path.parents):
+        if item == prefix.parent:
+            break
+        if item.is_symlink() or getattr(item.stat(), 'st_file_attributes', 0) & 0x400:
+            raise ValueError('Linked distribution metadata or notice files are not exported.')
+    return path
+def declaration(value):
+    raw = str(value or '').encode('utf-8')
+    text = raw[:1024].decode('utf-8', errors='ignore')
+    # A declaration is publisher metadata, never a license approval.
+    if str(prefix).lower() in text.lower() or re.search(r'(?i)(?:[a-z]:[\\/]users[\\/]|/(?:home|Users)/)', text):
+        text = '<declaration omitted: local user path>'
+    return {'text': text, 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(), 'truncated': len(raw) > 1024}
+expected = request['expected_versions']
+packages, notices, integrity_failures = {}, [], []
+file_count = hash_bytes = text_bytes = records = metadata_bytes = 0
+for dist in metadata.distributions():
+    if len(packages) >= 250:
+        raise ValueError('Installed distribution count exceeded the audit bound.')
+    info = ordinary(dist._path)
+    for filename in ('METADATA', 'RECORD'):
+        path = info / filename
+        if not path.is_file() or path.stat().st_size > 8 * 1024 * 1024:
+            raise ValueError('An installed distribution has missing or oversized metadata.')
+        ordinary(path)
+        metadata_bytes += path.stat().st_size
+    if metadata_bytes > 32 * 1024 * 1024:
+        raise ValueError('Installed metadata exceeded the total audit bound.')
+    name, version = normalize(str(dist.metadata.get('Name') or '')), str(dist.version)
+    if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name) or name in packages:
+        raise ValueError('Installed distribution identities are invalid or duplicated.')
+    if name not in expected and name != 'pip':
+        raise ValueError('An installed distribution is outside the registered wheel closure: ' + name)
+    if name in expected and version != expected[name]:
+        raise ValueError('An installed version differs from its exact wheel receipt: ' + name)
+    row = {'package': name, 'version': version, 'bootstrap_tool': name not in expected,
+           'license_declaration': declaration(dist.metadata.get('License')),
+           'license_expression_declaration': declaration(dist.metadata.get('License-Expression')),
+           'notice_file_count': 0}
+    packages[name] = row
+    # Python 3.12 Distribution.files filters missing entries. Read the bounded
+    # RECORD explicitly so missing recorded notices remain visible evidence.
+    files = []
+    for record in csv.reader(io.StringIO((info / 'RECORD').read_text('utf-8'))):
+        if len(record) != 3:
+            raise ValueError('An installed RECORD entry has an invalid shape.')
+        entry = metadata.PackagePath(record[0])
+        entry.hash = metadata.FileHash(record[1]) if record[1] else None
+        entry.size = int(record[2]) if record[2] else None
+        entry.dist = dist
+        files.append(entry)
+        if len(files) + records > 200000:
+            raise ValueError('Installed RECORD entries exceeded the audit bound.')
+    records += len(files)
+    if records > 200000:
+        raise ValueError('Installed RECORD entries exceeded the audit bound.')
+    seen = set()
+    for entry in files:
+        # Include named notices and SPDX/text files inside recorded license dirs.
+        parts = pathlib.PurePosixPath(str(entry).replace('\\', '/')).parts
+        if not parts or not (re.sub(r'[^A-Z0-9]', '', parts[-1].upper()).startswith(
+                ('LICENSE', 'LICENCE', 'COPYING', 'NOTICE', 'THIRDPARTYNOTICE', 'THIRDPARTYLICENSE', 'THIRDPARTYLICENCE', 'COPYRIGHT', 'AUTHORS'))
+            or any(re.sub(r'[^a-z0-9]', '', part.lower()) in {'licenses', 'license', 'licences', 'licence', 'copying', 'notice', 'notices',
+                'thirdpartylicenses', 'thirdpartylicences', 'thirdpartynotices'} for part in parts[:-1])):
+            continue
+        if pathlib.PurePosixPath(str(entry)).is_absolute() or '..' in parts or any(':' in part for part in parts):
+            raise ValueError('A recorded notice has an unsafe package-relative path.')
+        relative = '/'.join(parts)
+        if relative in seen:
+            raise ValueError('A distribution records a notice more than once.')
+        seen.add(relative)
+        row['notice_file_count'] += 1
+        file_count += 1
+        if file_count > MAX_FILES:
+            raise ValueError('Notice file count exceeded the audit bound.')
+        item = {'package': name, 'version': version, 'path': relative, 'scope': 'installed_distribution'}
+        target = pathlib.Path(dist.locate_file(entry))
+        if not target.exists():
+            item.update(integrity='missing', text_omission='recorded_notice_missing')
+            notices.append(item); integrity_failures.append(name + '/' + relative); continue
+        ordinary(target)
+        size = target.stat().st_size
+        if not target.is_file() or size > MAX_FILE_BYTES or hash_bytes + size > MAX_HASH_BYTES:
+            raise ValueError('A recorded notice exceeded the bounded file/hash budget.')
+        raw = target.read_bytes(); hash_bytes += len(raw)
+        item.update(size=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+        recorded = entry.hash
+        if recorded is None or recorded.mode not in {'sha256', 'sha384', 'sha512'} or entry.size is None:
+            item.update(integrity='pending', text_omission='record_hash_or_size_unavailable')
+        elif (len(raw) != entry.size or base64.urlsafe_b64encode(hashlib.new(recorded.mode, raw).digest()).rstrip(b'=').decode('ascii') != recorded.value):
+            item.update(integrity='failed', text_omission='record_hash_or_size_mismatch')
+            integrity_failures.append(name + '/' + relative)
+        else:
+            item['integrity'] = 'record_verified'
+            if len(raw) > MAX_ONE_TEXT:
+                item['text_omission'] = 'per_file_text_bound'
+            elif text_bytes + len(raw) > MAX_TEXT_BYTES:
+                item['text_omission'] = 'total_text_bound'
+            else:
+                try:
+                    text = raw.decode('utf-8-sig')
+                except UnicodeDecodeError:
+                    item['text_omission'] = 'not_utf8'
+                else:
+                    if any(ord(char) < 32 and char not in '\n\r\t' for char in text):
+                        item['text_omission'] = 'non_text_control_bytes'
+                    elif str(prefix).lower() in text.lower() or re.search(r'(?i)(?:[a-z]:[\\/]users[\\/]|/(?:home|Users)/)', text):
+                        item['text_omission'] = 'local_user_path'
+                    else:
+                        item['text'] = text; text_bytes += len(raw)
+        notices.append(item)
+missing = sorted(set(expected) - set(packages))
+if missing:
+    raise ValueError('Registered wheel packages are missing: ' + ', '.join(missing))
+result = {'python_version': '.'.join(map(str, sys.version_info[:3])),
+          'installed_versions': {name: row['version'] for name, row in sorted(packages.items())},
+          'packages': [packages[name] for name in sorted(packages)], 'notices': notices,
+          'packages_without_recorded_notice_files': sorted(name for name, row in packages.items() if not row['notice_file_count']),
+          'notice_integrity_failures': integrity_failures,
+          'notice_hash_bytes': hash_bytes, 'record_entries_examined': records}
+encoded = json.dumps(result, ensure_ascii=False, allow_nan=False).encode('utf-8')
+if len(encoded) > 8 * 1024 * 1024:
+    raise ValueError('Runtime audit JSON exceeded its output bound.')
+sys.stdout.buffer.write(encoded)
+'''
 
 
 class AcceptanceBlocked(ValueError):
@@ -121,6 +266,214 @@ def _safe_error(error, data_root, output):
     detail = re.sub(r'(?i)(authorization|token|password|secret)\s*[=:]\s*[^\s,;]+', r'\1=<private>', detail)
     detail = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|hf_[A-Za-z0-9]+)\b', '<private>', detail)
     return detail[-1500:]
+
+
+def _bounded_command(arguments, *, payload=None, timeout=120, limit=8 * 1024 * 1024):
+    """Bound pipe memory and execution even if an installed package prints noise."""
+    raw = json.dumps(payload).encode('utf-8') if payload is not None else b''
+    if len(raw) > 128 * 1024:
+        raise AcceptanceBlocked('Runtime audit input exceeded its bound.')
+    process = subprocess.Popen(arguments, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        env={**os.environ, 'PIP_DISABLE_PIP_VERSION_CHECK': '1', 'PIP_NO_INPUT': '1', 'PYTHONUTF8': '1'})
+    buffers = [bytearray(), bytearray()]
+    overflow = threading.Event()
+    def read(stream, target):
+        while True:
+            block = stream.read(8192)
+            if not block:
+                break
+            if len(target) + len(block) > limit:
+                overflow.set()
+                process.kill()
+                break
+            target.extend(block)
+    def write():
+        try:
+            process.stdin.write(raw)
+            process.stdin.close()
+        except (BrokenPipeError, OSError):
+            pass
+    readers = [threading.Thread(target=read, args=(stream, target), daemon=True)
+               for stream, target in zip((process.stdout, process.stderr), buffers)]
+    for thread in readers:
+        thread.start()
+    writer = threading.Thread(target=write, daemon=True); writer.start()
+    try:
+        code = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill(); process.wait(timeout=10)
+        raise AcceptanceBlocked('The installed runtime audit exceeded its execution bound.') from None
+    finally:
+        for thread in readers:
+            thread.join(timeout=5)
+        writer.join(timeout=5)
+        process.stdout.close(); process.stderr.close()
+    if overflow.is_set() or any(thread.is_alive() for thread in (*readers, writer)):
+        raise AcceptanceBlocked('The installed runtime audit exceeded its bounded output.')
+    return subprocess.CompletedProcess(arguments, code, bytes(buffers[0]), bytes(buffers[1]))
+
+
+def _ordinary_runtime_file(root, relative):
+    name = Path(relative)
+    if (not isinstance(relative, str) or not relative or name.is_absolute() or '..' in name.parts
+            or '\\' in relative or ':' in relative):
+        raise AcceptanceBlocked('Runtime audit files require ordinary relative paths.')
+    path = Path(root) / name
+    if not path.resolve().is_relative_to(Path(root).resolve()):
+        raise AcceptanceBlocked('A runtime audit file escapes its environment.')
+    for ancestor in (path, *path.parents):
+        if ancestor == Path(root).parent:
+            break
+        if ancestor.is_symlink() or getattr(ancestor.stat(), 'st_file_attributes', 0) & 0x400:
+            raise AcceptanceBlocked('Linked runtime audit files are not exported.')
+    if not path.is_file():
+        raise AcceptanceBlocked('A recorded runtime audit file is missing.')
+    return path
+
+
+def _wheel_identities(wheels):
+    if not isinstance(wheels, list) or not 0 < len(wheels) <= 250:
+        raise AcceptanceBlocked('The runtime marker has no bounded exact wheel inventory.')
+    result = {}
+    for wheel in wheels:
+        name = re.sub(r'[-_.]+', '-', str(wheel.get('package', ''))).lower()
+        value = {key: wheel.get(key) for key in ('version', 'name', 'sha256', 'size')}
+        if (not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name) or name in result
+                or not isinstance(value['version'], str) or not re.fullmatch(r'[A-Za-z0-9_.+!-]+', value['version'])
+                or not isinstance(value['name'], str) or not re.fullmatch(r'[A-Za-z0-9_.+!-]+\.whl', value['name'])
+                or not isinstance(value['sha256'], str) or not re.fullmatch('[a-f0-9]{64}', value['sha256'])
+                or type(value['size']) is not int or value['size'] <= 0):
+            raise AcceptanceBlocked('Runtime wheel identities are invalid or duplicated.')
+        result[name] = {'package': name, **value}
+    return {name: result[name] for name in sorted(result)}
+
+
+def _runtime_audit_plan(component, data_root):
+    selected = models.resolve(component, data_root)
+    environment = Path(selected['environment'])
+    marker_path = _ordinary_runtime_file(environment, 'forge-dubbing-runtime.json')
+    if marker_path.stat().st_size > 2 * 1024 * 1024:
+        raise AcceptanceBlocked('The runtime marker exceeded its audit bound.')
+    marker = json.loads(marker_path.read_text('utf-8'))
+    spec = models._spec(component)
+    requirements = models.ROOT / spec['requirements']
+    version = marker.get('python', '')
+    if (marker.get('schema') != 1 or marker.get('id') != selected['runtime_revision']
+            or marker.get('id') != environment.name or marker.get('device') != selected['device']
+            or marker.get('import_tested') is not True or not re.fullmatch(r'3\.(?:11|12)\.\d+', str(version))
+            or marker.get('requirements_sha256') != digest(requirements)):
+        raise AcceptanceBlocked('The actual runtime marker differs from its registered requirements or selected environment.')
+    runtime = {'version': version}
+    lock = models._load_wheel_lock(spec, runtime, selected['device'])
+    if not lock:
+        raise AcceptanceBlocked('The installed runtime has no selected native wheel lock.')
+    expected = _wheel_identities(lock['wheels'])
+    if _wheel_identities(marker.get('dependency_wheels')) != expected:
+        raise AcceptanceBlocked('The actual runtime receipt differs from its selected native wheel lock.')
+    lock_path = models._wheel_lock_path(spec, runtime, selected['device'])
+    identity = {'runtime_revision': selected['runtime_revision'], 'device': selected['device'],
+        'python_version': version, 'marker_sha256': digest(marker_path),
+        'requirements': {'path': spec['requirements'], 'sha256': digest(requirements)},
+        'native_wheel_lock': {'path': lock_path.relative_to(models.ROOT).as_posix(), 'sha256': digest(lock_path)},
+        'wheel_artifacts': list(expected.values())}
+    return selected, marker, identity
+
+
+def collect_runtime_evidence(data_root):
+    """Inspect actual isolated environments; dependency/notice evidence is not legal approval."""
+    environments, texts = {}, []
+    seen = {}
+    for component in COMPONENTS:
+        selected, marker, identity = _runtime_audit_plan(component, data_root)
+        environment = Path(selected['environment']).resolve()
+        if environment in seen:
+            if seen[environment] != identity:
+                raise AcceptanceBlocked('Components sharing an environment disagree about its registered closure.')
+            environments[identity['runtime_revision']]['components'].append(component)
+            continue
+        if identity['runtime_revision'] in environments:
+            raise AcceptanceBlocked('A runtime identity resolves to multiple environments.')
+        seen[environment] = identity
+        expected = {item['package']: item['version'] for item in identity['wheel_artifacts']}
+        probe = _bounded_command([str(selected['python']), '-I', '-c', RUNTIME_METADATA_PROBE],
+            payload={'environment': str(environment), 'python_version': marker['python'], 'expected_versions': expected})
+        if probe.returncode:
+            # Never export an uncontrolled traceback or absolute interpreter path.
+            detail = _safe_error(subprocess.CalledProcessError(probe.returncode, [], stderr=probe.stderr), data_root, data_root)
+            raise AcceptanceBlocked('Installed runtime metadata verification failed. ' + detail)
+        observed = json.loads(probe.stdout)
+        check = _bounded_command([str(selected['python']), '-I', '-m', 'pip', 'check'], limit=64 * 1024)
+        if check.returncode:
+            raise AcceptanceBlocked('The resolved runtime pip check failed (exit ' + str(check.returncode) +
+                '; diagnostic SHA-256 ' + hashlib.sha256(check.stdout + check.stderr).hexdigest() + ').')
+        notices = observed.pop('notices')
+        for notice in notices:
+            text = notice.pop('text', None)
+            if text is not None:
+                texts.append({'runtime_revision': identity['runtime_revision'], **notice, 'text': text})
+                notice['text_collected'] = True
+        source_records = marker.get('sources', [])
+        if not isinstance(source_records, list) or len(source_records) > 1000:
+            raise AcceptanceBlocked('The auxiliary source receipt exceeded its audit bound.')
+        source_notices = []
+        source_bytes = 0
+        for record in source_records:
+            name = record.get('path', '')
+            parts = Path(name).parts
+            if not parts or not (re.sub(r'[^A-Z0-9]', '', parts[-1].upper()).startswith(
+                    ('LICENSE', 'LICENCE', 'COPYING', 'NOTICE', 'THIRDPARTYNOTICE', 'THIRDPARTYLICENSE', 'THIRDPARTYLICENCE', 'COPYRIGHT', 'AUTHORS'))
+                or any(re.sub(r'[^a-z0-9]', '', part.lower()) in {'licenses', 'license', 'licences', 'licence', 'copying', 'notice', 'notices',
+                    'thirdpartylicenses', 'thirdpartylicences', 'thirdpartynotices'} for part in parts[:-1])):
+                continue
+            path = _ordinary_runtime_file(environment, 'upstream/' + name)
+            size = path.stat().st_size; source_bytes += size
+            if size > 4 * 1024 * 1024 or source_bytes > 32 * 1024 * 1024:
+                raise AcceptanceBlocked('Auxiliary source notices exceeded their hash budget.')
+            if size != record.get('size') or digest(path) != record.get('sha256'):
+                raise AcceptanceBlocked('An auxiliary source notice differs from its verified receipt.')
+            source_notices.append({'path': name, 'sha256': record['sha256'], 'size': size,
+                                   'text_omission': 'source_archive_text_review_pending'})
+        if digest(environment / 'forge-dubbing-runtime.json') != identity['marker_sha256']:
+            raise AcceptanceBlocked('The runtime marker changed during its audit.')
+        environments[identity['runtime_revision']] = {**identity, **observed, 'components': [component],
+            'pip_check': {'exit_code': 0, 'summary': 'No broken requirements reported by the resolved interpreter.',
+                          'stdout_sha256': hashlib.sha256(check.stdout).hexdigest(),
+                          'stderr_sha256': hashlib.sha256(check.stderr).hexdigest()},
+            'notice_files': notices, 'source_notice_files': source_notices,
+            'auxiliary_source_receipt_sha256': hashlib.sha256(json.dumps(source_records, sort_keys=True).encode()).hexdigest(),
+            'auxiliary_source_files': len(source_records), 'source_notice_text_review_pending': bool(source_records),
+            'legal_review_status': 'pending', 'full_notice_review_status': 'pending'}
+    evidence = {'schema': 1, 'kind': 'installed_runtime_evidence', 'status': 'passed',
+            'environment_count': len(environments), 'environments': environments,
+            'license_declarations_are_approval': False, 'legal_review_status': 'pending'}
+    if len(json.dumps(evidence, ensure_ascii=False).encode('utf-8')) > 1280 * 1024:
+        raise AcceptanceBlocked('The runtime evidence exceeded its main-report serialization budget.')
+    return evidence, texts
+
+
+def write_runtime_notices(output, texts):
+    """Keep public, RECORD-verified notice texts in an explicitly bounded sidecar."""
+    value = {'schema': 1, 'kind': 'installed_runtime_notices', 'legal_review_status': 'pending',
+             'notice_texts': [], 'omitted_texts': [], 'omitted_text_count': 0}
+    for record in texts:
+        if record.get('integrity') != 'record_verified' or len(record['text'].encode('utf-8')) > 256 * 1024:
+            raise AcceptanceBlocked('Only bounded RECORD-verified notice text may enter the public sidecar.')
+        value['notice_texts'].append(record)
+        if len(json.dumps(value, ensure_ascii=False).encode('utf-8')) > 2 * 1024 * 1024 - 32768:
+            value['notice_texts'].pop()
+            value['omitted_text_count'] += 1
+            if len(value['omitted_texts']) < 64:
+                value['omitted_texts'].append({**{key: record[key] for key in ('runtime_revision', 'package', 'path', 'sha256', 'size')},
+                                              'text_omission': 'sidecar_total_text_bound'})
+    raw = (json.dumps(value, ensure_ascii=False, allow_nan=False) + '\n').encode('utf-8')
+    if len(raw) > 2 * 1024 * 1024:
+        raise AcceptanceBlocked('The runtime notice sidecar exceeded its serialization bound.')
+    path = Path(output) / RUNTIME_NOTICES_NAME
+    with path.open('xb') as stream:
+        stream.write(raw)
+    return {'filename': RUNTIME_NOTICES_NAME, 'sha256': hashlib.sha256(raw).hexdigest(), 'size': len(raw),
+            'included_texts': len(value['notice_texts']), 'omitted_texts': value['omitted_text_count'],
+            'legal_review_status': 'pending'}
 
 
 def media_probe(path):
@@ -272,6 +625,11 @@ def run_acceptance(data_root, output, *, device='cpu', approve_install=False, re
         report['installed_identities'] = identities
         for component in COMPONENTS:
             report['components'][component] = {'verification': models.verify(component, data_root)}
+        runtime_evidence, notice_texts = collect_runtime_evidence(data_root)
+        report['runtime_evidence'] = runtime_evidence
+        report['runtime_notice_artifact'] = write_runtime_notices(output, notice_texts)
+        if any(row['notice_integrity_failures'] for row in runtime_evidence['environments'].values()):
+            raise AcceptanceBlocked('An installed notice failed its recorded hash/size integrity check; no altered notice text is exported. Use reviewed Repair.')
         fixture_root = data_root / 'dubbing' / 'acceptance-fixtures' / uuid.uuid4().hex
         reference, provenance, reference_media = make_reference(fixture_root)
         report.update(reference_provenance=provenance, reference_text=REFERENCE_TEXT, reference_media=reference_media)
@@ -292,7 +650,8 @@ def run_acceptance(data_root, output, *, device='cpu', approve_install=False, re
         if 'ФОРДЖ' not in translated[1]['text'] or '3' not in translated[1]['text'] or '2026-11-13' not in translated[2]['text'] or '10:30' not in translated[2]['text']:
             raise AcceptanceBlocked('A protected glossary term, number or date was lost.')
         report['components']['opus-en-ru']['inference'] = {**_metrics(translation, device), 'segments': translated,
-            'generation_calls': translation['generation_calls'], 'human_quality_approved': False}
+            'generation_calls': translation['generation_calls'], 'warnings': translation.get('warnings', []),
+            'human_quality_approved': False}
         english = models.test('whisper-tiny', data_root, request={'source': str(reference), 'language': 'en',
             'device': 'cpu', 'model_revision': identities['whisper-tiny']['model_revision']}, progress=progress)
         english_meta = _metrics(english, 'cpu')

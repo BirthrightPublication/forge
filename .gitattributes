@@ -2,4 +2,5 @@
 docs/model-notices/* -text whitespace=-blank-at-eol,-blank-at-eof
 # Preserve the exact native evidence digest and Windows command-file bytes.
 docs/validation/v0.10/native-cpu-049e82a.json -text whitespace=cr-at-eol
+docs/validation/v0.10/native-cpu-3b1e7c5.json -text whitespace=cr-at-eol
 "scripts/Run V0.10 Verification.bat" -text whitespace=cr-at-eol

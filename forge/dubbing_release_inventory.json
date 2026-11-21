@@ -1,7 +1,6 @@
 {
   "blockers": [
-    "OPUS publisher/upstream license-scope review and owner acknowledgement",
-    "Complete dependency/native-library notice review and installed native closure approval",
+    "Complete dependency/native-library notice and scoped license review",
     "Exact-source GUI/native Windows install/restart/updater/model acceptance",
     "Physical GPU inference acceptance",
     "Authorized live private YouTube OAuth/upload/captions acceptance"
@@ -146,13 +145,30 @@
           ],
           "id": "translation",
           "license": {
+            "applied_terms": [
+              {
+                "id": "CC-BY-4.0",
+                "scope": "Original OPUS-MT pretrained material; its grant and downstream rights continue unchanged."
+              },
+              {
+                "id": "Apache-2.0",
+                "scope": "Separate exact converted-checkpoint publisher-card declaration; not a replacement of upstream CC-BY-4.0 rights."
+              }
+            ],
+            "attribution_notice": {
+              "file": "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+              "origin": "FORGE-authored attribution and unchanged-artifact status, separate from unmodified upstream evidence",
+              "sha256": "6d3b6662aeed735785150094d5dabb7671c4ffacb18fda445b99914e2b12d53a",
+              "size": 4558
+            },
             "checkpoint_card": {
               "path": "README.md",
               "sha256": "020bfd697b7d0da0338611cf445eb44ae45dda27ff49f2bf64e21ee46882b48b",
               "size": 1123,
               "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/README.md"
             },
-            "commercial_use": null,
+            "commercial_use": true,
+            "declared_spdx_id": "Apache-2.0",
             "distribution_approved": false,
             "external_evidence": [
               {
@@ -213,27 +229,35 @@
               }
             ],
             "id": "apache-2.0",
-            "note": "Publisher-card and upstream scopes remain separately identified. No blanket distribution approval is inferred.",
-            "owner_acknowledged": false,
-            "owner_acknowledgement_required": true,
+            "note": "Publisher declaration and any underlying pretrained-material terms remain separately identified and preserved. This scoped model review does not approve the whole native runtime or final release.",
+            "notice_obligation_expression": "Apache-2.0 AND CC-BY-4.0",
             "publisher_declaration_verified": true,
-            "review_pending": true,
-            "reviewed": false,
-            "scope_conflict": true
+            "review_pending": false,
+            "review_scope": "Exact scoped model terms and retained notice obligations for optional unchanged local installation; runtime-binary license audit and final distribution/release approval remain separate.",
+            "reviewed": true,
+            "scope_conflict": true,
+            "scope_resolution": "Preserve cumulative scoped notices and conditions. Both grants permit commercial use; no noncommercial restriction or requirement for separate publisher/owner permission appears in the reviewed terms. FORGE adds no restriction to original CC-BY-4.0 rights.",
+            "scope_review_completed": true
           },
           "repository": "Helsinki-NLP/opus-mt-en-ru",
           "revision": "bb09c99d180016eac6819df3dae68edb1690fdee"
         }
       ],
       "runtime": {
+        "dependency_closure_complete": true,
+        "dependency_closure_evidence": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+        "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
         "device": "cpu",
         "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
-        "license_evidence_sha256": "415081f631b239ce6fe019888ba631aa987a252dbc9b751be0663dc705f65f66",
+        "license_evidence_sha256": "a93cc2379e759c956ef5971815ec69f650ce26cb77ee93bec291183e2e2b2f4c",
+        "model_inference_tested": true,
+        "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
+        "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
         "requirements": "scripts/requirements-dubbing-core.txt",
         "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
         "reviewed": false,
         "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
-        "wheel_inventory_sha256": "870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c"
+        "wheel_inventory_sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
       }
     },
     "qwen3-tts-0.6b-base": {
@@ -376,13 +400,26 @@
           ],
           "id": "voice",
           "license": {
+            "applied_terms": [
+              {
+                "id": "Apache-2.0",
+                "scope": "Exact Qwen model publisher declaration with official full terms and copyright notice."
+              }
+            ],
+            "attribution_notice": {
+              "file": "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+              "origin": "FORGE-authored attribution and unchanged-artifact status, separate from unmodified upstream evidence",
+              "sha256": "6d3b6662aeed735785150094d5dabb7671c4ffacb18fda445b99914e2b12d53a",
+              "size": 4558
+            },
             "checkpoint_card": {
               "path": "README.md",
               "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
               "size": 3640,
               "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/README.md"
             },
-            "commercial_use": null,
+            "commercial_use": true,
+            "declared_spdx_id": "Apache-2.0",
             "distribution_approved": false,
             "external_evidence": [
               {
@@ -401,33 +438,39 @@
               }
             ],
             "id": "apache-2.0",
-            "note": "Publisher-card and upstream scopes remain separately identified. No blanket distribution approval is inferred.",
-            "owner_acknowledged": false,
-            "owner_acknowledgement_required": false,
+            "note": "Publisher declaration and any underlying pretrained-material terms remain separately identified and preserved. This scoped model review does not approve the whole native runtime or final release.",
             "publisher_declaration_verified": true,
-            "review_pending": true,
-            "reviewed": false,
-            "scope_conflict": false
+            "review_pending": false,
+            "review_scope": "Exact scoped model terms and retained notice obligations for optional unchanged local installation; runtime-binary license audit and final distribution/release approval remain separate.",
+            "reviewed": true,
+            "scope_conflict": false,
+            "scope_review_completed": true
           },
           "repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
           "revision": "5d83992436eae1d760afd27aff78a71d676296fc"
         }
       ],
       "runtime": {
+        "dependency_closure_complete": true,
+        "dependency_closure_evidence": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+        "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
         "device": "cpu",
         "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
-        "license_evidence_sha256": "415081f631b239ce6fe019888ba631aa987a252dbc9b751be0663dc705f65f66",
+        "license_evidence_sha256": "a93cc2379e759c956ef5971815ec69f650ce26cb77ee93bec291183e2e2b2f4c",
+        "model_inference_tested": true,
+        "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
+        "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
         "requirements": "scripts/requirements-dubbing-core.txt",
         "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
         "reviewed": false,
         "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
-        "wheel_inventory_sha256": "870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c"
+        "wheel_inventory_sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
       }
     }
   },
   "distribution_approved": false,
   "license_evidence": "docs/V0.10-PUBLISHER-LICENSES.json",
-  "license_evidence_sha256": "19c69dff28a2a49c244ae3d8cbc207e51a9ef4b5ea1f8ce2dc07a08e9f472322",
+  "license_evidence_sha256": "74da758e89d78054f452cd10f7a739a3b0d51af71e4adc85ed0991f9eff2eb45",
   "license_reviewed": false,
   "publisher_inventory": "forge/dubbing_publisher_inventory.json",
   "publisher_inventory_sha256": "0f432caacce25358460d6a113eb199636992a3f4c5b2bffffa40f3643dd4112d",

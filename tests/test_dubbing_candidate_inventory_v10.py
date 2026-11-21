@@ -10,11 +10,13 @@ import pytest
 
 from forge import dubbing_models as models
 from scripts import check_dubbing_release as gate
+from scripts import package_windows_release as package
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE = 'forge/dubbing_release_inventory.json'
 WHEEL_EVIDENCE = 'docs/V0.10-WHEEL-LICENSE-EVIDENCE.json'
+CPU_CLOSURE = 'docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json'
 
 
 def read(name):
@@ -69,11 +71,12 @@ def test_candidate_matches_fresh_publisher_inventory_and_real_notice_sources():
                     assert '/' + artifact['source_revision'] + '/' in artifact['url']
             license = part['license']
             assert license['id'] == actual['license']
-            assert license['reviewed'] is False and license['review_pending'] is True
-            assert license['commercial_use'] is None and license['distribution_approved'] is False
+            assert license['reviewed'] is True and license['review_pending'] is False
+            assert license['commercial_use'] is True and license['distribution_approved'] is False
+            assert license['declared_spdx_id'] == 'Apache-2.0' and license['scope_review_completed'] is True
             assert license['scope_conflict'] is actual['license_evidence']['scope_conflict']
-            assert license['owner_acknowledged'] is False
-            assert license['owner_acknowledgement_required'] is license['scope_conflict']
+            assert 'owner_acknowledged' not in license
+            assert 'owner_acknowledgement_required' not in license
             assert len(license['external_evidence']) == len(actual['external_license_evidence'])
             for notice in license['external_evidence']:
                 assert notice['retained_source_file'] == documents[notice['url']]['file']
@@ -81,11 +84,50 @@ def test_candidate_matches_fresh_publisher_inventory_and_real_notice_sources():
                 assert_retained(notice)
             if license['scope_conflict']:
                 assert {item['license_id'] for item in license['external_evidence']} == {'Apache-2.0', 'CC-BY-4.0'}
+                assert license['notice_obligation_expression'] == 'Apache-2.0 AND CC-BY-4.0'
+                assert {item['id'] for item in license['applied_terms']} == {'Apache-2.0', 'CC-BY-4.0'}
+            else:
+                assert {item['id'] for item in license['applied_terms']} == {'Apache-2.0'}
+            assert license['attribution_notice'] == legal['application_attribution_notice']
         runtime = configured['runtime']
         assert runtime['device'] == 'cpu' and runtime['reviewed'] is False
         assert runtime['requirements_sha256'] == sha(runtime['requirements'])
         assert runtime['wheel_inventory_sha256'] == sha(runtime['wheel_inventory'])
         assert runtime['license_evidence_sha256'] == sha(runtime['license_evidence'])
+        assert runtime['dependency_closure_evidence'] == CPU_CLOSURE
+        assert runtime['dependency_closure_evidence_sha256'] == sha(CPU_CLOSURE)
+        assert runtime['observed_cpu_runtime_id'] == read(CPU_CLOSURE)['runtime_id']
+        assert runtime['observed_cpu_source_commit'] == read(CPU_CLOSURE)['source_commit']
+        assert runtime['dependency_closure_complete'] is True and runtime['model_inference_tested'] is True
+
+
+def test_scoped_model_review_delivers_attribution_terms_and_unchanged_lineage_in_windows_payload():
+    legal = read('docs/V0.10-PUBLISHER-LICENSES.json')
+    assert legal['model_license_scopes_reviewed'] is True
+    assert legal['status'] == 'model_scopes_reviewed_runtime_notice_audit_pending'
+    assert legal['distribution_approved'] is False
+    assert legal['opus']['scope_reviewed'] is legal['qwen']['scope_reviewed'] is True
+    assert legal['opus']['commercial_use_permitted_subject_to_terms'] is legal['qwen']['commercial_use_permitted_subject_to_terms'] is True
+    assert legal['opus']['checkpoint_card_declared_license'] == 'Apache-2.0'
+    assert legal['opus']['original_pretrained_model_terms'] == 'CC-BY-4.0'
+    assert legal['opus']['source_code_terms_separate'] == 'MIT'
+    notice = legal['application_attribution_notice']
+    assert (ROOT / notice['file']).stat().st_size == notice['size']
+    assert sha(notice['file']) == notice['sha256']
+    text = (ROOT / notice['file']).read_text('utf-8')
+    for expected in ('bb09c99d180016eac6819df3dae68edb1690fdee', 'opus-2020-02-11.zip',
+                     '5d83992436eae1d760afd27aff78a71d676296fc', 'CC-BY-4.0',
+                     'Copyright 2026 Alibaba Cloud', 'downloads and installs',
+                     'unchanged', 'endorsement', 'FORGE code'):
+        assert expected in text
+    delivery = legal['notice_delivery']
+    assert delivery['packaging_policy_checked'] is True and delivery['normal_updater_payload'] is True
+    assert delivery['exact_release_archive_verified'] is False and delivery['no_model_weights_bundled'] is True
+    assert set(delivery['source_and_windows_payload_files']) == {notice['file'], *[item['file'] for item in legal['evidence']]}
+    for document in [notice, *legal['evidence']]:
+        assert sha(document['file']) == document['sha256']
+        assert (ROOT / document['file']).stat().st_size == document['size']
+        assert str(package.payload_path(document['file'])) == document['file']
 
 
 def test_primary_wheel_license_labels_are_bound_to_exact_wheels_and_retained_text():
@@ -126,8 +168,14 @@ def test_primary_wheel_license_labels_are_bound_to_exact_wheels_and_retained_tex
         assert descriptor['review_flags_promoted'] is False
         lock = read(descriptor['path'])
         assert lock['native_windows_execution'] is True and lock['cross_resolved'] is False
-        assert lock.get('reviewed') is not True and lock.get('dependency_closure_complete') is not True
-        assert lock['model_inference_tested'] is False and lock['physical_gpu_tested'] is False
+        assert lock.get('reviewed') is not True and lock['physical_gpu_tested'] is False
+        if lock['device'] == 'cpu':
+            assert lock['dependency_closure_complete'] is True and lock['model_inference_tested'] is True
+            assert lock['dependency_closure_evidence'] == descriptor['external_execution_evidence'] == CPU_CLOSURE
+            assert lock['dependency_closure_evidence_sha256'] == descriptor['external_execution_evidence_sha256'] == sha(CPU_CLOSURE)
+        else:
+            assert lock.get('dependency_closure_complete') is not True and lock['model_inference_tested'] is False
+            assert 'external_execution_evidence' not in descriptor
         changes = {item['wheel_sha256']: item for item in descriptor['changes']}
         assert len(changes) == 7
         for wheel in lock['wheels']:
@@ -138,6 +186,68 @@ def test_primary_wheel_license_labels_are_bound_to_exact_wheels_and_retained_tex
             assert wheel['size'] == record['wheel_size']
             assert change['previous_license'] == 'See publisher LICENSE'
             assert wheel['license'] == change['license'] == record['primary_license_identified']
+
+
+def test_cpu_closure_binds_real_native_report_source_wheels_and_runtime_recipe():
+    closure = read(CPU_CLOSURE)
+    report = read(closure['report']['path'])
+    provenance = read(closure['report_provenance']['path'])
+    observed = closure['observed_wheel_lock']
+    lock = read(observed['path'])
+    assert closure['kind'] == 'native_cpu_dependency_closure' and closure['status'] == 'verified'
+    assert closure['source_commit'] == report['source_commit'] == provenance['source_commit'] == '3b1e7c5f0d625ede7403b9c1d1b069c93481498f'
+    assert closure['run_id'] == provenance['run_id'] == 44854764936
+    assert closure['report']['sha256'] == provenance['report_sha256'] == sha(closure['report']['path'])
+    assert closure['report']['size'] == provenance['report_bytes'] == (ROOT / closure['report']['path']).stat().st_size
+    assert closure['report_provenance']['sha256'] == sha(closure['report_provenance']['path'])
+    assert closure['retained_actions_archive']['sha256'] == provenance['archive_sha256'] == 'a0427acd9be621b3bb8ce6e197e5c1b00aa8902ab103f6844571eab6938ef7f1'
+    assert report['status'] == 'passed' and report['native_windows_execution'] is True
+    assert report['source_checkout_clean'] is True and report['inference_substituted'] is False
+    assert closure['source_manifest_sha256'] == report['source_manifest_sha256']
+    assert closure['source_files_sha256'] == report['source_files_sha256']
+    assert set(closure['source_files_sha256']) == {
+        'forge/dubbing_models.py', 'scripts/dubbing_runtime.py', 'scripts/dubbing_cpu_acceptance.py'}
+    assert all(models.SHA256.fullmatch(value) for value in closure['source_files_sha256'].values())
+    assert observed['source_commit'] == closure['source_commit']
+    assert observed['wheel_count'] == len(lock['wheels']) == 60
+    assert observed['download_bytes'] == lock['download_bytes'] == sum(item['size'] for item in lock['wheels'])
+    assert observed['canonical_wheels_sha256'] == hashlib.sha256(models._canonical(lock['wheels'])).hexdigest()
+    # Reconstruct the exact observed lock by undoing only this later evidence
+    # annotation. Wheel bytes, resolver metadata, and all CUDA flags stay fixed.
+    original = dict(lock)
+    for key in ('dependency_closure_complete', 'reviewed', 'dependency_closure_evidence',
+                'dependency_closure_evidence_sha256', 'model_inference_evidence', 'model_inference_evidence_sha256'):
+        original.pop(key)
+    original['model_inference_tested'] = False
+    original_bytes = (json.dumps(original, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode('utf-8')
+    assert observed['sha256'] == hashlib.sha256(original_bytes).hexdigest() == '870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c'
+    recipe = {'requirements': lock['requirements_sha256'],
+              'wheels': [[item['package'], item['version'], item['sha256']] for item in lock['wheels']],
+              'sources': models._spec('opus-en-ru')['sources'], 'device': 'cpu', 'python': report['platform']['python']}
+    assert recipe == closure['runtime_recipe']
+    assert closure['requirements']['sha256'] == lock['requirements_sha256'] == sha(closure['requirements']['path'])
+    assert closure['runtime_recipe_sha256'] == hashlib.sha256(models._canonical(recipe)).hexdigest()
+    assert closure['runtime_id'] == 'dubbing-core-' + closure['runtime_recipe_sha256'][:16]
+    for component, row in report['components'].items():
+        assert models._spec(component)['sources'] == recipe['sources']
+        assert row['verification']['status'] == 'passed' and row['inference']['inference_tested'] is True
+        assert row['inference']['actual_device'] == 'cpu' and row['inference']['physical_gpu_tested'] is False
+        assert row['verification']['runtime_revision'] == row['inference']['runtime_revision'] == closure['runtime_id']
+        assert report['installed_identities'][component]['runtime_revision'] == closure['runtime_id']
+        assert row['verification']['model_revision'] == models.MODEL_PINS[models._spec(component)['parts'][0]['repository']]
+    assert sum(row['verification']['files_verified'] for row in report['components'].values()) == closure['model_files_and_notices_verified'] == 30
+    assert closure['verified_after_fresh_controller'] is report['verified_after_fresh_controller'] is True
+    assert closure['dependency_closure_complete'] is closure['model_inference_tested'] is True
+    assert closure['reviewed'] is closure['distribution_approved'] is closure['physical_gpu_tested'] is False
+    assert closure['raw_pip_stdout_retained'] is closure['installed_environment_receipt_retained'] is False
+    assert closure['satisfies_release_acceptance'] is report['satisfies_release_acceptance'] is False
+    assert lock['model_inference_evidence'] == closure['report']['path']
+    assert lock['model_inference_evidence_sha256'] == closure['report']['sha256']
+    linked = read(WHEEL_EVIDENCE)['native_cpu_dependency_closure']
+    assert linked['sha256'] == sha(CPU_CLOSURE) and linked['path'] == CPU_CLOSURE
+    assert linked['observed_lock_sha256'] == observed['sha256']
+    assert linked['canonical_wheels_sha256'] == observed['canonical_wheels_sha256']
+    assert linked['runtime_id'] == closure['runtime_id'] and linked['reviewed'] is False
 
 
 def test_real_candidate_is_blocked_by_model_license_review_gate(tmp_path):

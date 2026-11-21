@@ -25,6 +25,7 @@ class SyntheticRunner:
                        'source_files_sha256': {'forge/dubbing_models.py': 'c' * 64}}
         self.device = 'cpu'
         self.calls = []
+        self.with_notices = False
 
     def source_identity(self, **kwargs):
         return copy.deepcopy(self.source)
@@ -41,6 +42,21 @@ class SyntheticRunner:
         sample = output / 'Russian-acceptance.wav'
         sample.write_bytes(b'Owned fixture sample, not actual speech.')
         report = synthetic_report(self, kwargs['device'], sample.read_bytes())
+        if self.with_notices:
+            text = 'MIT License\nCopyright 2026 Synthetic verification fixture.\n'
+            raw_text = text.encode('utf-8')
+            notices = {'schema': 1, 'kind': 'installed_runtime_notices', 'legal_review_status': 'pending',
+                'notice_texts': [{'runtime_revision': identities()['opus-en-ru']['runtime_revision'],
+                    'package': 'owned-fixture', 'version': '1.0', 'path': 'owned_fixture-1.0.dist-info/licenses/LICENSE',
+                    'scope': 'installed_distribution', 'integrity': 'record_verified', 'size': len(raw_text),
+                    'sha256': hashlib.sha256(raw_text).hexdigest(), 'text': text,
+                    'private_diagnostic': '/private/owner/secret'}], 'omitted_texts': [], 'omitted_text_count': 0,
+                'unexpected_token': 'owned-secret-never-exported'}
+            raw = json.dumps(notices).encode('utf-8')
+            (output / acceptance.RUNTIME_NOTICES_NAME).write_bytes(raw)
+            report['runtime_notice_artifact'] = {'filename': acceptance.RUNTIME_NOTICES_NAME,
+                'sha256': hashlib.sha256(raw).hexdigest(), 'size': len(raw), 'included_texts': 1,
+                'omitted_texts': 0, 'legal_review_status': 'pending'}
         return report
 
 
@@ -199,6 +215,97 @@ def test_translation_review_only_exposes_bounded_exact_synthetic_pairs(service, 
     assert acceptance._translation_pairs(receipt) == []
 
 
+def test_current_notice_download_filters_public_fields_and_binds_exact_run(service, tmp_path):
+    value, runner, store = service
+    with pytest.raises(ValueError, match='current passing'):
+        value.export_notices()
+    runner.with_notices = True
+    job = finish(value, runner, store, tmp_path)
+    exported = value.export_notices()
+    assert value.state()['runtime_notices_available'] is True
+    assert exported['source'] == runner.source and exported['models'] == identities()
+    assert exported['job_id'] == job['id'] and exported['local_report_sha256'] == value.receipt(job)['report_sha256']
+    assert exported['legal_review_status'] == 'pending' and exported['satisfies_release_acceptance'] is False
+    assert exported['notice_texts'][0]['integrity'] == 'record_verified'
+    assert 'MIT License' in exported['notice_texts'][0]['text']
+    serialized = json.dumps(exported)
+    assert all(secret not in serialized for secret in ('private_diagnostic', '/private/', 'unexpected_token', 'owned-secret', str(store.data)))
+    summary = value.export()['model_evidence']['runtime_notice_artifact']
+    assert summary['sha256'] == exported['sidecar_sha256'] and summary['included_texts'] == 1
+    assert 'MIT License' not in json.dumps(value.export())
+    runner.source['source_commit'] = 'f' * 40
+    assert value.state()['runtime_notices_available'] is False
+    with pytest.raises(ValueError, match='current passing'):
+        value.export_notices()
+
+
+@pytest.mark.parametrize('filename', ['ThirdPartyNotices.txt', 'THIRD_PARTY_NOTICES.txt',
+                                     'THIRD-PARTY-LICENSES', 'COPYRIGHT', 'AUTHORS',
+                                     'third_party_notices/DEPENDENCY.txt', 'THIRD_PARTY_LICENSES/DEPENDENCY.txt'])
+def test_verified_compound_third_party_notices_are_available_for_legal_export(service, tmp_path, filename):
+    value, runner, store = service
+    runner.with_notices = True
+    job = finish(value, runner, store, tmp_path)
+    report_path = next(Path(row['path']) for row in job['outputs'] if Path(row['path']).name == acceptance.REPORT_NAME)
+    notice_path = next(Path(row['path']) for row in job['outputs'] if Path(row['path']).name == acceptance.RUNTIME_NOTICES_NAME)
+    document = json.loads(notice_path.read_text())
+    document['notice_texts'][0]['path'] = 'onnxruntime/' + filename
+    raw = json.dumps(document).encode()
+    notice_path.write_bytes(raw)
+    receipt = json.loads(report_path.read_text())
+    receipt['report']['runtime_notice_artifact'].update(size=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+    receipt['report_sha256'] = acceptance._digest(receipt['report'])
+    json_write(report_path, receipt)
+    exported = value.export_notices()
+    assert value.state()['runtime_notices_available'] is True
+    assert exported['notice_texts'][0]['path'] == 'onnxruntime/' + filename
+    assert exported['notice_texts'][0]['integrity'] == 'record_verified'
+    assert exported['legal_review_status'] == 'pending'
+
+
+@pytest.mark.parametrize('fault', ['changed_bytes', 'wrong_runtime', 'unverified_text', 'private_path', 'unsafe_relative_path', 'size_bound'])
+def test_runtime_notice_export_refuses_changed_unverified_or_private_artifacts(service, tmp_path, fault):
+    value, runner, store = service
+    runner.with_notices = True
+    job = finish(value, runner, store, tmp_path)
+    report_path = next(Path(row['path']) for row in job['outputs'] if Path(row['path']).name == acceptance.REPORT_NAME)
+    notice_path = next(Path(row['path']) for row in job['outputs'] if Path(row['path']).name == acceptance.RUNTIME_NOTICES_NAME)
+    receipt = json.loads(report_path.read_text())
+    document = json.loads(notice_path.read_text())
+    row = document['notice_texts'][0]
+    if fault == 'changed_bytes': notice_path.write_bytes(b'changed after verification')
+    elif fault == 'size_bound': receipt['report']['runtime_notice_artifact']['size'] = acceptance.NOTICE_LIMIT + 1
+    else:
+        if fault == 'wrong_runtime': row['runtime_revision'] = 'another-runtime'
+        elif fault == 'unverified_text': row['integrity'] = 'pending'
+        elif fault == 'private_path':
+            row['text'] = 'License with /home/owner/private-data path'
+            raw_text = row['text'].encode()
+            row.update(size=len(raw_text), sha256=hashlib.sha256(raw_text).hexdigest())
+        else: row['path'] = '../licenses/LICENSE'
+        raw = json.dumps(document).encode()
+        notice_path.write_bytes(raw)
+        receipt['report']['runtime_notice_artifact'].update(size=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+    receipt['report_sha256'] = acceptance._digest(receipt['report'])
+    json_write(report_path, receipt)
+    assert value.state()['runtime_notices_available'] is False
+    assert 'runtime_notice_artifact' not in value.export()['model_evidence']
+    with pytest.raises(ValueError, match='current passing'):
+        value.export_notices()
+
+
+def test_notice_export_refuses_symlink_even_when_bytes_and_declared_hash_match(service, tmp_path):
+    value, runner, store = service
+    runner.with_notices = True
+    job = finish(value, runner, store, tmp_path)
+    notice_path = next(Path(row['path']) for row in job['outputs'] if Path(row['path']).name == acceptance.RUNTIME_NOTICES_NAME)
+    outside = tmp_path / 'same-bytes.json'; outside.write_bytes(notice_path.read_bytes())
+    notice_path.unlink(); notice_path.symlink_to(outside)
+    assert value.state()['runtime_notices_available'] is False
+    with pytest.raises(ValueError, match='current passing'):
+        value.export_notices()
+
+
 @pytest.mark.parametrize('fault', ['summary_only', 'wrong_model', 'wrong_runtime', 'no_vram', 'cpu_claims_gpu', 'missing_timings'])
 def test_per_component_real_device_facts_are_required_even_with_summary_pass(service, fault):
     _, runner, _ = service
@@ -280,6 +387,8 @@ def test_authenticated_api_uses_existing_queue_and_refuses_client_request_inject
         assert response.status_code == 200 and response.json()['satisfies_release_acceptance'] is False
         assert client.post('/api/dubbing/acceptance/translation-review', headers=headers,
                            json={'job_id': 'missing', 'approve': True}).status_code == 400
+        assert client.get('/api/dubbing/acceptance/runtime-notices', headers=headers).status_code == 400
+        assert client.get('/api/dubbing/acceptance/runtime-notices').status_code in {401, 403}
         forbidden = client.post('/api/dubbing/acceptance/run', json={'device': 'cpu', 'consent': True,
             'source': '/private/input.wav'}, headers=headers)
         assert forbidden.status_code == 400 and app.state.store.jobs() == []
@@ -288,6 +397,15 @@ def test_authenticated_api_uses_existing_queue_and_refuses_client_request_inject
         job = app.state.store.job(queued.json()['job']['id'])
         assert job['tool'] == 'dubbing_model_test' and job['payload']['options']['action'] == 'test'
         assert job['payload']['dubbing_acceptance_run']['models'] == identities()
+        runner.with_notices = True
+        stage = app.state.store.data / 'reports' / job['id']; stage.mkdir(parents=True)
+        outputs, _, _ = acceptance.run_worker(job['payload'], stage, app.state.store.data)
+        app.state.store.update_job(job['id'], status='completed', outputs=[{'path': str(path)} for path in outputs])
+        notices = client.get('/api/dubbing/acceptance/runtime-notices', headers=headers)
+        assert notices.status_code == 200 and 'attachment' in notices.headers['content-disposition']
+        assert notices.json()['job_id'] == job['id'] and notices.json()['legal_review_status'] == 'pending'
+        assert notices.json()['models'] == identities() and 'owned-secret-never-exported' not in notices.text
         exported = client.get('/api/dubbing/acceptance/export', headers=headers)
         assert exported.status_code == 200 and 'attachment' in exported.headers['content-disposition']
-        assert str(tmp_path) not in exported.text and exported.json()['model_evidence'] is None
+        assert str(tmp_path) not in exported.text
+        assert exported.json()['model_evidence']['runtime_notice_artifact']['included_texts'] == 1

@@ -45,6 +45,13 @@ def proof(tmp_path):
     requirements = source / 'scripts' / 'requirements-dubbing-core.txt'
     requirements.parent.mkdir(parents=True)
     requirements.write_text('# Synthetic validator closure, not installable acceptance.\ntorch==2.8.0\n', encoding='utf-8')
+    attribution_name = 'docs/model-notices/SYNTHETIC-ATTRIBUTION.txt'
+    attribution = source / attribution_name
+    attribution.parent.mkdir(parents=True)
+    attribution.write_text('SYNTHETIC VALIDATOR ATTRIBUTION FIXTURE ONLY; no actual model/license approval.\n', encoding='utf-8')
+    external_name = 'docs/model-notices/SYNTHETIC-UPSTREAM.txt'
+    external = source / external_name
+    external.write_text('SYNTHETIC UPSTREAM NOTICE FIXTURE ONLY; not actual publisher evidence.\n', encoding='utf-8')
     wheel_name = 'forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json'
     wheel = {'schema': 1, 'profile': 'requirements-dubbing-core', 'system': 'windows', 'architecture': 'x64',
         'python_version': '3.12', 'device': 'cpu', 'native_windows_execution': True, 'cross_resolved': False,
@@ -58,7 +65,12 @@ def proof(tmp_path):
         names += ['source.spm', 'target.spm', 'vocab.json'] if component == 'opus-en-ru' else [
             'generation_config.json', 'tokenizer_config.json', 'speech_tokenizer/config.json', 'speech_tokenizer/model.safetensors']
         components[component] = {'parts': [{'repository': repository, 'revision': pins[repository],
-            'license': {'id': 'Apache-2.0', 'reviewed': True, 'commercial_use': True},
+            'license': {'id': 'Apache-2.0', 'reviewed': True, 'commercial_use': True,
+                'attribution_notice': {'file': attribution_name, 'sha256': gate.digest(attribution),
+                                       'size': attribution.stat().st_size},
+                'external_evidence': [{'retained_source_file': external_name, 'sha256': gate.digest(external),
+                                       'size': external.stat().st_size,
+                                       'origin': 'SYNTHETIC CONTRACT FIXTURE; not actual upstream evidence'}]},
             'artifacts': [{'path': name, 'sha256': 'e' * 64, 'size': 11} for name in names]}],
             'runtime': {'requirements': 'scripts/requirements-dubbing-core.txt', 'requirements_sha256': gate.digest(requirements),
                         'wheel_inventory': wheel_name, 'wheel_inventory_sha256': gate.digest(source / wheel_name), 'device': 'cpu'}}
@@ -93,7 +105,8 @@ def proof(tmp_path):
         'artifacts': [{'path': 'reports/acceptance.json', 'sha256': gate.digest(report), 'size': report.stat().st_size},
                       {'path': 'reports/youtube-private.json', 'sha256': gate.digest(youtube_path), 'size': youtube_path.stat().st_size}]}
     path = dump(evidence / 'DUBBING_ACCEPTANCE.json', value)
-    return {'source': source, 'path': path, 'value': value, 'expected': expected, 'wheel_name': wheel_name}
+    return {'source': source, 'path': path, 'value': value, 'expected': expected, 'wheel_name': wheel_name,
+            'attribution_name': attribution_name, 'external_name': external_name}
 
 
 def verify(proof):
@@ -153,6 +166,83 @@ def test_unverified_model_or_runtime_inventory_is_rejected(proof, fault):
         else: component['runtime']['wheel_inventory'] = 'forge/missing.json'
     change_inventory(proof, mutate)
     with pytest.raises(gate.GateError):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+@pytest.mark.parametrize('label', ['See publisher LICENSE', 'See the package distribution LICENSE',
+                                 'See package license', 'UNKNOWN', 'Unreviewed'])
+def test_placeholder_wheel_license_cannot_satisfy_reviewed_runtime(proof, label):
+    source = proof['source']
+    inventory_path = source / gate.INVENTORY
+    inventory = json.loads(inventory_path.read_text())
+    for component in inventory['components'].values():
+        runtime = component['runtime']
+        lock_path = source / runtime['wheel_inventory']
+        lock = json.loads(lock_path.read_text())
+        lock['wheels'][0]['license'] = label
+        dump(lock_path, lock)
+        runtime['wheel_inventory_sha256'] = gate.digest(lock_path)
+    dump(inventory_path, inventory)
+    refresh_manifest(source)
+    with pytest.raises(gate.GateError, match='binary wheel lacks reviewed'):
+        gate.static_inventory(source, TAG, COMMIT)
+
+
+@pytest.mark.parametrize('kind', ['attribution_notice', 'external_evidence'])
+@pytest.mark.parametrize('fault', ['missing_path', 'missing_hash', 'wrong_hash', 'missing_size', 'wrong_size',
+                                  'boolean_size', 'zero_size', 'missing_file', 'untracked_file',
+                                  'modified_notice', 'modified_and_remanifested_notice'])
+def test_reviewed_license_requires_manifest_bound_exact_retained_notice_bytes(proof, kind, fault):
+    path_key = 'file' if kind == 'attribution_notice' else 'retained_source_file'
+    notice_name = proof['attribution_name' if kind == 'attribution_notice' else 'external_name']
+    notice_path = proof['source'] / notice_name
+    def mutate(value):
+        license = value['components']['opus-en-ru']['parts'][0]['license']
+        descriptor = license[kind] if kind == 'attribution_notice' else license[kind][0]
+        if fault == 'missing_path':
+            if kind == 'attribution_notice': descriptor.pop(path_key)
+            else: descriptor[path_key] = ''
+        elif fault == 'missing_hash': descriptor.pop('sha256')
+        elif fault == 'wrong_hash': descriptor['sha256'] = '0' * 64
+        elif fault == 'missing_size': descriptor.pop('size')
+        elif fault == 'wrong_size': descriptor['size'] += 1
+        elif fault == 'boolean_size': descriptor['size'] = True
+        elif fault == 'zero_size': descriptor['size'] = 0
+    change_inventory(proof, mutate)
+    if fault == 'missing_file':
+        notice_path.unlink()
+        refresh_manifest(proof['source'])
+    elif fault == 'untracked_file':
+        manifest_path = proof['source'] / 'release-manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['files'].pop(notice_name)
+        dump(manifest_path, manifest)
+    elif fault in {'modified_notice', 'modified_and_remanifested_notice'}:
+        notice_path.write_bytes(notice_path.read_bytes().replace(b'SYNTHETIC', b'REWRITTEN', 1))
+        if fault == 'modified_and_remanifested_notice':
+            refresh_manifest(proof['source'])
+    with pytest.raises(gate.GateError):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+@pytest.mark.parametrize('kind', ['attribution_notice', 'external_evidence'])
+@pytest.mark.parametrize('name', ['../outside.txt', '/outside.txt', 'C:/outside.txt', 'docs\\notice.txt',
+                                'docs/../notice.txt', 'docs/notice.txt ', None])
+def test_retained_notice_paths_cannot_escape_or_alias_the_source(proof, kind, name):
+    def mutate(value):
+        license = value['components']['opus-en-ru']['parts'][0]['license']
+        descriptor = license[kind] if kind == 'attribution_notice' else license[kind][0]
+        descriptor['file' if kind == 'attribution_notice' else 'retained_source_file'] = name
+    change_inventory(proof, mutate)
+    with pytest.raises(gate.GateError, match='unsafe evidence/inventory path'):
+        gate.static_inventory(proof['source'], TAG, COMMIT)
+
+
+@pytest.mark.parametrize('value', [None, {}, 'not a descriptor'])
+def test_reviewed_model_part_cannot_omit_its_attribution_notice(proof, value):
+    change_inventory(proof, lambda inventory: inventory['components']['opus-en-ru']['parts'][0]['license'].update(
+        attribution_notice=value))
+    with pytest.raises(gate.GateError, match='attribution notice descriptor'):
         gate.static_inventory(proof['source'], TAG, COMMIT)
 
 

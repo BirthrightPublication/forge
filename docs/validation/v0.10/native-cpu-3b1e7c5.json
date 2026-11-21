@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "kind": "dubbing_model_smoke",
+  "status": "passed",
+  "observed_at": "2026-11-21T02:15:19.540868+00:00",
+  "requested_device": "cpu",
+  "native_windows_execution": true,
+  "physical_gpu_tested": false,
+  "inference_substituted": false,
+  "private_inputs_used": false,
+  "reference_consent": true,
+  "through_forge_gui_install": false,
+  "satisfies_release_acceptance": false,
+  "platform": {
+    "system": "Windows",
+    "architecture": "AMD64",
+    "python": "3.12.10"
+  },
+  "components": {
+    "opus-en-ru": {
+      "verification": {
+        "status": "passed",
+        "component": "opus-en-ru",
+        "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 12,
+        "bytes_verified": 311515790,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 8.640999999999963,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "segments": [
+          {
+            "id": "owned-1",
+            "start": 0,
+            "end": 3,
+            "speaker": "test-speaker",
+            "source_text": "Hello. This is a local translation test.",
+            "text": "Здравствуйте, это местный тест на перевод.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          },
+          {
+            "id": "owned-2",
+            "start": 3,
+            "end": 7,
+            "speaker": "test-speaker",
+            "source_text": "FORGE keeps the original video. The project has 3 segments.",
+            "text": "ФОРДЖ У проекта есть оригинальное видео. 3 Сегменты.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          },
+          {
+            "id": "owned-3",
+            "start": 7,
+            "end": 10,
+            "speaker": "test-speaker",
+            "source_text": "The meeting starts on 2026-11-13 at 10:30.",
+            "text": "Заседание начинается 2026-11-13 по состоянию на 10:30.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          }
+        ],
+        "generation_calls": 5,
+        "human_quality_approved": false
+      }
+    },
+    "qwen3-tts-0.6b-base": {
+      "verification": {
+        "status": "passed",
+        "component": "qwen3-tts-0.6b-base",
+        "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 13,
+        "bytes_verified": 2516115875,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 34.17099999999999,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "text": "Привет. Это проверка русского голоса.",
+        "media": {
+          "duration": 2.96,
+          "sample_rate": 24000,
+          "channels": 1,
+          "codec": "pcm_f32le",
+          "bytes": 284240,
+          "sha256": "8697be0a4837ed63ff585747bc82d050ff8b344514decc98f75fedb4fdf02abb",
+          "decoded_and_probed": true,
+          "finite_samples": true,
+          "peak": 0.8129497766494751,
+          "rms": 0.07387001385082954
+        },
+        "reference_sha256": "20b8490cbf626ba054a9bc9c57acda710491c3ecef789aadffaec157089db362",
+        "human_quality_approved": false,
+        "independent_recognition": {
+          "text": "Привет. Это проверка русского голоса.",
+          "normalized_character_similarity": 1.0,
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+        }
+      }
+    },
+    "whisper-tiny": {
+      "verification": {
+        "status": "passed",
+        "component": "whisper-tiny",
+        "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 5,
+        "bytes_verified": 78205610,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 4.359000000000037,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "segments": [
+          {
+            "id": "asr-000001",
+            "start": 0.0,
+            "end": 3.66,
+            "speaker": "speaker1",
+            "source_text": "Hello. This is a local speech recognition test.",
+            "text": "",
+            "words": [
+              {
+                "start": 0.0,
+                "end": 0.48,
+                "word": " Hello.",
+                "probability": 0.7737972736358643
+              },
+              {
+                "start": 1.44,
+                "end": 1.62,
+                "word": " This",
+                "probability": 0.9799541234970093
+              },
+              {
+                "start": 1.62,
+                "end": 1.84,
+                "word": " is",
+                "probability": 0.9970646500587463
+              },
+              {
+                "start": 1.84,
+                "end": 1.98,
+                "word": " a",
+                "probability": 0.9709216952323914
+              },
+              {
+                "start": 1.98,
+                "end": 2.22,
+                "word": " local",
+                "probability": 0.934612512588501
+              },
+              {
+                "start": 2.22,
+                "end": 2.52,
+                "word": " speech",
+                "probability": 0.9727089405059814
+              },
+              {
+                "start": 2.52,
+                "end": 3.04,
+                "word": " recognition",
+                "probability": 0.9919867515563965
+              },
+              {
+                "start": 3.04,
+                "end": 3.66,
+                "word": " test.",
+                "probability": 0.9978616833686829
+              }
+            ],
+            "reviewed": false,
+            "manual_edit": false
+          },
+          {
+            "id": "asr-000002",
+            "start": 4.56,
+            "end": 7.0,
+            "speaker": "speaker1",
+            "source_text": "The next meeting is on Friday at 10 in the morning.",
+            "text": "",
+            "words": [
+              {
+                "start": 4.56,
+                "end": 4.68,
+                "word": " The",
+                "probability": 0.9817943572998047
+              },
+              {
+                "start": 4.68,
+                "end": 4.96,
+                "word": " next",
+                "probability": 0.9894871711730957
+              },
+              {
+                "start": 4.96,
+                "end": 5.26,
+                "word": " meeting",
+                "probability": 0.9926348328590393
+              },
+              {
+                "start": 5.26,
+                "end": 5.58,
+                "word": " is",
+                "probability": 0.9993108510971069
+              },
+              {
+                "start": 5.58,
+                "end": 5.72,
+                "word": " on",
+                "probability": 0.9663773775100708
+              },
+              {
+                "start": 5.72,
+                "end": 6.04,
+                "word": " Friday",
+                "probability": 0.980983555316925
+              },
+              {
+                "start": 6.04,
+                "end": 6.32,
+                "word": " at",
+                "probability": 0.9375969767570496
+              },
+              {
+                "start": 6.32,
+                "end": 6.48,
+                "word": " 10",
+                "probability": 0.9472559690475464
+              },
+              {
+                "start": 6.48,
+                "end": 6.68,
+                "word": " in",
+                "probability": 0.8357863426208496
+              },
+              {
+                "start": 6.68,
+                "end": 6.74,
+                "word": " the",
+                "probability": 0.9970310926437378
+              },
+              {
+                "start": 6.74,
+                "end": 7.0,
+                "word": " morning.",
+                "probability": 0.9901368618011475
+              }
+            ],
+            "reviewed": false,
+            "manual_edit": false
+          }
+        ],
+        "timings_verified": true,
+        "owned_fixture_word_coverage": 0.9411764705882353
+      }
+    }
+  },
+  "remaining_acceptance": [
+    "GUI install/repair",
+    "native updater/upgrade/rollback",
+    "human translation and voice quality review",
+    "live reviewed YouTube OAuth/private upload",
+    "final release inventory and owner approval",
+    "Physical GPU/owner RTX 5080 acceptance"
+  ],
+  "source_files_sha256": {
+    "forge/dubbing_models.py": "6947d5a8f898b5e0a277fe26b1334a2a99830c021ed904554d174fff2ffcac9a",
+    "scripts/dubbing_runtime.py": "eb8f76f83cefc7202bf52e6e885da766c1ca9174de130ad3db587e98d5a227cb",
+    "scripts/dubbing_cpu_acceptance.py": "235382b012076432b6d45d905013ce11f132bc4c16d91a4a05f780882ba6be6f"
+  },
+  "source_manifest_sha256": "393cd397e38d8fd70510a6c329c21458ed86b4c7a8c77f8b8bc94fe6c35361a1",
+  "source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
+  "source_kind": "git",
+  "source_checkout_clean": true,
+  "installation_plans": [
+    {
+      "components": [
+        "opus-en-ru",
+        "qwen3-tts-0.6b-base",
+        "whisper-tiny"
+      ],
+      "device": "cpu",
+      "action": "install",
+      "quoted_download_bytes": 3728400513,
+      "quoted_storage_bytes": 11697201539
+    }
+  ],
+  "installed_identities": {
+    "opus-en-ru": {
+      "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    "qwen3-tts-0.6b-base": {
+      "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    "whisper-tiny": {
+      "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    }
+  },
+  "reference_provenance": "Windows installed English SAPI voice, generated locally from fixed harness text.",
+  "reference_text": "Hello. This is a local speech recognition test. The next meeting is on Friday at ten in the morning.",
+  "reference_media": {
+    "duration": 7.853208,
+    "sample_rate": 24000,
+    "channels": 1,
+    "codec": "pcm_s16le",
+    "bytes": 377032,
+    "sha256": "20b8490cbf626ba054a9bc9c57acda710491c3ecef789aadffaec157089db362",
+    "decoded_and_probed": true,
+    "finite_samples": true,
+    "peak": 0.957855224609375,
+    "rms": 0.08767134380963373
+  },
+  "reference_unchanged": true,
+  "verified_after_fresh_controller": true,
+  "reopened_models": [
+    {
+      "id": "opus-en-ru",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    {
+      "id": "qwen3-tts-0.6b-base",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    {
+      "id": "whisper-tiny",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    }
+  ],
+  "controller_environment_unchanged": true
+}

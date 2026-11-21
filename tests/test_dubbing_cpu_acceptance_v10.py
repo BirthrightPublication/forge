@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import hashlib
+import base64
+import csv
+import io
 import json
 from pathlib import Path
 import math
@@ -9,6 +12,8 @@ import os
 import shutil
 import struct
 import subprocess
+import sys
+import venv
 import wave
 
 import pytest
@@ -174,3 +179,231 @@ def test_real_audio_decode_is_finite_nonsilent_and_preserves_input(tmp_path):
         stream.writeframes(b'\0' * 48000)
     with pytest.raises(acceptance.AcceptanceBlocked, match='silent'):
         acceptance.decode_audio(target)
+
+
+@pytest.fixture
+def metadata_runtime(tmp_path):
+    """An actual empty local venv; fake package metadata is never inference proof."""
+    root = tmp_path / 'isolated-runtime'
+    venv.EnvBuilder(with_pip=False, symlinks=os.name != 'nt').create(root)
+    python = root / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    site = Path(subprocess.check_output([str(python), '-I', '-c',
+        'import sysconfig;print(sysconfig.get_path("purelib"))'], text=True).strip())
+    return root, python, site
+
+
+def metadata_distribution(site, *, version='1.2.3', notices=None, unsafe_record=None, unhashed=False):
+    info = site / 'owned_package-1.2.3.dist-info'; info.mkdir(parents=True)
+    (info / 'METADATA').write_text('Metadata-Version: 2.4\nName: Owned_Package\nVersion: ' + version +
+        '\nLicense: Test fixture declaration only\nLicense-Expression: MIT\n', encoding='utf-8')
+    rows = []
+    for name, raw in (notices or {}).items():
+        path = info / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
+        sha = '' if unhashed else 'sha256=' + base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).rstrip(b'=').decode()
+        rows.append([path.relative_to(site).as_posix(), sha, '' if unhashed else str(len(raw))])
+    if unsafe_record:
+        rows.append([unsafe_record, '', ''])
+    stream = io.StringIO(); csv.writer(stream).writerows(rows)
+    (info / 'RECORD').write_text(stream.getvalue(), encoding='utf-8')
+    return info
+
+
+def metadata_probe(runtime, *, version='1.2.3', python_version=None):
+    root, python, _ = runtime
+    return acceptance._bounded_command([str(python), '-I', '-c', acceptance.RUNTIME_METADATA_PROBE],
+        payload={'environment': str(root), 'python_version': python_version or '.'.join(map(str, sys.version_info[:3])),
+                 'expected_versions': {'owned-package': version}}, timeout=20)
+
+
+def test_real_isolated_metadata_probe_verifies_recorded_nested_license_text(metadata_runtime):
+    raw = b'Owned public license fixture. This is not a legal approval.\n'
+    metadata_distribution(metadata_runtime[2], notices={'licenses/BSD-3-Clause.txt': raw})
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(result.stdout)
+    assert observed['installed_versions'] == {'owned-package': '1.2.3'}
+    notice = observed['notices'][0]
+    assert notice['path'] == 'owned_package-1.2.3.dist-info/licenses/BSD-3-Clause.txt'
+    assert notice['integrity'] == 'record_verified' and notice['text'] == raw.decode()
+    assert notice['sha256'] == hashlib.sha256(raw).hexdigest() and notice['size'] == len(raw)
+    assert str(metadata_runtime[0]).encode() not in result.stdout
+    assert observed['packages'][0]['license_expression_declaration']['text'] == 'MIT'
+
+
+@pytest.mark.parametrize('filename', ['ThirdPartyNotices.txt', 'THIRD_PARTY_NOTICES.txt',
+                                    'third-party-licenses.txt', 'COPYRIGHT', 'AUTHORS.md'])
+def test_compound_third_party_notices_outside_license_directories_are_record_verified(metadata_runtime, filename):
+    raw = b'Public compiled third party attribution fixture.\n'
+    metadata_distribution(metadata_runtime[2], notices={filename: raw})
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    notices = json.loads(result.stdout)['notices']
+    assert len(notices) == 1
+    assert notices[0]['path'].endswith('/' + filename)
+    assert notices[0]['integrity'] == 'record_verified' and notices[0]['text'] == raw.decode()
+    assert notices[0]['sha256'] == hashlib.sha256(raw).hexdigest()
+
+
+@pytest.mark.parametrize('change', ['installed_version', 'python_marker'])
+def test_runtime_probe_refuses_mismatching_exact_versions(metadata_runtime, change):
+    metadata_distribution(metadata_runtime[2], version='9.9.9' if change == 'installed_version' else '1.2.3')
+    result = metadata_probe(metadata_runtime, python_version='3.12.0' if change == 'python_marker' else None)
+    assert result.returncode != 0
+    assert b'version' in result.stderr and result.stdout == b''
+
+
+def test_missing_full_license_files_remain_explicitly_pending(metadata_runtime):
+    metadata_distribution(metadata_runtime[2])
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(result.stdout)
+    assert observed['notices'] == []
+    assert observed['packages_without_recorded_notice_files'] == ['owned-package']
+    assert observed['packages'][0]['notice_file_count'] == 0
+
+
+@pytest.mark.parametrize('unhashed', [False, True])
+def test_unverified_or_modified_notice_never_exports_local_file_content(metadata_runtime, unhashed):
+    info = metadata_distribution(metadata_runtime[2], notices={'LICENSE': b'Original public fixture.\n'}, unhashed=unhashed)
+    if not unhashed:
+        (info / 'LICENSE').write_bytes(b'PRIVATE LOCAL REPLACEMENT MUST NOT BE EXPORTED')
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(result.stdout)
+    notice = observed['notices'][0]
+    assert 'text' not in notice
+    assert notice['integrity'] == ('pending' if unhashed else 'failed')
+    assert b'PRIVATE LOCAL REPLACEMENT' not in result.stdout
+    assert bool(observed['notice_integrity_failures']) is not unhashed
+
+
+def test_record_path_escape_never_reads_or_exports_external_notice(metadata_runtime, tmp_path):
+    secret = tmp_path / 'LICENSE'; secret.write_bytes(b'PRIVATE OUTSIDE RECORD CONTENT')
+    metadata_distribution(metadata_runtime[2], unsafe_record='../../../LICENSE')
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode != 0 and b'unsafe package-relative' in result.stderr
+    assert b'PRIVATE OUTSIDE' not in result.stdout
+    assert secret.read_bytes() == b'PRIVATE OUTSIDE RECORD CONTENT'
+
+
+def test_notice_text_limit_retains_exact_hash_and_omission_reason(metadata_runtime):
+    raw = b'A' * (256 * 1024 + 1)
+    metadata_distribution(metadata_runtime[2], notices={'LICENSE': raw})
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    notice = json.loads(result.stdout)['notices'][0]
+    assert notice['sha256'] == hashlib.sha256(raw).hexdigest()
+    assert notice['integrity'] == 'record_verified' and notice['text_omission'] == 'per_file_text_bound'
+    assert 'text' not in notice
+
+
+def test_missing_recorded_notice_is_not_silently_filtered_by_metadata(metadata_runtime):
+    info = metadata_distribution(metadata_runtime[2], notices={'LICENSE': b'Original recorded public fixture.'})
+    (info / 'LICENSE').unlink()
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(result.stdout)
+    assert observed['notices'][0]['integrity'] == 'missing'
+    assert observed['notices'][0]['text_omission'] == 'recorded_notice_missing'
+    assert observed['notice_integrity_failures'] and 'text' not in observed['notices'][0]
+
+
+def test_linked_notice_cannot_export_an_external_file(metadata_runtime, tmp_path):
+    info = metadata_distribution(metadata_runtime[2], notices={'LICENSE': b'Original public fixture.'})
+    private = tmp_path / 'private-record'; private.write_bytes(b'PRIVATE LINK TARGET')
+    (info / 'LICENSE').unlink()
+    try:
+        (info / 'LICENSE').symlink_to(private)
+    except OSError:
+        pytest.skip('This local account cannot create symlinks; path escape is tested independently.')
+    result = metadata_probe(metadata_runtime)
+    assert result.returncode != 0 and b'escapes its runtime' in result.stderr
+    assert b'PRIVATE LINK TARGET' not in result.stdout
+
+
+def runtime_plan_fixture(tmp_path, monkeypatch):
+    root = tmp_path / 'application'; requirements = root / 'scripts/requirements-fixture.txt'
+    requirements.parent.mkdir(parents=True); requirements.write_text('owned-package==1.2.3\n')
+    lock_path = root / 'forge/locks/native.json'; lock_path.parent.mkdir(parents=True)
+    lock_path.write_text('{"owned fixture": true}')
+    env = tmp_path / 'data/environments/owned-runtime'; env.mkdir(parents=True)
+    wheel = {'package': 'Owned_Package', 'version': '1.2.3', 'name': 'owned_package-1.2.3-py3-none-any.whl',
+             'sha256': 'a' * 64, 'size': 123}
+    marker = {'schema': 1, 'id': env.name, 'python': '.'.join(map(str, sys.version_info[:3])), 'device': 'cpu',
+              'import_tested': True, 'requirements_sha256': acceptance.digest(requirements),
+              'dependency_wheels': [wheel], 'sources': []}
+    marker_path = env / 'forge-dubbing-runtime.json'; marker_path.write_text(json.dumps(marker))
+    selected = {'environment': env, 'python': env / 'bin/python', 'runtime_revision': env.name, 'device': 'cpu'}
+    monkeypatch.setattr(acceptance.models, 'ROOT', root)
+    monkeypatch.setattr(acceptance.models, 'resolve', lambda *a, **k: selected.copy())
+    monkeypatch.setattr(acceptance.models, '_spec', lambda _: {'requirements': 'scripts/requirements-fixture.txt'})
+    monkeypatch.setattr(acceptance.models, '_wheel_lock_path', lambda *a: lock_path)
+    monkeypatch.setattr(acceptance.models, '_load_wheel_lock', lambda *a: {'wheels': [wheel.copy()]})
+    return env, marker, selected
+
+
+@pytest.mark.parametrize('change', ['requirements_sha256', 'device', 'wheel_hash', 'duplicate_wheel'])
+def test_runtime_audit_marker_must_match_actual_requirements_and_native_lock(tmp_path, monkeypatch, change):
+    env, marker, _ = runtime_plan_fixture(tmp_path, monkeypatch)
+    if change == 'wheel_hash':
+        marker['dependency_wheels'][0] = {**marker['dependency_wheels'][0], 'sha256': 'b' * 64}
+    elif change == 'duplicate_wheel':
+        marker['dependency_wheels'].append(marker['dependency_wheels'][0].copy())
+    else:
+        marker[change] = 'cuda' if change == 'device' else 'b' * 64
+    (env / 'forge-dubbing-runtime.json').write_text(json.dumps(marker))
+    with pytest.raises(acceptance.AcceptanceBlocked, match='marker|wheel|duplicated'):
+        acceptance._runtime_audit_plan('opus-en-ru', tmp_path / 'data')
+
+
+def test_shared_runtime_is_audited_once_and_pip_check_failure_cannot_pass(tmp_path, monkeypatch):
+    runtime_plan_fixture(tmp_path, monkeypatch)
+    calls = []
+    def command(arguments, **kwargs):
+        calls.append(arguments)
+        observed = {'notices': [], 'notice_integrity_failures': [], 'installed_versions': {'owned-package': '1.2.3'},
+                    'packages': [], 'packages_without_recorded_notice_files': ['owned-package']}
+        return subprocess.CompletedProcess(arguments, 0, json.dumps(observed).encode() if '-c' in arguments else b'No broken requirements found.\n', b'')
+    monkeypatch.setattr(acceptance, '_bounded_command', command)
+    evidence, texts = acceptance.collect_runtime_evidence(tmp_path / 'data')
+    assert len(calls) == 2 and calls[0][1] == '-I' and calls[1][-3:] == ['-m', 'pip', 'check']
+    assert evidence['environment_count'] == 1 and evidence['legal_review_status'] == 'pending' and texts == []
+    row = evidence['environments']['owned-runtime']
+    assert row['components'] == list(acceptance.COMPONENTS)
+    assert row['pip_check']['exit_code'] == 0 and row['full_notice_review_status'] == 'pending'
+    assert row['wheel_artifacts'][0]['package'] == 'owned-package'
+    monkeypatch.setattr(acceptance, '_bounded_command', lambda arguments, **kwargs:
+        subprocess.CompletedProcess(arguments, 1 if '-m' in arguments else 0,
+            b'PRIVATE PIP CONTEXT' if '-m' in arguments else json.dumps({'notices': []}).encode(), b''))
+    with pytest.raises(acceptance.AcceptanceBlocked, match='pip check failed') as error:
+        acceptance.collect_runtime_evidence(tmp_path / 'data')
+    assert 'PRIVATE PIP CONTEXT' not in str(error.value)
+
+
+def test_runtime_probe_output_and_time_are_bounded():
+    with pytest.raises(acceptance.AcceptanceBlocked, match='bounded output'):
+        acceptance._bounded_command([sys.executable, '-I', '-c', 'print("x" * 100000)'], limit=1024)
+    with pytest.raises(acceptance.AcceptanceBlocked, match='execution bound'):
+        acceptance._bounded_command([sys.executable, '-I', '-c', 'import time;time.sleep(1)'], timeout=.05)
+
+
+def test_notice_sidecar_is_explicit_bounded_and_never_overwritten(tmp_path):
+    records = [{'runtime_revision': 'owned-runtime', 'package': 'owned-package', 'path': 'licenses/LICENSE',
+                'size': 200000, 'sha256': 'a' * 64, 'integrity': 'record_verified', 'text': 'A' * 200000}
+               for _ in range(12)]
+    result = acceptance.write_runtime_notices(tmp_path, records)
+    path = tmp_path / acceptance.RUNTIME_NOTICES_NAME
+    assert result['size'] <= 2 * 1024 * 1024 and result['sha256'] == acceptance.digest(path)
+    assert result['included_texts'] < len(records) and result['omitted_texts'] > 0
+    assert json.loads(path.read_text())['legal_review_status'] == 'pending'
+    with pytest.raises(FileExistsError):
+        acceptance.write_runtime_notices(tmp_path, records)
+
+
+@pytest.mark.parametrize('change', ['unverified', 'oversized'])
+def test_notice_sidecar_refuses_unverified_or_oversized_text(tmp_path, change):
+    record = {'integrity': 'pending' if change == 'unverified' else 'record_verified',
+              'text': 'Fixture text' if change == 'unverified' else 'A' * (256 * 1024 + 1)}
+    with pytest.raises(acceptance.AcceptanceBlocked, match='bounded RECORD-verified'):
+        acceptance.write_runtime_notices(tmp_path, [record])
+    assert not (tmp_path / acceptance.RUNTIME_NOTICES_NAME).exists()

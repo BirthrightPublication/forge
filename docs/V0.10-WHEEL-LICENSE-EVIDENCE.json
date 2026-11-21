@@ -1,6 +1,16 @@
 {
   "dependency_closure_approved": false,
   "distribution_approved": false,
+  "native_cpu_dependency_closure": {
+    "canonical_wheels_sha256": "3f85a9586df40941d8f3abcfcf9b0c5a881f9fc967e59bc9bb4c9761bd1e4c20",
+    "dependency_closure_complete": true,
+    "model_inference_tested": true,
+    "observed_lock_sha256": "870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c",
+    "path": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+    "reviewed": false,
+    "runtime_id": "dubbing-core-d0f02732e6f97170",
+    "sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7"
+  },
   "native_execution_performed_by_this_review": false,
   "records": [
     {
@@ -284,7 +294,7 @@
       "wheel_size": 4673203
     }
   ],
-  "remaining_review": "These seven primary labels do not establish a complete static native-library attribution audit or installed dependency closure.",
+  "remaining_review": "Primary license labels do not establish a complete static native-library attribution audit or distribution approval. Exact recorded CPU runtime closure/inference is separately evidenced; CUDA closure and physical GPU acceptance remain unverified.",
   "schema": 1,
   "scope": "Exact published Windows wheel bytes and contained license/metadata inspection; no installation or native execution.",
   "status": "primary_labels_verified_review_pending",
@@ -341,9 +351,15 @@
           "wheel_sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"
         }
       ],
+      "execution_flags_promoted_with_external_evidence": [
+        "dependency_closure_complete",
+        "model_inference_tested"
+      ],
+      "external_execution_evidence": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+      "external_execution_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
       "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
       "review_flags_promoted": false,
-      "sha256": "870b40584f90451550005ce30d9369ad5ba573648e397a3270633403de41fd5c"
+      "sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
     },
     {
       "changes": [

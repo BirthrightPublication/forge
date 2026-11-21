@@ -76,6 +76,7 @@ def main():
                 check('Readiness never installs or uploads', mutations == [])
                 check('No listening approval without a generated sample', dialog.locator('[data-readiness-confirm-listening]').count() == 0)
                 check('Translation quality stays pending without reviewed actual drafts', 'Owner review of the generated Russian translations: Pending' in dialog.inner_text() and dialog.locator('[data-readiness-confirm-translations]').count() == 0)
+                check('Runtime notice download stays disabled without a current verified sidecar', dialog.get_by_role('button', name='Export runtime notices', exact=True).is_disabled())
                 with page.expect_download() as exported:
                     dialog.locator('[data-readiness-export]').click()
                 exported.value.save_as(str(args.output / 'readiness-empty.json'))

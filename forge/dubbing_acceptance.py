@@ -19,6 +19,8 @@ from .core import ROOT, json_write
 from .queue import public_job
 
 REPORT_NAME = 'dubbing-local-acceptance.json'
+RUNTIME_NOTICES_NAME = 'DUBBING_RUNTIME_NOTICES.json'
+NOTICE_LIMIT = 2 * 1024 * 1024
 COMPONENTS = ('opus-en-ru', 'qwen3-tts-0.6b-base', 'whisper-tiny')
 ACTIVE = {'queued', 'running', 'finalizing', 'cancelling'}
 # Only these fixed synthetic harness inputs may be shown for translation review.
@@ -129,6 +131,88 @@ def _translation_pairs(receipt):
     return pairs
 
 
+def _runtime_notices(path, artifact, identities, data):
+    """Validate a fixed owned sidecar, then copy only public notice fields."""
+    invalid = 'The runtime notices are unavailable or differ from the verified local run. Run local acceptance again.'
+    if (not isinstance(artifact, dict) or artifact.get('filename') != RUNTIME_NOTICES_NAME
+            or not re.fullmatch('[a-f0-9]{64}', str(artifact.get('sha256', '')))
+            or type(artifact.get('size')) is not int or not 0 < artifact['size'] <= NOTICE_LIMIT
+            or artifact.get('legal_review_status') != 'pending'):
+        raise ValueError(invalid)
+    try:
+        path, root = Path(path).absolute(), Path(data).resolve()
+        if path.name != RUNTIME_NOTICES_NAME or not path.resolve().is_relative_to(root):
+            raise ValueError(invalid)
+        for item in (path, *path.parents):
+            if item.is_symlink() or getattr(item.stat(), 'st_file_attributes', 0) & 0x400:
+                raise ValueError(invalid)
+            if item == root:
+                break
+        if not path.is_file() or path.stat().st_size != artifact['size']:
+            raise ValueError(invalid)
+        raw = path.read_bytes()
+        if len(raw) != artifact['size'] or hashlib.sha256(raw).hexdigest() != artifact['sha256']:
+            raise ValueError(invalid)
+        value = json.loads(raw)
+    except (OSError, UnicodeError, TypeError, json.JSONDecodeError):
+        raise ValueError(invalid) from None
+    if (not isinstance(value, dict) or value.get('schema') != 1 or value.get('kind') != 'installed_runtime_notices'
+            or value.get('legal_review_status') != 'pending' or not isinstance(value.get('notice_texts'), list)
+            or not isinstance(value.get('omitted_texts'), list) or len(value['notice_texts']) > 10000
+            or len(value['omitted_texts']) > 64 or type(value.get('omitted_text_count')) is not int
+            or not len(value['omitted_texts']) <= value['omitted_text_count'] <= 10000
+            or type(artifact.get('included_texts')) is not int or type(artifact.get('omitted_texts')) is not int
+            or artifact.get('included_texts') != len(value['notice_texts'])
+            or artifact.get('omitted_texts') != value['omitted_text_count']):
+        raise ValueError(invalid)
+    runtimes = {row.get('runtime_revision') for row in identities.values()}
+
+    def public_identity(row):
+        if not isinstance(row, dict):
+            raise ValueError(invalid)
+        relative = row.get('path', '')
+        parts = relative.split('/') if isinstance(relative, str) else []
+        if (row.get('runtime_revision') not in runtimes
+                or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', str(row.get('package', '')))
+                or not parts or any(not part or part in {'.', '..'} or '\\' in part or ':' in part
+                    or any(ord(char) < 32 for char in part) for part in parts)
+                or not (re.sub(r'[^A-Z0-9]', '', parts[-1].upper()).startswith(
+                    ('LICENSE', 'LICENCE', 'COPYING', 'NOTICE', 'COPYRIGHT', 'AUTHORS',
+                     'THIRDPARTYNOTICE', 'THIRDPARTYLICENSE', 'THIRDPARTYLICENCE'))
+                    or any(re.sub(r'[^a-z0-9]', '', part.lower()) in {'licenses', 'license', 'licences', 'licence',
+                        'copying', 'notice', 'notices', 'thirdpartylicenses', 'thirdpartylicences', 'thirdpartynotices'}
+                        for part in parts[:-1]))
+                or not re.fullmatch('[a-f0-9]{64}', str(row.get('sha256', '')))
+                or type(row.get('size')) is not int or not 0 <= row['size'] <= 4 * 1024 * 1024):
+            raise ValueError(invalid)
+        return {key: row[key] for key in ('runtime_revision', 'package', 'path', 'sha256', 'size')}
+
+    texts, omissions = [], []
+    for row in value['notice_texts']:
+        public = public_identity(row)
+        text = row.get('text')
+        if (row.get('integrity') != 'record_verified' or row.get('scope') != 'installed_distribution'
+                or not re.fullmatch(r'[A-Za-z0-9_.+!-]+', str(row.get('version', '')))
+                or not isinstance(text, str) or len(text.encode('utf-8')) > 256 * 1024
+                or any(ord(char) < 32 and char not in '\n\r\t' for char in text)
+                or str(root).lower() in text.lower()
+                or re.search(r'(?i)(?:[a-z]:[\\/]users[\\/]|/(?:home|Users)/)', text)):
+            raise ValueError(invalid)
+        encoded = text.encode('utf-8')
+        if not any(len(candidate) == row['size'] and hashlib.sha256(candidate).hexdigest() == row['sha256']
+                   for candidate in (encoded, b'\xef\xbb\xbf' + encoded)):
+            raise ValueError(invalid)
+        texts.append({**public, 'version': row['version'], 'scope': 'installed_distribution',
+                      'integrity': 'record_verified', 'text': text})
+    for row in value['omitted_texts']:
+        public = public_identity(row)
+        if row.get('text_omission') != 'sidecar_total_text_bound':
+            raise ValueError(invalid)
+        omissions.append({**public, 'text_omission': 'sidecar_total_text_bound'})
+    return {'schema': 1, 'kind': 'installed_runtime_notices', 'legal_review_status': 'pending',
+            'notice_texts': texts, 'omitted_texts': omissions, 'omitted_text_count': value['omitted_text_count']}
+
+
 def run_worker(payload, stage_dir, data, progress=None):
     """Called only for a server-created existing model-test job."""
     request = payload.get('dubbing_acceptance_run')
@@ -159,9 +243,18 @@ def run_worker(payload, stage_dir, data, progress=None):
     value = {'schema': 1, 'kind': 'local_dubbing_readiness', 'device': device,
              'source': request['source'], 'models': request['models'], 'observed_at': time.time(),
              'report': result, 'report_sha256': _digest(result), 'satisfies_release_acceptance': False}
+    notice_path = stage_dir / 'acceptance' / RUNTIME_NOTICES_NAME
+    notice_artifact = result.get('runtime_notice_artifact')
+    if notice_artifact is not None and result.get('status') == 'passed':
+        _runtime_notices(notice_path, notice_artifact, request['models'], data)
     report = stage_dir / REPORT_NAME
     json_write(report, value)
     files = [report]
+    if notice_artifact is not None and result.get('status') == 'passed':
+        import shutil
+        target = stage_dir / RUNTIME_NOTICES_NAME
+        shutil.copyfile(notice_path, target)
+        files.append(target)
     sample = stage_dir / 'acceptance' / 'Russian-acceptance.wav'
     if sample.is_file() and not sample.is_symlink():
         # Generated synthetic-reference output only, retained locally for the
@@ -239,6 +332,21 @@ class LocalAcceptance:
                     return index
         return None
 
+    def notices(self, job, receipt):
+        if not job or not _facts(receipt)[0]:
+            return None
+        parents = {Path(item.get('path', '')).parent for item in job.get('outputs', [])
+                   if Path(item.get('path', '')).name == REPORT_NAME}
+        for item in job.get('outputs', []):
+            path = Path(item.get('path', ''))
+            if path.name != RUNTIME_NOTICES_NAME or path.parent not in parents:
+                continue
+            try:
+                return _runtime_notices(path, receipt['report'].get('runtime_notice_artifact'), receipt['models'], self.store.data)
+            except (ValueError, TypeError):
+                pass
+        return None
+
     def state(self):
         from . import dubbing_models
         source, jobs, latest, receipt = self.current()
@@ -314,6 +422,7 @@ class LocalAcceptance:
         pending = next((row for row in rows if row['status'] != 'passed'), None)
         sample_index = self.sample_index(latest, receipt)
         sample_url = f"/api/jobs/{latest['id']}/outputs/{sample_index}" if sample_index is not None else None
+        notices = self.notices(latest, receipt)
         finished = next((job for job in jobs if job['status'] not in ACTIVE), None)
         return {'schema': 1, 'version': __version__, 'source': source, 'checks': rows,
                 'current_blocker': pending['title'] if pending else 'Owner release approval',
@@ -324,6 +433,7 @@ class LocalAcceptance:
                 'receipt_current': receipt is not None, 'sample_url': sample_url,
                 'listening_confirmation_available': bool(model_pass and sample_url),
                 'translation_pairs': translation_pairs, 'translation_review_available': bool(translation_pairs),
+                'runtime_notices_available': notices is not None,
                 'satisfies_release_acceptance': False}
 
     def run(self, body):
@@ -362,9 +472,20 @@ class LocalAcceptance:
             'scope': 'Owner meaning, grammar, glossary, number and date review of three generated synthetic translations only.'})
         return self.state()
 
+    def export_notices(self):
+        _, _, latest, receipt = self.current()
+        notices = self.notices(latest, receipt)
+        if notices is None:
+            raise ValueError('A current passing local run with verified runtime notices is required. Run local acceptance again.')
+        artifact = receipt['report']['runtime_notice_artifact']
+        return {**notices, 'version': __version__, 'source': receipt['source'], 'models': receipt['models'],
+                'device': receipt['device'], 'job_id': latest['id'], 'local_report_sha256': receipt['report_sha256'],
+                'sidecar_sha256': artifact['sha256'], 'sidecar_size': artifact['size'],
+                'satisfies_release_acceptance': False}
+
     def export(self):
         state = self.state()
-        _, _, _, receipt = self.current()
+        _, _, latest, receipt = self.current()
         public_receipt = None
         if receipt and _facts(receipt)[0]:
             report = receipt['report']
@@ -390,6 +511,10 @@ class LocalAcceptance:
                 'local_report_sha256': receipt['report_sha256'], 'status': report.get('status'),
                 'native_windows_execution': report.get('native_windows_execution') is True,
                 'physical_gpu_tested': _facts(receipt)[1], 'components': components}
+            if self.notices(latest, receipt) is not None:
+                artifact = report['runtime_notice_artifact']
+                public_receipt['runtime_notice_artifact'] = {key: artifact[key] for key in
+                    ('sha256', 'size', 'included_texts', 'omitted_texts', 'legal_review_status')}
         return {**{key: state[key] for key in ('schema', 'version', 'source', 'checks', 'current_blocker',
                     'last_completed_action', 'next_action', 'satisfies_release_acceptance')},
                 'kind': 'local_readiness_checklist', 'model_evidence': public_receipt,
@@ -418,3 +543,7 @@ def mount(app, store, manager):
     @app.get('/api/dubbing/acceptance/export')
     def export():
         return JSONResponse(service.export(), headers={'Content-Disposition': 'attachment; filename="FORGE-v0.10-readiness.json"'})
+
+    @app.get('/api/dubbing/acceptance/runtime-notices')
+    def export_notices():
+        return JSONResponse(service.export_notices(), headers={'Content-Disposition': 'attachment; filename="FORGE-v0.10-runtime-notices.json"'})
