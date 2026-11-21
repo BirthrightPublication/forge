@@ -1,5 +1,9 @@
 # FORGE validation history
 
+Current V0.10 candidate evidence and remaining acceptance are recorded in
+[V0.10-VALIDATION.md](V0.10-VALIDATION.md). Publication is guarded by the
+[V0.10 evidence contract](V0.10-RELEASE-GATE.md).
+
 V0.8 implementation and pending model acceptance are recorded in [V0.8-VALIDATION.md](V0.8-VALIDATION.md).
 
 The V0.7.1 startup repair is documented in [V0.7.1-STARTUP-REPAIR.md](V0.7.1-STARTUP-REPAIR.md).

@@ -1,0 +1,584 @@
+{
+  "archive_review_skipped": false,
+  "distribution_approved": false,
+  "download_limit_bytes": 83886080,
+  "downloaded_bytes": 19080589,
+  "downloads": [
+    {
+      "expected_size": 246,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/upstream/docs/development/license.rst",
+      "publisher_content_length": 246,
+      "retained": true,
+      "sha256": "becc70e9cfe7e15d624f6de729fae233f188e22c294d517e7bd98c435ffb304e",
+      "size": 246,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/docs/development/license.rst"
+    },
+    {
+      "expected_size": 2437,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/upstream/scripts/build-deps",
+      "publisher_content_length": 2437,
+      "retained": true,
+      "sha256": "0d82d5a0882aa237544efcb0e840a0da66ccb6e49053036073e426d17e0db485",
+      "size": 2437,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/scripts/build-deps"
+    },
+    {
+      "expected_size": 108,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/upstream/scripts/ffmpeg-8.1.json",
+      "publisher_content_length": 108,
+      "retained": true,
+      "sha256": "ee5eff64bfdb5fcff2ec419ed84ede05d26dc6bc219fe8b95ab087c3c9e087e3",
+      "size": 108,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/scripts/ffmpeg-8.1.json"
+    },
+    {
+      "expected_size": 1607,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/upstream/pyproject.toml",
+      "publisher_content_length": 1607,
+      "retained": true,
+      "sha256": "436a037a4ae0f10e8f607a129e71cf47bf549ea650f9b3bc3e979a2cd84a572d",
+      "size": 1607,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/pyproject.toml"
+    },
+    {
+      "expected_size": 5002,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/upstream/.github/workflows/tests.yml",
+      "publisher_content_length": 5002,
+      "retained": true,
+      "sha256": "5a3f3757c8491940d40da7352e43d9056955d5a92c5a297786d83971c008927c",
+      "size": 5002,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/PyAV/7e3d950a8b72062502c1a60d672f8ca565313af5/.github/workflows/tests.yml"
+    },
+    {
+      "expected_size": 877,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/ffmpeg-upstream/README.rst",
+      "publisher_content_length": 877,
+      "retained": true,
+      "sha256": "c59dcb461aaab34302f038035a7633f2d9404cfd52e3678a7e6e0de4f258eb83",
+      "size": 877,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/README.rst"
+    },
+    {
+      "expected_size": 749,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/ffmpeg-upstream/patches/ffmpeg.patch",
+      "publisher_content_length": 749,
+      "retained": true,
+      "sha256": "c6fff328c0c64ea5a3cb4b9bf44299553cb5897ab7bc5e22b4e16902c191d492",
+      "size": 749,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/patches/ffmpeg.patch"
+    },
+    {
+      "expected_size": 12236,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/ffmpeg-upstream/scripts/build-ffmpeg.py",
+      "publisher_content_length": 12236,
+      "retained": true,
+      "sha256": "35aed6c5b9a99af6eccd948d350f40bc9cc4087efca5535dc56d480bd55de048",
+      "size": 12236,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/scripts/build-ffmpeg.py"
+    },
+    {
+      "expected_size": 7652,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "publisher_content_length": 7652,
+      "requested_path": "public_source_texts/immutable/ffmpeg-upstream/scripts/pkg.py",
+      "retained": false,
+      "sha256": "809dfe365c69f8ec9efa24bfb0b4c103b5c884aaf2c78ffbb7448e75f647b648",
+      "size": 7652,
+      "text_omission": "non_text_control_bytes",
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/scripts/pkg.py"
+    },
+    {
+      "expected_size": 6495,
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/ffmpeg-upstream/.github/workflows/build-ffmpeg.yml",
+      "publisher_content_length": 6495,
+      "retained": true,
+      "sha256": "3f8840e0e6f48ea88e38bc06c8a494c97945c1526937140ace3c48b86ef8455c",
+      "size": 6495,
+      "url": "https://raw.githubusercontent.com/PyAV-Org/pyav-ffmpeg/cf545d99347ea17cd00ac72f0a3c3cb137399eca/.github/workflows/build-ffmpeg.yml"
+    },
+    {
+      "expected_size": 4346,
+      "git_blob_sha1": "371b0913ce7c199c4092d9344680c80f78ebeb2a",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/FFmpeg-FFmpeg/LICENSE.md",
+      "publisher_content_length": 4346,
+      "retained": true,
+      "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+      "size": 4346,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/LICENSE.md"
+    },
+    {
+      "expected_size": 7651,
+      "git_blob_sha1": "65c5ca88a67c30becee01c5a8816d964b03862f9",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/FFmpeg-FFmpeg/COPYING.LGPLv3",
+      "publisher_content_length": 7651,
+      "retained": true,
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+      "size": 7651,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.LGPLv3"
+    },
+    {
+      "expected_size": 35147,
+      "git_blob_sha1": "94a9ed024d3859793618152ea559a168bbcbb5e2",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/FFmpeg-FFmpeg/COPYING.GPLv3",
+      "publisher_content_length": 35147,
+      "retained": true,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "size": 35147,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.GPLv3"
+    },
+    {
+      "expected_size": 18092,
+      "git_blob_sha1": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/FFmpeg-FFmpeg/COPYING.GPLv2",
+      "publisher_content_length": 18092,
+      "retained": true,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/COPYING.GPLv2"
+    },
+    {
+      "expected_size": 307358,
+      "git_blob_sha1": "17596942749abe569c7d42f8abc1b48ce88cb148",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/FFmpeg-FFmpeg/configure",
+      "publisher_content_length": 307358,
+      "retained": true,
+      "sha256": "28edfaee55cd82f33a2651b8b7ad496ed4ba3e0b0208f3b5a08e6b8c438b45f4",
+      "size": 307358,
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/38b88335f99e76ed89ff3c93f877fdefce736c13/configure"
+    },
+    {
+      "expected_size": 17992,
+      "git_blob_sha1": "d60c31a97a544b53039088d14fe9114583c0efc3",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/mirror-x264/COPYING",
+      "publisher_content_length": 17992,
+      "retained": true,
+      "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+      "size": 17992,
+      "url": "https://raw.githubusercontent.com/mirror/x264/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/COPYING"
+    },
+    {
+      "expected_size": 49056,
+      "git_blob_sha1": "cc22f05d5cf6cfe51fd462b92ffd4ba6dfc9b275",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/licenses/mirror-x264/x264.h",
+      "publisher_content_length": 49056,
+      "retained": true,
+      "sha256": "cec084bdb3cd2330800d0726bdbd99d91112df3fdb6d79f94e15ba67808b715c",
+      "size": 49056,
+      "url": "https://raw.githubusercontent.com/mirror/x264/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264.h"
+    },
+    {
+      "expected_size": 23258,
+      "git_blob_sha1": "bc8c42b50d5b3e0c256c31375764805bf51bb966",
+      "identity_verified": true,
+      "independent_expected_size_available": true,
+      "kind": "immutable_asset",
+      "path": "public_source_texts/immutable/intel-upstream/AnacondaRecipes-recipe-meta.yaml",
+      "publisher_content_length": 23258,
+      "retained": true,
+      "sha256": "71308923e26db11882edde3f52e8b1062056d5e7d57d0b6e6f9c43be3ccd7cc6",
+      "size": 23258,
+      "url": "https://raw.githubusercontent.com/AnacondaRecipes/intel_repack-feedstock/b030f0efd7c6182fa4f9bba6ac039acd03cf1437/recipe/meta.yaml"
+    },
+    {
+      "archive_index": {
+        "archive_entry_count": 10230,
+        "canonical_entry_index_sha256": "5eb75d63a14dd69c9ae46dd5e060eaf2209df8b50e30d58265a279f25f836b2b",
+        "index_scope": "All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.",
+        "legal_candidate_count": 6,
+        "legal_candidates": [
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/COPYING.LGPLv2.1",
+            "size": 26517
+          },
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/COPYING.GPLv2",
+            "size": 18092
+          },
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/COPYING.LGPLv3",
+            "size": 7651
+          },
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/COPYING.GPLv3",
+            "size": 35147
+          },
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/doc/authors.texi",
+            "size": 403
+          },
+          {
+            "kind": "file",
+            "path": "ffmpeg-8.1.2/LICENSE.md",
+            "size": 4346
+          }
+        ],
+        "legal_candidates_complete": true
+      },
+      "component": "ffmpeg",
+      "documents": [
+        {
+          "member": "ffmpeg-8.1.2/configure",
+          "retained": true,
+          "retained_path": "ffmpeg/configure",
+          "sha256": "28edfaee55cd82f33a2651b8b7ad496ed4ba3e0b0208f3b5a08e6b8c438b45f4",
+          "size": 307358
+        },
+        {
+          "member": "ffmpeg-8.1.2/COPYING.GPLv2",
+          "retained": true,
+          "retained_path": "ffmpeg/COPYING.GPLv2",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+          "size": 18092
+        },
+        {
+          "member": "ffmpeg-8.1.2/COPYING.LGPLv3",
+          "retained": true,
+          "retained_path": "ffmpeg/COPYING.LGPLv3",
+          "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+          "size": 7651
+        },
+        {
+          "member": "ffmpeg-8.1.2/COPYING.GPLv3",
+          "retained": true,
+          "retained_path": "ffmpeg/COPYING.GPLv3",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "size": 35147
+        },
+        {
+          "member": "ffmpeg-8.1.2/LICENSE.md",
+          "retained": true,
+          "retained_path": "ffmpeg/LICENSE.md",
+          "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+          "size": 4346
+        }
+      ],
+      "expected_size": null,
+      "identity_verified": true,
+      "independent_expected_size_available": false,
+      "kind": "verified_archive",
+      "publisher_content_length": 11710924,
+      "retained": true,
+      "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+      "size": 11710924,
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz"
+    },
+    {
+      "archive_index": {
+        "archive_entry_count": 289,
+        "canonical_entry_index_sha256": "e96ceaeaefe48700a54a6da5929d1f7fdfaf14c58957949291be7a34b73f118c",
+        "index_scope": "All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.",
+        "legal_candidate_count": 2,
+        "legal_candidates": [
+          {
+            "kind": "file",
+            "path": "x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55/AUTHORS",
+            "size": 1999
+          },
+          {
+            "kind": "file",
+            "path": "x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55/COPYING",
+            "size": 17992
+          }
+        ],
+        "legal_candidates_complete": true
+      },
+      "component": "x264",
+      "documents": [
+        {
+          "member": "x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55/COPYING",
+          "retained": true,
+          "retained_path": "x264/COPYING",
+          "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+          "size": 17992
+        },
+        {
+          "member": "x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264.h",
+          "retained": true,
+          "retained_path": "x264/x264.h",
+          "sha256": "cec084bdb3cd2330800d0726bdbd99d91112df3fdb6d79f94e15ba67808b715c",
+          "size": 49056
+        }
+      ],
+      "expected_size": null,
+      "identity_verified": true,
+      "independent_expected_size_available": false,
+      "kind": "verified_archive",
+      "publisher_content_length": 848719,
+      "retained": true,
+      "sha256": "6eeb82934e69fd51e043bd8c5b0d152839638d1ce7aa4eea65a3fedcf83ff224",
+      "size": 848719,
+      "url": "https://code.videolan.org/videolan/x264/-/archive/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55.tar.bz2"
+    },
+    {
+      "archive_index": {
+        "archive_entry_count": 457,
+        "canonical_entry_index_sha256": "e1c97ccdb1f6e1bbbd0186cb2cd439f21441bcf185f81180d1ddc9d2b67cbd2e",
+        "index_scope": "All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.",
+        "legal_candidate_count": 3,
+        "legal_candidates": [
+          {
+            "kind": "file",
+            "path": "x265_4.2/COPYING",
+            "size": 18120
+          },
+          {
+            "kind": "file",
+            "path": "x265_4.2/source/dynamicHDR10/LICENSE.txt",
+            "size": 849
+          },
+          {
+            "kind": "file",
+            "path": "x265_4.2/source/dynamicHDR10/json11/LICENSE.txt",
+            "size": 1057
+          }
+        ],
+        "legal_candidates_complete": true
+      },
+      "component": "x265",
+      "documents": [
+        {
+          "member": "x265_4.2/COPYING",
+          "retained": true,
+          "retained_path": "x265/COPYING",
+          "sha256": "d8afb1bcc7a2cfc603683b168d6987ef0a48e59e0da3693bf55c5d33b67e2b49",
+          "size": 18120
+        },
+        {
+          "member": "x265_4.2/source/x265.h",
+          "retained": true,
+          "retained_path": "x265/source/x265.h",
+          "sha256": "cbef2ef491146a2d6c2358e8e89b9548b945782973ab74204bacdc6aad5d18ac",
+          "size": 113853
+        }
+      ],
+      "expected_size": null,
+      "identity_verified": true,
+      "independent_expected_size_available": false,
+      "kind": "verified_archive",
+      "publisher_content_length": 1833442,
+      "retained": true,
+      "sha256": "40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1210",
+      "size": 1833442,
+      "url": "https://bitbucket.org/multicoreware/x265_git/downloads/x265_4.2.tar.gz"
+    },
+    {
+      "archive_index": {
+        "archive_entry_count": 21,
+        "canonical_entry_index_sha256": "087f880c5bed991fc9cf874a1ed5b2a5a8c45f5608dbefb65b2ba1131ad79d5c",
+        "index_scope": "All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.",
+        "legal_candidate_count": 2,
+        "legal_candidates": [
+          {
+            "kind": "file",
+            "path": "info/licenses/license.txt",
+            "size": 24481
+          },
+          {
+            "kind": "file",
+            "path": "info/licenses/tpp.txt",
+            "size": 71667
+          }
+        ],
+        "legal_candidates_complete": true
+      },
+      "component": "Intel-OpenMP-runtime",
+      "documents": [
+        {
+          "member": "Library/bin/libiomp5md.dll",
+          "retained": false,
+          "sha256": "0b63b72e3db22583c64f21f4675738152adf9674b3c47011a7acb4744dc7d992",
+          "size": 2030632
+        },
+        {
+          "member": "info/licenses/license.txt",
+          "retained": true,
+          "retained_path": "Intel-OpenMP-runtime/licenses/license.txt",
+          "sha256": "c70274d93d970f90859bd5da38f984ec518521ffab51e8aee4521743b6ecaf7a",
+          "size": 24481
+        },
+        {
+          "member": "info/licenses/tpp.txt",
+          "retained": false,
+          "sha256": "7723b626fe7313c8f8a24143e9bfa008874241aaf54432ea22fd50387c9f1ddf",
+          "size": 71667,
+          "text_omission": "not_utf8_plain_text"
+        }
+      ],
+      "expected_size": null,
+      "identity_verified": true,
+      "independent_expected_size_available": false,
+      "kind": "verified_archive",
+      "publisher_content_length": 3392252,
+      "retained": true,
+      "sha256": "c351b0f0472c99de1f989001baf07847036158579706cb97cba35be7160f85e4",
+      "size": 3392252,
+      "source_attempts": [
+        {
+          "error": "HTTPError",
+          "http_status": 403,
+          "reason": "Public evidence verification failed; expected integrity and normal network/TLS checks were retained.",
+          "reason_code": "http_error",
+          "source_index": 0
+        },
+        {
+          "error": "HTTPError",
+          "http_status": 403,
+          "reason": "Public evidence verification failed; expected integrity and normal network/TLS checks were retained.",
+          "reason_code": "http_error",
+          "source_index": 1
+        },
+        {
+          "source_index": 2,
+          "status": "identity_verified"
+        }
+      ],
+      "url": "https://api.anaconda.org/download/intel/intel-openmp/2023.0.0/win-64/intel-openmp-2023.0.0-intel_25922.tar.bz2"
+    },
+    {
+      "archive_index": {
+        "archive_entry_count": 154,
+        "canonical_entry_index_sha256": "360c0675c09ae18cea51f24e6859eb55400a62e5db51534080bb149abccd6199",
+        "index_scope": "All archive entry names/types/sizes were indexed; only bounded plain legal/source text is retained.",
+        "legal_candidate_count": 2,
+        "legal_candidates": [
+          {
+            "kind": "file",
+            "path": "info/licenses/license.txt",
+            "size": 4105
+          },
+          {
+            "kind": "file",
+            "path": "info/licenses/tpp.txt",
+            "size": 48487
+          }
+        ],
+        "legal_candidates_complete": true
+      },
+      "component": "Intel-MKL-legal-source",
+      "documents": [
+        {
+          "member": "info/licenses/license.txt",
+          "retained": true,
+          "retained_path": "Intel-MKL-legal-source/licenses/license.txt",
+          "sha256": "7721633d0ddff43fae25ebfd405f8166a0ce730cbcec44f2f3ad9d5eb8ac9a6f",
+          "size": 4105
+        },
+        {
+          "member": "info/licenses/tpp.txt",
+          "retained": true,
+          "retained_path": "Intel-MKL-legal-source/licenses/tpp.txt",
+          "sha256": "681067a018380121e39a9ca4cce0325db0f7bf94f620a2407742b07bd78a4850",
+          "size": 48487
+        }
+      ],
+      "expected_size": null,
+      "identity_verified": true,
+      "independent_expected_size_available": false,
+      "kind": "verified_archive",
+      "publisher_content_length": 794943,
+      "retained": true,
+      "sha256": "0a227354489cc3b5003ae58d984ad10d37ff6dd3f6dbcdda0875251f874cf591",
+      "size": 794943,
+      "source_attempts": [
+        {
+          "error": "HTTPError",
+          "http_status": 403,
+          "reason": "Public evidence verification failed; expected integrity and normal network/TLS checks were retained.",
+          "reason_code": "http_error",
+          "source_index": 0
+        },
+        {
+          "error": "HTTPError",
+          "http_status": 403,
+          "reason": "Public evidence verification failed; expected integrity and normal network/TLS checks were retained.",
+          "reason_code": "http_error",
+          "source_index": 1
+        },
+        {
+          "source_index": 2,
+          "status": "identity_verified"
+        }
+      ],
+      "url": "https://api.anaconda.org/download/intel/mkl-include/2023.0.0/win-64/mkl-include-2023.0.0-intel_25930.tar.bz2"
+    }
+  ],
+  "errors": [],
+  "kind": "exact_native_binary_legal_source_inputs",
+  "license_reviewed": false,
+  "manifest_sha256": "2d583d8631f02ae668161bb6bfb3a45630fcdbc99f4959c437f9d62f0592dd83",
+  "model_inference_performed": false,
+  "native_binary_execution_performed": false,
+  "native_execution_performed": false,
+  "observed_at": "2026-11-21T03:31:53.492835+00:00",
+  "package_installation_performed": false,
+  "physical_gpu_tested": false,
+  "runner_platform": {
+    "python": "3.12.10",
+    "system": "Windows"
+  },
+  "schema": 1,
+  "source_checkout_clean": true,
+  "source_commit": "e15f180448aeb85feffb21815468590d12ba9998",
+  "source_files_sha256": {
+    "forge/dubbing_legal_sources_inventory.json": "2d583d8631f02ae668161bb6bfb3a45630fcdbc99f4959c437f9d62f0592dd83",
+    "scripts/dubbing_legal_sources.py": "34a3d427ca41ce0131097c192a25b0aed0966355482bb118007d7770574c5084"
+  },
+  "source_kind": "git",
+  "source_manifest_sha256": "249f081d58d602cfe520ccb1ef5fb9a8d36f8cb1f9c6b8f42be3afae0af47780",
+  "status": "identities_verified_legal_review_pending"
+}

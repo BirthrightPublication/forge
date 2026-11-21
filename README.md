@@ -1,6 +1,10 @@
 # FORGE — Scripting Environment Engine
 
-**V0.9.0 · Media Downloads 2.0 · Windows 11**
+**V0.10.0 development candidate · Latest stable: V0.9.0 · Windows 11**
+
+V0.10 adds Dubbing Studio: a saved video/transcript/translation workspace, permitted voice references, review-gated production, timing and audio mixing, optional lip sync, Russian export packages and language-channel publishing profiles. It reuses the existing queue and preserves original media, models and environments. See the [development and installation guide](docs/V0.10-DEVELOPMENT.md) and [model/dependency inventory](docs/V0.10-MODEL-INVENTORY.md).
+
+**V0.10 is not a published update.** Its new neural components remain unavailable until exact publisher checkpoints, licenses and actual inference are verified. Hugging Face access is currently blocked by this cloud environment's network policy. Native Windows dependency/setup evidence, physical GPU acceptance and live authorized YouTube acceptance are recorded separately; media and browser tests do not replace them. The stable updater continues to use the latest approved GitHub Release.
 
 FORGE runs local production tools in your browser. V0.9 adds persistent download planning, priority scheduling, selected playlists and compact Channel Watch cards. It retains the complete V0.8 speech workspace, voice profiles and Kokoro blends, Ming adapters, audio effects, audiobook assembly and optional Bark recognition. Whisper, privacy tools, Black Scripting and verified updates remain available.
 

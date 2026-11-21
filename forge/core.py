@@ -44,6 +44,14 @@ TOOLS = {
     'provenance': {'title':'Content Credentials Inspector', 'group':'Media Privacy', 'description':'Inspect local C2PA manifests and supported signature validation.', 'accept':sorted(MEDIA | IMAGES)},
     'privacy_verify': {'title':'Privacy Verification Lab', 'group':'Media Privacy', 'description':'Compare originals and processed files with evidence-based reports.', 'accept':sorted(MEDIA | IMAGES)},
 }
+from .dubbing_options import STAGE_TITLES as DUBBING_STAGES
+TOOLS['dubbing']={'title':'Dubbing Studio','group':'Media','description':'Local Russian-language production with reviewed translation and preserved originals.',
+                  'accept':sorted(VIDEO),'route_only':True}
+for _stage,_title in DUBBING_STAGES.items():
+    TOOLS[_stage]={'title':_title,'group':'Dubbing','description':'A reviewed local dubbing workflow stage.',
+                   'accept':sorted(MEDIA|{'.json','.txt','.srt','.vtt'}),'hidden':True,'internal':True}
+TOOLS['youtube_upload']={'title':'YouTube Upload','group':'Publishing','description':'Explicitly approved upload to a verified language-channel profile.',
+                         'accept':sorted(VIDEO),'hidden':True,'internal':True}
 DEFAULTS = {'workers': 5, 'concurrency_mode':'auto', 'ffmpeg': '', 'ffprobe': '', 'last_output': '', 'default_output': '',
             'daily_update_check': False, 'queue_paused': False, 'cpu_workers':2, 'gpu_workers':1, 'download_workers':2,
             'disk_workers':2, 'gpu_memory_reserve_mb':1024, 'desktop_notifications':False, 'automatic_update_checks':True,
@@ -320,7 +328,8 @@ class Store:
                  'downloaded_bytes','total_bytes','speed_bps','download_speed_bps','elapsed_seconds',
                  'transfer_stage','stage_progress','progress_scope','stream_index','stream_count',
                  'resume_supported','resumed','error_code','error_retryable','cancel_intent',
-                 'media_preview','plan_id','thumbnail','title','channel','source_name','source_url'}
+                 'media_preview','plan_id','thumbnail','title','channel','source_name','source_url',
+                 'dubbing_project_id','dubbing_run_id'}
         if not set(fields)<=allowed:
             raise ValueError('Invalid job metadata update.')
         with self.lock:

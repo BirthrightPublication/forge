@@ -1,0 +1,497 @@
+{
+  "blockers": [
+    "Exact-source GUI/native Windows install/restart/updater/model acceptance",
+    "Physical GPU inference acceptance",
+    "Authorized live private YouTube OAuth/upload/captions acceptance"
+  ],
+  "components": {
+    "opus-en-ru": {
+      "parts": [
+        {
+          "artifacts": [
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "README.md",
+              "payload_download_verified": true,
+              "sha256": "020bfd697b7d0da0338611cf445eb44ae45dda27ff49f2bf64e21ee46882b48b",
+              "size": 1123,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/README.md"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "config.json",
+              "payload_download_verified": true,
+              "sha256": "d3c2614fd099bc228fc257f047e46f1c6f94cfa12dee2b1fa6c0d780e6b7de06",
+              "size": 1381,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "generation_config.json",
+              "payload_download_verified": true,
+              "sha256": "152452cb7a96bff6c20b54f91fae2a655b72a8a9ce978ca3e9384f87253d5281",
+              "size": 293,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/generation_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "pytorch_model.bin",
+              "payload_download_verified": false,
+              "sha256": "d15fa58c6bc3efd3629c1b6b86d9aa6d15d2751a4620aa4cdd7eed7b5cbe583b",
+              "size": 306991893,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/pytorch_model.bin"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "source.spm",
+              "payload_download_verified": true,
+              "sha256": "16bebef1389a0b8ab452772c4e35b9e605e5713f8ac7baa71ca701394eaa086d",
+              "size": 802781,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/source.spm"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "target.spm",
+              "payload_download_verified": true,
+              "sha256": "745998e51ba5b058e38b7ac7765c25c43ed5c1c39cc92b27163b9b2e323c9d7c",
+              "size": 1080169,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/target.spm"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "tokenizer_config.json",
+              "payload_download_verified": true,
+              "sha256": "eca697b0e7109b94a9f2a1de82173fdbd4ddee97d1fd46a15b3162f191e6eed2",
+              "size": 42,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/tokenizer_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "vocab.json",
+              "payload_download_verified": true,
+              "sha256": "33e95da3be3fa3b50169c4c46693ba2f29fbf4cb29d99044bd07d72d181fa1e9",
+              "size": 2601758,
+              "source_repository": "Helsinki-NLP/opus-mt-en-ru",
+              "source_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/vocab.json"
+            },
+            {
+              "license_id": "Apache-2.0",
+              "origin": "external_license_evidence",
+              "path": "notices/publisher-declaration-Apache-2.0.txt",
+              "payload_download_verified": true,
+              "scope": "canonical_text_for_publisher_apache_declaration",
+              "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+              "size": 11359,
+              "source_path": "LICENSE.txt",
+              "source_repository": "apache/commons-lang",
+              "source_revision": "9e224bc34f8003041375d207be859b951ce505b4",
+              "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "origin": "external_license_evidence",
+              "path": "notices/upstream-models-LICENSE.txt",
+              "payload_download_verified": true,
+              "scope": "upstream_pretrained_model_terms",
+              "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
+              "size": 18652,
+              "source_path": "models/LICENSE",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/LICENSE"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "origin": "external_license_evidence",
+              "path": "notices/upstream-README.md",
+              "payload_download_verified": true,
+              "scope": "upstream_scope_and_attribution",
+              "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
+              "size": 4525,
+              "source_path": "README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/README.md"
+            },
+            {
+              "license_id": "CC-BY-4.0",
+              "origin": "external_license_evidence",
+              "path": "notices/upstream-en-ru-README.md",
+              "payload_download_verified": true,
+              "scope": "original_checkpoint_identity",
+              "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
+              "size": 1814,
+              "source_path": "models/en-ru/README.md",
+              "source_repository": "Helsinki-NLP/OPUS-MT-train",
+              "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+              "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/en-ru/README.md"
+            }
+          ],
+          "id": "translation",
+          "license": {
+            "applied_terms": [
+              {
+                "id": "CC-BY-4.0",
+                "scope": "Original OPUS-MT pretrained material; its grant and downstream rights continue unchanged."
+              },
+              {
+                "id": "Apache-2.0",
+                "scope": "Separate exact converted-checkpoint publisher-card declaration; not a replacement of upstream CC-BY-4.0 rights."
+              }
+            ],
+            "attribution_notice": {
+              "file": "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+              "origin": "FORGE-authored attribution and unchanged-artifact status, separate from unmodified upstream evidence",
+              "sha256": "6d3b6662aeed735785150094d5dabb7671c4ffacb18fda445b99914e2b12d53a",
+              "size": 4558
+            },
+            "checkpoint_card": {
+              "path": "README.md",
+              "sha256": "020bfd697b7d0da0338611cf445eb44ae45dda27ff49f2bf64e21ee46882b48b",
+              "size": 1123,
+              "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/resolve/bb09c99d180016eac6819df3dae68edb1690fdee/README.md"
+            },
+            "commercial_use": true,
+            "declared_spdx_id": "Apache-2.0",
+            "distribution_approved": false,
+            "external_evidence": [
+              {
+                "license_id": "Apache-2.0",
+                "origin": "external_license_evidence",
+                "path": "notices/publisher-declaration-Apache-2.0.txt",
+                "payload_download_verified": true,
+                "retained_source_file": "docs/model-notices/Apache-2.0-canonical.txt",
+                "scope": "canonical_text_for_publisher_apache_declaration",
+                "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+                "size": 11359,
+                "source_path": "LICENSE.txt",
+                "source_repository": "apache/commons-lang",
+                "source_revision": "9e224bc34f8003041375d207be859b951ce505b4",
+                "url": "https://raw.githubusercontent.com/apache/commons-lang/9e224bc34f8003041375d207be859b951ce505b4/LICENSE.txt"
+              },
+              {
+                "license_id": "CC-BY-4.0",
+                "origin": "external_license_evidence",
+                "path": "notices/upstream-models-LICENSE.txt",
+                "payload_download_verified": true,
+                "retained_source_file": "docs/model-notices/opus-models-LICENSE.txt",
+                "scope": "upstream_pretrained_model_terms",
+                "sha256": "945fbcb37deca05bccd7c3ca0e261679f1f5373515504fdbad68f6f3cf6f49b9",
+                "size": 18652,
+                "source_path": "models/LICENSE",
+                "source_repository": "Helsinki-NLP/OPUS-MT-train",
+                "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+                "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/LICENSE"
+              },
+              {
+                "license_id": "CC-BY-4.0",
+                "origin": "external_license_evidence",
+                "path": "notices/upstream-README.md",
+                "payload_download_verified": true,
+                "retained_source_file": "docs/model-notices/opus-train-README.md",
+                "scope": "upstream_scope_and_attribution",
+                "sha256": "a2ce550ae68334d3ed9b7f74c7bdacfa9aedbc9b6678ad695193b26769ceea1e",
+                "size": 4525,
+                "source_path": "README.md",
+                "source_repository": "Helsinki-NLP/OPUS-MT-train",
+                "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+                "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/README.md"
+              },
+              {
+                "license_id": "CC-BY-4.0",
+                "origin": "external_license_evidence",
+                "path": "notices/upstream-en-ru-README.md",
+                "payload_download_verified": true,
+                "retained_source_file": "docs/model-notices/opus-en-ru-upstream-README.md",
+                "scope": "original_checkpoint_identity",
+                "sha256": "7caacacfee5fa7f30a3ea779a0c3b26f41b404fbc9d246089d2098d1daf48bf7",
+                "size": 1814,
+                "source_path": "models/en-ru/README.md",
+                "source_repository": "Helsinki-NLP/OPUS-MT-train",
+                "source_revision": "d5e932c96d77596378010aa7e7f1caeb8ccaa9f8",
+                "url": "https://raw.githubusercontent.com/Helsinki-NLP/OPUS-MT-train/d5e932c96d77596378010aa7e7f1caeb8ccaa9f8/models/en-ru/README.md"
+              }
+            ],
+            "id": "apache-2.0",
+            "note": "Publisher declaration and any underlying pretrained-material terms remain separately identified and preserved. This scoped model review does not approve the whole native runtime or final release.",
+            "notice_obligation_expression": "Apache-2.0 AND CC-BY-4.0",
+            "publisher_declaration_verified": true,
+            "review_pending": false,
+            "review_scope": "Exact scoped model terms and retained notice obligations for optional unchanged local installation; runtime-binary license audit and final distribution/release approval remain separate.",
+            "reviewed": true,
+            "scope_conflict": true,
+            "scope_resolution": "Preserve cumulative scoped notices and conditions. Both grants permit commercial use; no noncommercial restriction or requirement for separate publisher/owner permission appears in the reviewed terms. FORGE adds no restriction to original CC-BY-4.0 rights.",
+            "scope_review_completed": true
+          },
+          "repository": "Helsinki-NLP/opus-mt-en-ru",
+          "revision": "bb09c99d180016eac6819df3dae68edb1690fdee"
+        }
+      ],
+      "runtime": {
+        "dependency_closure_complete": true,
+        "dependency_closure_evidence": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+        "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
+        "device": "cpu",
+        "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
+        "license_evidence_sha256": "39508c0250a375de61fba0e4b76a152386127eae457b7050269fc20d566fcc75",
+        "license_review_evidence": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+        "license_review_evidence_sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e",
+        "license_reviewed": true,
+        "model_inference_tested": true,
+        "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
+        "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
+        "requirements": "scripts/requirements-dubbing-core.txt",
+        "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
+        "reviewed": true,
+        "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
+        "wheel_inventory_sha256": "7d4b631c4771bb07fdd0d073af08c4ee829fd844ef5a80be58b11fc5e3ea52f2"
+      }
+    },
+    "qwen3-tts-0.6b-base": {
+      "parts": [
+        {
+          "artifacts": [
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "README.md",
+              "payload_download_verified": true,
+              "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
+              "size": 3640,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/README.md"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "config.json",
+              "payload_download_verified": true,
+              "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+              "size": 4494,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "generation_config.json",
+              "payload_download_verified": true,
+              "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa",
+              "size": 245,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/generation_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "merges.txt",
+              "payload_download_verified": true,
+              "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+              "size": 1671839,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/merges.txt"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "model.safetensors",
+              "payload_download_verified": false,
+              "sha256": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6",
+              "size": 1829344272,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/model.safetensors"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "preprocessor_config.json",
+              "payload_download_verified": true,
+              "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119",
+              "size": 127,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/preprocessor_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "speech_tokenizer/config.json",
+              "payload_download_verified": true,
+              "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167",
+              "size": 2336,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer/config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "speech_tokenizer/configuration.json",
+              "payload_download_verified": true,
+              "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd",
+              "size": 76,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer/configuration.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "speech_tokenizer/model.safetensors",
+              "payload_download_verified": false,
+              "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
+              "size": 682293092,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer/model.safetensors"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "speech_tokenizer/preprocessor_config.json",
+              "payload_download_verified": true,
+              "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb",
+              "size": 234,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/speech_tokenizer/preprocessor_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "tokenizer_config.json",
+              "payload_download_verified": true,
+              "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+              "size": 7344,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/tokenizer_config.json"
+            },
+            {
+              "origin": "checkpoint_snapshot",
+              "path": "vocab.json",
+              "payload_download_verified": true,
+              "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+              "size": 2776833,
+              "source_repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+              "source_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/vocab.json"
+            },
+            {
+              "license_id": "Apache-2.0",
+              "origin": "external_license_evidence",
+              "path": "notices/publisher-Apache-2.0.txt",
+              "payload_download_verified": true,
+              "scope": "official_publisher_apache_license_text",
+              "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+              "size": 11343,
+              "source_path": "LICENSE",
+              "source_repository": "QwenLM/Qwen3-TTS",
+              "source_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+              "url": "https://raw.githubusercontent.com/QwenLM/Qwen3-TTS/022e286b98fbec7e1e916cb940cdf532cd9f488e/LICENSE"
+            }
+          ],
+          "id": "voice",
+          "license": {
+            "applied_terms": [
+              {
+                "id": "Apache-2.0",
+                "scope": "Exact Qwen model publisher declaration with official full terms and copyright notice."
+              }
+            ],
+            "attribution_notice": {
+              "file": "docs/model-notices/FORGE-MODEL-ATTRIBUTION.txt",
+              "origin": "FORGE-authored attribution and unchanged-artifact status, separate from unmodified upstream evidence",
+              "sha256": "6d3b6662aeed735785150094d5dabb7671c4ffacb18fda445b99914e2b12d53a",
+              "size": 4558
+            },
+            "checkpoint_card": {
+              "path": "README.md",
+              "sha256": "181187b6057906bd960bc7f938d0b7a16652509776a0d52c4885b4ae5ccda0ea",
+              "size": 3640,
+              "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/resolve/5d83992436eae1d760afd27aff78a71d676296fc/README.md"
+            },
+            "commercial_use": true,
+            "declared_spdx_id": "Apache-2.0",
+            "distribution_approved": false,
+            "external_evidence": [
+              {
+                "license_id": "Apache-2.0",
+                "origin": "external_license_evidence",
+                "path": "notices/publisher-Apache-2.0.txt",
+                "payload_download_verified": true,
+                "retained_source_file": "docs/model-notices/qwen-source-LICENSE.txt",
+                "scope": "official_publisher_apache_license_text",
+                "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+                "size": 11343,
+                "source_path": "LICENSE",
+                "source_repository": "QwenLM/Qwen3-TTS",
+                "source_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+                "url": "https://raw.githubusercontent.com/QwenLM/Qwen3-TTS/022e286b98fbec7e1e916cb940cdf532cd9f488e/LICENSE"
+              }
+            ],
+            "id": "apache-2.0",
+            "note": "Publisher declaration and any underlying pretrained-material terms remain separately identified and preserved. This scoped model review does not approve the whole native runtime or final release.",
+            "publisher_declaration_verified": true,
+            "review_pending": false,
+            "review_scope": "Exact scoped model terms and retained notice obligations for optional unchanged local installation; runtime-binary license audit and final distribution/release approval remain separate.",
+            "reviewed": true,
+            "scope_conflict": false,
+            "scope_review_completed": true
+          },
+          "repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+          "revision": "5d83992436eae1d760afd27aff78a71d676296fc"
+        }
+      ],
+      "runtime": {
+        "dependency_closure_complete": true,
+        "dependency_closure_evidence": "docs/validation/v0.10/native-cpu-3b1e7c5.dependency-closure.json",
+        "dependency_closure_evidence_sha256": "7803541d1726ba327430a838c1253c2d0e348e18927785cc67b57bbb8c6d98f7",
+        "device": "cpu",
+        "license_evidence": "docs/V0.10-WHEEL-LICENSE-EVIDENCE.json",
+        "license_evidence_sha256": "39508c0250a375de61fba0e4b76a152386127eae457b7050269fc20d566fcc75",
+        "license_review_evidence": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+        "license_review_evidence_sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e",
+        "license_reviewed": true,
+        "model_inference_tested": true,
+        "observed_cpu_runtime_id": "dubbing-core-d0f02732e6f97170",
+        "observed_cpu_source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
+        "requirements": "scripts/requirements-dubbing-core.txt",
+        "requirements_sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8",
+        "reviewed": true,
+        "wheel_inventory": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
+        "wheel_inventory_sha256": "7d4b631c4771bb07fdd0d073af08c4ee829fd844ef5a80be58b11fc5e3ea52f2"
+      }
+    }
+  },
+  "distribution_approved": false,
+  "license_evidence": "docs/V0.10-PUBLISHER-LICENSES.json",
+  "license_evidence_sha256": "269aee8dbf30b0792c2f80dedb0d92ade3b8e647c8b4c8ebd3c605851cb317c3",
+  "license_review_scope": {
+    "application_distribution": "Normal FORGE Windows updater ZIP includes application source/notices; zero dependency wheels, DLLs, environments or model weights are bundled.",
+    "application_license": "FORGE MIT code scope remains unchanged; third-party grants and bundled conditions are preserved separately.",
+    "commercial_use": "Internal/local personal or business desktop use subject to supplied terms. Intel OpenMP SaaS/service-bureau use is outside this review.",
+    "future_bundling": "Redistribution/rehosting/repackaging runtime binaries, hosted services and whole-SDK completeness are not approved.",
+    "runtime_installation": "User-approved original publisher artifacts are hash-verified and installed unchanged into isolated private local environments, retaining the wheelhouse and provided notices."
+  },
+  "license_reviewed": true,
+  "publisher_inventory": "forge/dubbing_publisher_inventory.json",
+  "publisher_inventory_sha256": "0f432caacce25358460d6a113eb199636992a3f4c5b2bffffa40f3643dd4112d",
+  "runtime_license_review": {
+    "path": "docs/V0.10-RUNTIME-LICENSE-AUDIT.json",
+    "sha256": "a6590c7b1376ab03808e214e3c4c52708795941b59d8deeed3cd71482322849e"
+  },
+  "schema": 1,
+  "scope": "Machine-readable candidate identities, including real separately sourced notices; not release approval or native/GPU proof.",
+  "source_base_commit": "049e82a25bbb573446a526ab338d2eee444f798a",
+  "status": "license_reviewed_acceptance_pending"
+}

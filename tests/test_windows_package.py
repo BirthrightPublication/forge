@@ -63,6 +63,26 @@ def contents(archive):
         return {entry.filename: zipped.read(entry) for entry in zipped.infolist()}
 
 
+def test_checkout_package_identity_is_bound_to_committed_source_manifest(source):
+    subprocess.run(['git', 'init', '-q', str(source)], check=True)
+    subprocess.run(['git', 'add', '.'], cwd=source, check=True)
+    subprocess.run(['git', '-c', 'user.name=Owned fixture', '-c', 'user.email=fixture@example.invalid',
+                    'commit', '-qm', 'Owned package identity fixture'], cwd=source, check=True)
+    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip()
+    _, manifest = package.expected_payload(source, TAG)
+    assert manifest['package']['source_commit'] == commit
+    original = (source / 'release-manifest.json').read_bytes()
+    value = json.loads(original); value['note'] = 'Uncommitted manifest must not claim an exact Git source.'
+    (source / 'release-manifest.json').write_text(json.dumps(value), encoding='utf-8')
+    with pytest.raises(package.PackageError, match='Commit the verified source manifest'):
+        package.expected_payload(source, TAG)
+
+
+def test_legacy_source_without_git_does_not_invent_a_commit(source):
+    _, manifest = package.expected_payload(source, TAG)
+    assert 'source_commit' not in manifest['package']
+
+
 def save_archive(path, files, *, special=None, compression=zipfile.ZIP_STORED):
     with zipfile.ZipFile(path, 'w', compression=compression) as zipped:
         for name, data in files.items():

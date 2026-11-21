@@ -370,6 +370,54 @@ def _export(source, output, fmt, settings, metadata, chapters=None, cover=None):
         raise ValueError('Speech export has no playable audio stream.')
 
 
+def resolve_chapters(project: dict, options: dict):
+    """Resolve render scope without filtering replacement text by manuscript IDs.
+
+    Chapter IDs describe the saved manuscript. Selection/preview text is a
+    separate fragment, and a document request must not inherit the currently
+    selected chapter from an older client.
+    """
+    scope = options.get('scope', 'document')
+    supplied = options.get('text') or ''
+    if not isinstance(supplied, str):
+        raise ValueError('Speech text must be a string.')
+    has_text = bool(supplied.strip())
+    chapters = [dict(chapter) for chapter in project.get('chapters') or []]
+    if not chapters and project.get('text'):
+        chapters = [{'id': 'document', 'title': project.get('name', 'Narration'), 'text': project['text']}]
+    chapter_id = options.get('chapter_id')
+    if scope in {'selection', 'preview'}:
+        if not has_text:
+            raise ValueError('Choose nonempty text for the speech selection or preview.')
+        return [{'id': scope, 'source_chapter_id': chapter_id or '',
+                 'title': options.get('name') or scope.title(), 'text': supplied}]
+    if scope == 'chapter':
+        if chapters:
+            selected = [chapter for chapter in chapters if chapter.get('id') == chapter_id] if chapter_id else chapters if len(chapters) == 1 else []
+            if not selected:
+                raise ValueError('Choose an existing chapter for chapter generation.')
+            if has_text:
+                selected[0]['text'] = supplied
+            return selected
+        if has_text:
+            return [{'id': chapter_id or 'document', 'title': options.get('name') or 'Chapter', 'text': supplied}]
+        raise ValueError('Choose a nonempty chapter for speech generation.')
+    # Preserve the manuscript's chapter boundaries when a legacy frontend also
+    # submits its joined text. Explicit replacement text otherwise takes priority.
+    replacement = has_text and (not chapters or supplied != '\n\n'.join(chapter.get('text', '') for chapter in chapters))
+    if replacement:
+        return [{'id': chapters[0].get('id', 'document') if len(chapters) == 1 else 'document',
+                 'title': project.get('name') or options.get('name') or 'Narration', 'text': supplied}]
+    chapter_ids = options.get('chapter_ids') or []
+    if chapter_ids:
+        if not isinstance(chapter_ids, list) or any(not isinstance(value, str) for value in chapter_ids) or len(chapter_ids) > MAX_CHAPTERS:
+            raise ValueError('Choose a bounded list of chapter IDs.')
+        if set(chapter_ids) - {chapter.get('id') for chapter in chapters}:
+            raise ValueError('A selected chapter is no longer available.')
+        chapters = [chapter for chapter in chapters if chapter.get('id') in chapter_ids]
+    return chapters
+
+
 def process(payload: dict, stage_dir: Path, data: Path):
     """Render a queued immutable project snapshot; completed synthesis survives retry.
 
@@ -386,21 +434,7 @@ def process(payload: dict, stage_dir: Path, data: Path):
     if not project and not supplied and payload.get('source'):
         project = import_document(Path(payload['source']['path']))
         import_warnings = project['warnings']
-    chapters = list(project.get('chapters') or [])
-    if supplied or options.get('scope') in {'selection', 'preview'}:
-        chapters = [{'id': 'selection', 'title': options.get('name') or 'Selection', 'text': supplied}]
-    elif not chapters and project.get('text'):
-        chapters = [{'id': 'document', 'title': project.get('name', 'Narration'), 'text': project['text']}]
-    chapter_id = options.get('chapter_id')
-    chapter_ids = options.get('chapter_ids') or []
-    if chapter_ids:
-        if not isinstance(chapter_ids, list) or any(not isinstance(value, str) for value in chapter_ids) or len(chapter_ids) > MAX_CHAPTERS:
-            raise ValueError('Choose a bounded list of chapter IDs.')
-        if set(chapter_ids) - {chapter.get('id') for chapter in chapters}:
-            raise ValueError('A selected chapter is no longer available.')
-        chapters = [chapter for chapter in chapters if chapter.get('id') in chapter_ids]
-    if chapter_id:
-        chapters = [c for c in chapters if c.get('id') == chapter_id]
+    chapters = resolve_chapters(project, options)
     if not chapters or len(chapters) > MAX_CHAPTERS:
         raise ValueError('Choose a nonempty project, chapter or text selection.')
     if sum(len(c.get('text', '')) for c in chapters) > MAX_TEXT:
@@ -492,7 +526,8 @@ def process(payload: dict, stage_dir: Path, data: Path):
                 extra = selected.get('segment_effects') or []
                 segment_chain = extra.get(segment.get('id'), extra.get(segment.get('parent_id'), [])) if isinstance(extra, dict) else extra
                 ranged = []
-                for assignment in project.get('segment_processing', options.get('segment_processing', [])):
+                assignments = [] if options.get('scope') in {'selection', 'preview'} else project.get('segment_processing', options.get('segment_processing', []))
+                for assignment in assignments:
                     if assignment.get('chapter_id') != chapter.get('id'):
                         continue
                     start, end = assignment.get('start'), assignment.get('end')

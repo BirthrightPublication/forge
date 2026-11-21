@@ -1,0 +1,17 @@
+{
+  "source_commit": "598d88bb375dd1a76975283b69d07f1257ce928e",
+  "run_id": 44857598071,
+  "job_id": 136703325976,
+  "artifact_id": 14688144013,
+  "archive_sha256": "e03db0cd37f4874457835c58a46b42cdbfb136f1cce6f5ee0d6b93acf8d7423e",
+  "files": {
+    "DUBBING_RUNTIME_NOTICES.json": {
+      "sha256": "307f5a0e957052a92b0959d404f8a2ce81605c31c52d22866e354749944241db",
+      "size": 763857
+    },
+    "DUBBING_MODEL_SMOKE.json": {
+      "sha256": "e0bf17c05916737f85d68018574f55af009f35098b8337848987ac04b9217094",
+      "size": 126589
+    }
+  }
+}

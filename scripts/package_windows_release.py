@@ -15,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import subprocess
 import tempfile
 import zipfile
 
@@ -233,6 +234,22 @@ def source_file(root: Path, relative: str) -> bytes:
         raise PackageError('Source manifest file is unavailable: ' + relative) from error
 
 
+def source_identity(source: Path, raw_manifest: bytes) -> str | None:
+    """Bind a checkout-built package to Git without inventing legacy identity."""
+    if not (source / '.git').exists():
+        return None
+    try:
+        commit = subprocess.check_output(['git', 'rev-parse', '--verify', 'HEAD'], cwd=source,
+                                         stderr=subprocess.DEVNULL, timeout=10).decode('ascii').strip()
+        committed = subprocess.check_output(['git', 'show', commit + ':release-manifest.json'], cwd=source,
+                                            stderr=subprocess.DEVNULL, timeout=10)
+    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
+        raise PackageError('Cannot verify the source checkout identity.') from error
+    if not re.fullmatch('[a-f0-9]{40}', commit) or committed != raw_manifest:
+        raise PackageError('Commit the verified source manifest before packaging exact-source acceptance.')
+    return commit
+
+
 def expected_payload(source: Path, tag: str) -> tuple[dict[str, bytes], dict]:
     version = version_from_tag(tag)
     source = Path(source)
@@ -274,6 +291,7 @@ def expected_payload(source: Path, tag: str) -> tuple[dict[str, bytes], dict]:
             raise PackageError('Source manifest omits an application file: ' + relative)
     check_versions(files, version)
     retained = {relative: content for relative, content in files.items() if not excluded(relative)}
+    commit = source_identity(source, raw)
     package_manifest = {
         'app': 'FORGE', 'format': 1, 'version': version,
         'minimum_from': manifest.get('minimum_from', '0.1.0'),
@@ -282,6 +300,8 @@ def expected_payload(source: Path, tag: str) -> tuple[dict[str, bytes], dict]:
                     'type': 'source', 'source_manifest_sha256': sha256(raw)},
         'files': {relative: sha256(content) for relative, content in sorted(retained.items())},
     }
+    if commit:
+        package_manifest['package']['source_commit'] = commit
     encoded = (json.dumps(package_manifest, ensure_ascii=False, sort_keys=True, indent=2) + '\n').encode('utf-8')
     manifest_inventory(encoded, version, windows=True)
     retained['release-manifest.json'] = encoded
@@ -374,6 +394,7 @@ def validate_archive(archive: Path, *, tag: str | None = None, checksum: Path | 
             'platform': 'windows', 'architecture': 'x64', 'root': 'app',
             'application_files': len(inventory), 'archive_files': len(files),
             'sha256': digest, 'source_manifest_sha256': manifest['package']['source_manifest_sha256'],
+            **({'source_commit': manifest['package']['source_commit']} if manifest['package'].get('source_commit') else {}),
             **source_report}
 
 

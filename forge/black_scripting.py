@@ -29,7 +29,10 @@ class OperationNode(Strict):
     node_version: Literal[1] = 1
     tool: Literal['retune', 'metadata', 'transcribe', 'watermark', 'audio_fingerprint',
                   'video_fingerprint', 'tracking_audit', 'privacy_export', 'provenance',
-                  'privacy_verify','tts','audio_effects']
+                  'privacy_verify','tts','audio_effects',
+                  'dubbing_transcribe','dubbing_translate','dubbing_review','dubbing_voice','dubbing_align',
+                  'dubbing_separate','dubbing_mix','dubbing_effects','dubbing_lipsync','dubbing_encode',
+                  'dubbing_export','dubbing_metadata','dubbing_prepare_upload']
     enabled: bool = True
     options: dict = Field(default_factory=dict)
     preset_name: str = Field('', max_length=80)
@@ -196,6 +199,8 @@ def mount(app, store, manager, destination):
         # Every file and media transition passes before resolving writable destinations.
         for plan in plans:
             plan['destination'] = str(destination(body.script.output, plan['source'], settings))
+        if any(node.tool.startswith('dubbing_') for node in active):
+            app.state.dubbing.black_preview(body.script,active,plans)
         fingerprint = {'script': body.script.model_dump(), 'plans': plans}
         token = hashlib.sha256(json.dumps(fingerprint, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         return active, settings, plans, token
@@ -234,6 +239,8 @@ def mount(app, store, manager, destination):
         active, settings, plans, token = prepare(body)
         if not secrets.compare_digest(token, body.preview_token):
             raise ValueError('The script, source files or output destination changed. Preview the execution plan again.')
+        if any(node.tool.startswith('dubbing_') for node in active):
+            return app.state.dubbing.black_run(body.script,active,plans)
         batch = uuid.uuid4().hex
         jobs = []
         with manager.lock:

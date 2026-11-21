@@ -1,4 +1,5 @@
-# Windows launchers intentionally retain CRLF line endings.
-*.bat whitespace=cr-at-eol
-# Acceptance must execute the exact user-supplied updater bytes on Windows.
-tests/fixtures/windows_updater/* -text
+# Retained publisher/license evidence must match the original verified bytes.
+docs/model-notices/* -text whitespace=-blank-at-eol,-blank-at-eof
+# Preserve the exact native evidence digest and Windows command-file bytes.
+docs/validation/v0.10/*.json -text whitespace=cr-at-eol
+"scripts/Run V0.10 Verification.bat" -text whitespace=cr-at-eol

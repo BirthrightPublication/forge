@@ -218,7 +218,7 @@ def test_release_workflows_pin_checkout_and_gate_publisher_on_actual_models():
     assert "branches: ['development/v0.8-speech-studio']" in workflow
     assert 'merge-multiple: false' in workflow and 'speech-verified-${{ github.run_id }}' in workflow
     assert 'needs: [publishers, tts, asr]' in workflow
-    assert 'needs: [resolve, build, windows, speech]' in release
+    assert 'needs: [resolve, build, windows, speech, dubbing]' in release
     assert "needs.resolve.outputs.speech_required == 'false'" in release
     assert "needs.speech.result == 'success'" in release
     assert 'source_ref: refs/tags/${{ needs.resolve.outputs.tag }}' in release
@@ -227,7 +227,7 @@ def test_release_workflows_pin_checkout_and_gate_publisher_on_actual_models():
     assert "speech.get('source_commit') != legacy['source_commit']" in release
     windows = (ROOT / '.github/workflows/windows-release.yml').read_text()
     assert "if: needs.resolve.outputs.build_only == 'false' && needs.resolve.outputs.speech_required == 'true'" in windows
-    assert 'needs: [resolve, build, windows, finalize, speech]' in windows
+    assert 'needs: [resolve, build, windows, finalize, speech, dubbing]' in windows
     assert "needs.speech.result == 'success'" in windows
     assert 'source_ref: refs/tags/${{ needs.resolve.outputs.tag }}' in windows
     assert 'name: ${{ needs.speech.outputs.evidence_artifact }}' in windows

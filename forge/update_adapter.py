@@ -2,10 +2,24 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
 from .birthright_update.core import UpdateError, digest
+
+
+def check_application_storage(root, package):
+    from scripts.update import inspect_release, assert_target, preserve_installed
+    root = Path(root).resolve()
+    manifest, contents = inspect_release(package)
+    backup_bytes = sum(target.stat().st_size for name in contents
+                       for target in [assert_target(root, name)]
+                       if target.is_file() and not preserve_installed(root, name, target))
+    required = sum(map(len, contents.values())) + backup_bytes + 64 * 1048576
+    if shutil.disk_usage(root).free < required:
+        raise UpdateError('Not enough free space for verified application files and their rollback backup. Free disk space and retry; no files were replaced.')
+    return {'version':manifest['version'],'required_storage_bytes':required}
 
 
 class LocalUpdaterAdapter:
@@ -28,7 +42,7 @@ class LocalUpdaterAdapter:
         if Path(asset).resolve() != self.package.resolve() or release.application != 'birthright.forge':
             raise UpdateError('Wrong application or package for this installation adapter.')
         self._run('--zip', str(self.package), '--dry-run')
-        return {'package': str(self.package)}
+        return {'package': str(self.package),**check_application_storage(self.root,self.package)}
 
     def quiesce(self, *, cancel_confirmed=False):
         if not self.service_stopped:

@@ -162,7 +162,9 @@ with tempfile.TemporaryDirectory(prefix='forge-v7-browser-') as temp:
                 page.keyboard.press('Escape')
             app.state.manager.maintenance_pending=True
             app.state.store.set('maintenance',{'id':'c'*32,'status':'waiting','requested':time.time(),'message':'Synthetic maintenance waiting for active work.'})
-            page.wait_for_selector('#maintenance-banner')
+            # Passive maintenance checks run every 30 seconds; exercise discovery
+            # outside Updates without depending on the preceding test duration.
+            page.wait_for_selector('#maintenance-banner', timeout=35000)
             check('Pending maintenance is visible outside Updates','waiting' in page.locator('#maintenance-banner').inner_text())
             page.locator('#maintenance-banner button').click();page.wait_for_selector('#maintenance-banner',state='detached')
             check('Pending request cancels without removing queued/history data',not app.state.manager.maintenance_pending and app.state.download_studio.media()[0]['status']==INITIAL_MEDIA_STATE)

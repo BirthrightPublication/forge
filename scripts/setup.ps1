@@ -1,3 +1,4 @@
+param([switch]$NoShortcuts)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if (Test-Path -LiteralPath (Join-Path $root '.forge-maintenance.json')) {
@@ -6,7 +7,8 @@ if (Test-Path -LiteralPath (Join-Path $root '.forge-maintenance.json')) {
 Set-Location -LiteralPath $root
 $version = (Get-Content -LiteralPath (Join-Path $root 'VERSION.txt') -Raw).Trim()
 Write-Host "`nFORGE V$version - local setup`n"
-Write-Host 'Creates a private Python environment in this folder and a Start shortcut.'
+Write-Host 'Creates a private Python environment in this folder.'
+if (-not $NoShortcuts) { Write-Host 'Also offers the normal FORGE Start shortcut.' }
 Write-Host 'Downloads the listed Python packages from PyPI. No media is uploaded.'
 Write-Host 'No administrator rights, startup task, CUDA installation, or firewall rule.'
 Write-Host 'Python 3.11, 3.12, or 3.13 (64-bit, including Tcl/Tk) must already be installed.'
@@ -49,6 +51,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Package installation failed. Read the error ab
 & $venvPython -m pip check
 if ($LASTEXITCODE -ne 0) { throw 'Dependency conflicts found; do not launch until resolved.' }
 & $venvPython -m pip freeze | Set-Content -LiteralPath (Join-Path $root 'installed-versions.txt') -Encoding UTF8
-try { & (Join-Path $PSScriptRoot 'create_shortcuts.ps1') } catch { Write-Warning $_.Exception.Message }
-Write-Host "`nSetup complete. Double-click Open FORGE.bat or search Windows for FORGE."
+if (-not $NoShortcuts) {
+    try { & (Join-Path $PSScriptRoot 'create_shortcuts.ps1') } catch { Write-Warning $_.Exception.Message }
+}
+Write-Host "`nSetup complete. Open FORGE using the launcher you started with."
 Write-Host 'Optional engines: Install Transcription.bat and Install Downloads.bat.'

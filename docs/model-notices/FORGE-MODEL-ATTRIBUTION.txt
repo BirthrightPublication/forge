@@ -1,0 +1,78 @@
+FORGE optional dubbing model attribution and change status
+
+These notices describe the identified third-party model artifacts. The FORGE
+application MIT license applies to FORGE code and does not replace model terms.
+The Windows application payload includes this file and the full terms, source
+declarations, and attribution documents named below. Model weights are fetched
+separately from the identified publishers when the user approves installation.
+The installer verifies the approved artifact hashes and preserves their bytes.
+
+OPUS-MT English to Russian
+
+Publisher: Helsinki-NLP / OPUS-MT, University of Helsinki and contributors.
+Registered snapshot:
+https://huggingface.co/Helsinki-NLP/opus-mt-en-ru/tree/bb09c99d180016eac6819df3dae68edb1690fdee
+
+The unmodified publisher card identifies the original pretrained model as
+opus-2020-02-11.zip:
+https://object.pouta.csc.fi/OPUS-MT-models/en-ru/opus-2020-02-11.zip
+It describes the transformer-align model, OPUS training data, normalization,
+and SentencePiece preprocessing. The registered Hugging Face snapshot uses
+the converted Transformers checkpoint format. FORGE downloads and installs
+that registered snapshot unchanged; it performs no further weight conversion,
+quantization, editing, or fine-tuning. The original model identity and the
+publisher's conversion/snapshot declaration remain in the retained documents.
+
+The original pretrained model is offered under Creative Commons Attribution
+4.0 International (CC-BY-4.0):
+https://creativecommons.org/licenses/by/4.0/
+The Hugging Face checkpoint card separately declares Apache License 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+Both scoped declarations and their notices are preserved. Any aggregate
+"Apache-2.0 AND CC-BY-4.0" descriptor records these cumulative notice duties;
+it does not replace the original CC-BY-4.0 grant or impose additional
+restrictions on rights received under that grant. Upstream training-code MIT
+terms are a separate scope and are not used as a pretrained-weight license.
+
+Attribution and references requested by OPUS-MT are retained in full in
+opus-train-README.md, including:
+- Jorg Tiedemann, Mikko Aulamo, Daria Bakshandaeva, Michele Boggia, Stig-Arne
+  Gronroos, Tommi Nieminen, Alessandro Raganato, Yves Scherrer, Raul Vazquez,
+  and Sami Virpioja, "Democratizing neural machine translation with OPUS-MT,"
+  Language Resources and Evaluation 58, 713-755 (2023),
+  https://doi.org/10.1007/s10579-023-09704-w
+- Jorg Tiedemann and Santhosh Thottingal, "OPUS-MT - Building open translation
+  services for the World," Proceedings of EAMT (2020).
+The unmodified upstream document preserves the authors' original spelling,
+BibTeX, acknowledgements, source links, and attribution requests.
+
+Accompanying unmodified evidence and full terms:
+- opus-README.md: the exact registered checkpoint card and original link.
+- opus-en-ru-upstream-README.md: the original release identity and benchmarks.
+- opus-train-README.md: pretrained-model scope, authors, citations, and credit.
+- opus-models-LICENSE.txt: full CC-BY-4.0 terms and warranty disclaimer.
+- Apache-2.0-canonical.txt: full Apache-2.0 text for the publisher declaration.
+The original and converted model terms include warranty disclaimers. FORGE
+does not assert endorsement, sponsorship, or official status from Helsinki-NLP,
+OPUS-MT, the University of Helsinki, or their contributors.
+
+Qwen3-TTS 12 Hz 0.6B Base
+
+Publisher: Qwen / Alibaba Cloud.
+Copyright 2026 Alibaba Cloud.
+Registered snapshot:
+https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/tree/5d83992436eae1d760afd27aff78a71d676296fc
+The exact model card declares Apache License 2.0. The official publisher's
+full Apache text and copyright notice are retained in qwen-source-LICENSE.txt;
+the exact checkpoint card is retained in qwen-README.md. The same full license
+is present in the separately pinned qwen-tts 0.1.1 API source wheel.
+FORGE installs the registered model files unchanged. Its local runtime adapter
+and generated inference requests are separate from the publisher's model files.
+Apache-2.0 terms, supplied copyright/attribution, and warranty disclaimers remain
+applicable. No Qwen or Alibaba Cloud endorsement is asserted.
+
+The reviewed model notices establish model-license scope and conditions.
+Voice/likeness/reference permissions, third-party runtime-binary notices,
+human quality review, hardware acceptance, and release approval remain separate.
+Exact immutable source URLs, sizes, and hashes for the unmodified documents
+are recorded in ../V0.10-PUBLISHER-LICENSES.json.

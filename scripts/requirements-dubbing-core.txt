@@ -1,0 +1,21 @@
+# Dubbing-only binary dependencies; never installed into FORGE or old speech environments.
+# API source qwen-tts0.1.1 and python-sox1.5.0 are independently SHA-256 verified.
+# Unused upstream Gradio/demo dependencies are deliberately outside this API runtime.
+torch==2.8.0
+torchaudio==2.8.0
+transformers==4.57.3
+tokenizers==0.22.2
+accelerate==1.12.0
+huggingface-hub==0.36.2
+numpy==1.26.4
+soundfile==0.13.1
+librosa==0.11.0
+onnxruntime==1.23.2
+einops==0.8.2
+safetensors==0.8.0
+sentencepiece==0.2.1
+sacremoses==0.1.1
+faster-whisper==1.2.1
+ctranslate2==4.6.0
+av==18.1.0
+setuptools==80.9.0

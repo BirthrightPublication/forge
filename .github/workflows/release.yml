@@ -8,6 +8,10 @@ on:
         required: true
         default: v0.6.0
         type: string
+      dubbing_acceptance_run_id:
+        description: Successful exact-source real Dubbing acceptance run (required for V0.10+)
+        required: false
+        type: string
   push:
     tags:
       - 'v*'
@@ -31,6 +35,8 @@ jobs:
     outputs:
       tag: ${{ steps.target.outputs.tag }}
       speech_required: ${{ steps.target.outputs.speech_required }}
+      dubbing_required: ${{ steps.target.outputs.dubbing_required }}
+      dubbing_acceptance_run_id: ${{ steps.target.outputs.dubbing_acceptance_run_id }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -39,6 +45,7 @@ jobs:
         name: Validate the explicit release target
         env:
           REQUESTED_TAG: ${{ inputs.tag }}
+          DUBBING_ACCEPTANCE_RUN_ID: ${{ inputs.dubbing_acceptance_run_id || vars.FORGE_DUBBING_ACCEPTANCE_RUN_ID }}
         run: |
           python3 - <<'PY'
           import os, re
@@ -60,6 +67,12 @@ jobs:
               output.write(f'tag={tag}\n')
               speech_required = tuple(map(int, tag[1:].split('.'))) >= (0, 8, 0)
               output.write(f'speech_required={str(speech_required).lower()}\n')
+              dubbing_required = tuple(map(int, tag[1:].split('.'))) >= (0, 10, 0)
+              acceptance_run = os.environ.get('DUBBING_ACCEPTANCE_RUN_ID', '')
+              if acceptance_run and not acceptance_run.isdigit():
+                  raise SystemExit('The Dubbing acceptance run ID must contain digits only.')
+              output.write(f'dubbing_required={str(dubbing_required).lower()}\n')
+              output.write(f'dubbing_acceptance_run_id={acceptance_run}\n')
           print('Selected exact tag:', tag)
           PY
 
@@ -212,6 +225,10 @@ jobs:
                   check('browser_v7_check.py', '--output', evidence / 'download-studio')
               if Path('tests/browser_v9_check.py').is_file():
                   check('browser_v9_check.py', '--output', evidence / 'media-downloads')
+              if Path('tests/browser_v10_check.py').is_file():
+                  check('browser_v10_check.py', '--output', evidence / 'dubbing-studio')
+              if Path('tests/browser_v10_hotfixes.py').is_file():
+                  check('browser_v10_hotfixes.py', '--output', evidence / 'dubbing-maintenance')
           finally:
               # Retain only explicit test reports and screenshots, never service
               # databases, runtime credentials, model caches or generated values.
@@ -220,7 +237,9 @@ jobs:
                           'BROWSER_V0.4_RESULTS.json', 'BROWSER_GENERATORS_RESULTS.json',
                           'BROWSER_V0.5_RESULTS.json', 'BROWSER_V0.5_STUDIO_RESULTS.json', 'browser-results.json', 'BROWSER_V05_RESULTS.json',
                           'BROWSER_V05_REPORT.json', 'BROWSER_V6_RESULTS.json', 'BROWSER_V09_RESULTS.json',
-                          'BROWSER_V0.9_STUDIO_RESULTS.json', 'BROWSER_V8_RESULTS.json', 'BROWSER_V07_RESULTS.json'}):
+                          'BROWSER_V0.9_STUDIO_RESULTS.json', 'BROWSER_V8_RESULTS.json', 'BROWSER_V07_RESULTS.json',
+                          'BROWSER_V010_RESULTS.json', 'BROWSER_V10_HOTFIX_RESULTS.json',
+                          'BROWSER_V7_RESULTS.json', 'BROWSER_V0.10_STUDIO_RESULTS.json'}):
                       target = Path('Build/validation/browser') / path.relative_to(evidence)
                       target.parent.mkdir(parents=True, exist_ok=True)
                       shutil.copyfile(path, target)
@@ -297,6 +316,7 @@ jobs:
     # disables that job, and its build/acceptance jobs explicitly use contents: read.
     permissions:
       contents: write
+      actions: read
     uses: ./.github/workflows/windows-release.yml
     with:
       tag: ${{ needs.resolve.outputs.tag }}
@@ -310,14 +330,56 @@ jobs:
     with:
       source_ref: refs/tags/${{ needs.resolve.outputs.tag }}
 
+  dubbing:
+    name: Require exact-source real V0.10 Dubbing acceptance
+    needs: resolve
+    if: needs.resolve.outputs.dubbing_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+      DUBBING_ACCEPTANCE_RUN_ID: ${{ needs.resolve.outputs.dubbing_acceptance_run_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+          sparse-checkout: scripts/check_dubbing_release.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: refs/tags/${{ needs.resolve.outputs.tag }}
+          path: source
+          persist-credentials: false
+      - name: Refuse unverified model pins or native dependencies before reading external proof
+        run: python3 tooling/scripts/check_dubbing_release.py inventory --source source --tag "$RELEASE_TAG" --source-commit "$(git -C source rev-parse HEAD)"
+      - name: Verify successful same-repository native acceptance and bounded evidence ZIP
+        run: python3 tooling/scripts/check_dubbing_release.py download --source source --tag "$RELEASE_TAG" --source-commit "$(git -C source rev-parse HEAD)" --run-id "$DUBBING_ACCEPTANCE_RUN_ID" --destination "$RUNNER_TEMP/dubbing-proof"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dubbing-release-gate-${{ needs.resolve.outputs.tag }}
+          path: |
+            ${{ runner.temp }}/dubbing-proof/DUBBING_ACCEPTANCE.json
+            ${{ runner.temp }}/dubbing-proof/DUBBING_RELEASE_GATE.json
+            ${{ runner.temp }}/dubbing-proof/DUBBING_EVIDENCE.zip
+          if-no-files-found: error
+          retention-days: 90
+
   publish:
     name: Publish only the tested assets
-    needs: [resolve, build, windows, speech]
+    needs: [resolve, build, windows, speech, dubbing]
     # Historical pre-speech tags may skip the new model gate. New releases must
     # fail closed on failed/cancelled/skipped actual model acceptance.
     if: >-
       always() && needs.resolve.result == 'success' &&
       needs.build.result == 'success' && needs.windows.result == 'success' &&
+      (needs.resolve.outputs.dubbing_required == 'false' ||
+       (needs.resolve.outputs.dubbing_required == 'true' && needs.dubbing.result == 'success')) &&
       (needs.resolve.outputs.speech_required == 'false' ||
        (needs.resolve.outputs.speech_required == 'true' && needs.speech.result == 'success'))
     runs-on: ubuntu-24.04
@@ -330,6 +392,7 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
       SPEECH_REQUIRED: ${{ needs.resolve.outputs.speech_required }}
+      DUBBING_REQUIRED: ${{ needs.resolve.outputs.dubbing_required }}
     steps:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
@@ -344,6 +407,12 @@ jobs:
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: ${{ needs.speech.outputs.evidence_artifact }}
+          path: tested/release
+      - name: Retain the passed exact-source Dubbing acceptance as release assets
+        if: needs.resolve.outputs.dubbing_required == 'true'
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: dubbing-release-gate-${{ needs.resolve.outputs.tag }}
           path: tested/release
       - name: Verify transferred files
         working-directory: tested/release
@@ -389,6 +458,19 @@ jobs:
                                    'no other failed test is waived.\n')
           elif os.environ['SPEECH_REQUIRED'] != 'false':
               raise SystemExit('The speech release gate must explicitly resolve true or false.')
+          if os.environ['DUBBING_REQUIRED'] == 'true':
+              dubbing = json.loads(Path('DUBBING_RELEASE_GATE.json').read_text())
+              acceptance = Path('DUBBING_ACCEPTANCE.json')
+              if (dubbing.get('status') != 'passed' or dubbing.get('tag') != tag
+                      or dubbing.get('source_commit') != legacy['source_commit']
+                      or dubbing.get('physical_gpu_tested') is not True
+                      or dubbing.get('acceptance_sha256') != hashlib.sha256(acceptance.read_bytes()).hexdigest()
+                      or dubbing.get('evidence_archive') != {'name': 'DUBBING_EVIDENCE.zip',
+                          'sha256': hashlib.sha256(Path('DUBBING_EVIDENCE.zip').read_bytes()).hexdigest(),
+                          'size': Path('DUBBING_EVIDENCE.zip').stat().st_size}):
+                  raise SystemExit('V0.10 requires separate exact-source real Dubbing, Windows and physical GPU proof.')
+          elif os.environ['DUBBING_REQUIRED'] != 'false':
+              raise SystemExit('The Dubbing release gate must explicitly resolve true or false.')
           assets = sorted(path for path in Path('.').iterdir()
                           if path.is_file() and path.name != 'CHECKSUMS.sha256')
           Path('CHECKSUMS.sha256').write_text(''.join(
@@ -435,6 +517,8 @@ jobs:
           required = (archive, archive + '.sha256', f'FORGE-{tag}-windows-x64.validation.json')
           if os.environ['SPEECH_REQUIRED'] == 'true':
               required += ('SPEECH_ACCEPTANCE.json', 'SPEECH_EVIDENCE.zip', 'CHECKSUMS.sha256')
+          if os.environ['DUBBING_REQUIRED'] == 'true':
+              required += ('DUBBING_ACCEPTANCE.json', 'DUBBING_RELEASE_GATE.json', 'DUBBING_EVIDENCE.zip')
           def request(path, destination=None):
               command = ['gh', 'api', '--method', 'GET', f'repos/{repository}/{path}']
               if destination is not None:

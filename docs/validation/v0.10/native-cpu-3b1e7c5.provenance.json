@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "scope": "Actual synthetic-reference native Windows CPU model install/inference at exact recorded commit; not complete release acceptance.",
+  "repository": "BirthrightPublication/forge",
+  "run_id": 44854764936,
+  "job_id": 136694256271,
+  "run_url": "https://github.com/BirthrightPublication/forge/actions/runs/44854764936",
+  "artifact_id": 14686284871,
+  "artifact_name": "dubbing-native-cpu-44854764936",
+  "archive_sha256": "a0427acd9be621b3bb8ce6e197e5c1b00aa8902ab103f6844571eab6938ef7f1",
+  "source_commit": "3b1e7c5f0d625ede7403b9c1d1b069c93481498f",
+  "report": "native-cpu-3b1e7c5.json",
+  "report_sha256": "acff976d2981cb9d0ff4098b67df954f963173a072d7ca0601cfb57df60442c9",
+  "report_bytes": 12541,
+  "private_inputs_used": false,
+  "satisfies_release_acceptance": false
+}

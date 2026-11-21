@@ -162,7 +162,9 @@ try:
             check('Authorization clears temporary launch credentials',
                   page.evaluate('()=>token===""&&launchTicket===""&&location.hash===""'))
             from forge.core import TOOLS
-            check('Overview exposes all registered tools', page.locator('.tool-card').count() == len(TOOLS))
+            visible_tools = {name for name, spec in TOOLS.items() if not spec.get('hidden')}
+            overview_tools = set(page.locator('.tool-card').evaluate_all('(elements)=>elements.map(element=>element.dataset.tool)'))
+            check('Overview exposes all visible tools and excludes internal queue stages', overview_tools == visible_tools and page.locator('.tool-card').count() == len(visible_tools))
             check('Media Privacy has one ordinary sidebar entry',
                   page.locator('#media-privacy-open').count() == 1 and
                   page.locator('#tool-nav [data-view="watermark"],#tool-nav [data-view="provenance"]').count() == 0)

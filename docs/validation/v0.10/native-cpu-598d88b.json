@@ -1,0 +1,3228 @@
+{
+  "schema": 1,
+  "kind": "dubbing_model_smoke",
+  "status": "passed",
+  "observed_at": "2026-11-21T02:46:13.231077+00:00",
+  "requested_device": "cpu",
+  "native_windows_execution": true,
+  "physical_gpu_tested": false,
+  "inference_substituted": false,
+  "private_inputs_used": false,
+  "reference_consent": true,
+  "through_forge_gui_install": false,
+  "satisfies_release_acceptance": false,
+  "platform": {
+    "system": "Windows",
+    "architecture": "AMD64",
+    "python": "3.12.10"
+  },
+  "components": {
+    "opus-en-ru": {
+      "verification": {
+        "status": "passed",
+        "component": "opus-en-ru",
+        "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 12,
+        "bytes_verified": 311515790,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 9.219000000000051,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "segments": [
+          {
+            "id": "owned-1",
+            "start": 0,
+            "end": 3,
+            "speaker": "test-speaker",
+            "source_text": "Hello. This is a local translation test.",
+            "text": "Здравствуйте, это местный тест на перевод.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          },
+          {
+            "id": "owned-2",
+            "start": 3,
+            "end": 7,
+            "speaker": "test-speaker",
+            "source_text": "FORGE keeps the original video. The project has 3 segments.",
+            "text": "ФОРДЖ хранит оригинальное видео. Проект состоит из 3 сегментов.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          },
+          {
+            "id": "owned-3",
+            "start": 7,
+            "end": 10,
+            "speaker": "test-speaker",
+            "source_text": "The meeting starts on 2026-11-13 at 10:30.",
+            "text": "Заседание начинается 2026-11-13 по состоянию на 10:30.",
+            "reviewed": false,
+            "manual_edit": false,
+            "translation_skipped": false
+          }
+        ],
+        "generation_calls": 5,
+        "warnings": [
+          "owned-3: Full-context translation changed protected glossary/link/citation/number values; a protected-fragment draft was retained and requires manual review."
+        ],
+        "human_quality_approved": false
+      }
+    },
+    "qwen3-tts-0.6b-base": {
+      "verification": {
+        "status": "passed",
+        "component": "qwen3-tts-0.6b-base",
+        "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 13,
+        "bytes_verified": 2516115875,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 29.2349999999999,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "text": "Привет. Это проверка русского голоса.",
+        "media": {
+          "duration": 2.16,
+          "sample_rate": 24000,
+          "channels": 1,
+          "codec": "pcm_f32le",
+          "bytes": 207440,
+          "sha256": "d105419963d268771932c7f34247a7ac3c67e9b8ba03fc150202f9ef5db8a66c",
+          "decoded_and_probed": true,
+          "finite_samples": true,
+          "peak": 0.6617644429206848,
+          "rms": 0.08525362129618769
+        },
+        "reference_sha256": "20b8490cbf626ba054a9bc9c57acda710491c3ecef789aadffaec157089db362",
+        "human_quality_approved": false,
+        "independent_recognition": {
+          "text": "Привет, это проверка русского голоса.",
+          "normalized_character_similarity": 1.0,
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+        }
+      }
+    },
+    "whisper-tiny": {
+      "verification": {
+        "status": "passed",
+        "component": "whisper-tiny",
+        "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "files_verified": 5,
+        "bytes_verified": 78205610,
+        "inference_verified": false
+      },
+      "inference": {
+        "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "elapsed_seconds": 4.109000000000037,
+        "actual_device": "cpu",
+        "physical_gpu_tested": false,
+        "inference_tested": true,
+        "segments": [
+          {
+            "id": "asr-000001",
+            "start": 0.0,
+            "end": 3.66,
+            "speaker": "speaker1",
+            "source_text": "Hello. This is a local speech recognition test.",
+            "text": "",
+            "words": [
+              {
+                "start": 0.0,
+                "end": 0.48,
+                "word": " Hello.",
+                "probability": 0.7737972736358643
+              },
+              {
+                "start": 1.44,
+                "end": 1.62,
+                "word": " This",
+                "probability": 0.9799541234970093
+              },
+              {
+                "start": 1.62,
+                "end": 1.84,
+                "word": " is",
+                "probability": 0.9970646500587463
+              },
+              {
+                "start": 1.84,
+                "end": 1.98,
+                "word": " a",
+                "probability": 0.9709216952323914
+              },
+              {
+                "start": 1.98,
+                "end": 2.22,
+                "word": " local",
+                "probability": 0.934612512588501
+              },
+              {
+                "start": 2.22,
+                "end": 2.52,
+                "word": " speech",
+                "probability": 0.9727089405059814
+              },
+              {
+                "start": 2.52,
+                "end": 3.04,
+                "word": " recognition",
+                "probability": 0.9919867515563965
+              },
+              {
+                "start": 3.04,
+                "end": 3.66,
+                "word": " test.",
+                "probability": 0.9978616833686829
+              }
+            ],
+            "reviewed": false,
+            "manual_edit": false
+          },
+          {
+            "id": "asr-000002",
+            "start": 4.56,
+            "end": 7.0,
+            "speaker": "speaker1",
+            "source_text": "The next meeting is on Friday at 10 in the morning.",
+            "text": "",
+            "words": [
+              {
+                "start": 4.56,
+                "end": 4.68,
+                "word": " The",
+                "probability": 0.9817943572998047
+              },
+              {
+                "start": 4.68,
+                "end": 4.96,
+                "word": " next",
+                "probability": 0.9894871711730957
+              },
+              {
+                "start": 4.96,
+                "end": 5.26,
+                "word": " meeting",
+                "probability": 0.9926348328590393
+              },
+              {
+                "start": 5.26,
+                "end": 5.58,
+                "word": " is",
+                "probability": 0.9993108510971069
+              },
+              {
+                "start": 5.58,
+                "end": 5.72,
+                "word": " on",
+                "probability": 0.9663773775100708
+              },
+              {
+                "start": 5.72,
+                "end": 6.04,
+                "word": " Friday",
+                "probability": 0.980983555316925
+              },
+              {
+                "start": 6.04,
+                "end": 6.32,
+                "word": " at",
+                "probability": 0.9375969767570496
+              },
+              {
+                "start": 6.32,
+                "end": 6.48,
+                "word": " 10",
+                "probability": 0.9472559690475464
+              },
+              {
+                "start": 6.48,
+                "end": 6.68,
+                "word": " in",
+                "probability": 0.8357863426208496
+              },
+              {
+                "start": 6.68,
+                "end": 6.74,
+                "word": " the",
+                "probability": 0.9970310926437378
+              },
+              {
+                "start": 6.74,
+                "end": 7.0,
+                "word": " morning.",
+                "probability": 0.9901368618011475
+              }
+            ],
+            "reviewed": false,
+            "manual_edit": false
+          }
+        ],
+        "timings_verified": true,
+        "owned_fixture_word_coverage": 0.9411764705882353
+      }
+    }
+  },
+  "remaining_acceptance": [
+    "GUI install/repair",
+    "native updater/upgrade/rollback",
+    "human translation and voice quality review",
+    "live reviewed YouTube OAuth/private upload",
+    "final release inventory and owner approval",
+    "Physical GPU/owner RTX 5080 acceptance"
+  ],
+  "source_files_sha256": {
+    "forge/dubbing_models.py": "6947d5a8f898b5e0a277fe26b1334a2a99830c021ed904554d174fff2ffcac9a",
+    "scripts/dubbing_runtime.py": "8638758baf74886e8e3e92bfbd1a4b7878048de3a0c09c630aed5d3e1836acdb",
+    "scripts/dubbing_cpu_acceptance.py": "f263b966adc05af92dfe622f02a8197eeab106ce527c887a8e722204c30553ea"
+  },
+  "source_manifest_sha256": "8e150752581ab0ee2da71f6cccd0c7735b8436a250e9b128f29aa64c74669fa1",
+  "source_commit": "598d88bb375dd1a76975283b69d07f1257ce928e",
+  "source_kind": "git",
+  "source_checkout_clean": true,
+  "installation_plans": [
+    {
+      "components": [
+        "opus-en-ru",
+        "qwen3-tts-0.6b-base",
+        "whisper-tiny"
+      ],
+      "device": "cpu",
+      "action": "install",
+      "quoted_download_bytes": 3728400513,
+      "quoted_storage_bytes": 11697201539
+    }
+  ],
+  "installed_identities": {
+    "opus-en-ru": {
+      "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    "qwen3-tts-0.6b-base": {
+      "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    "whisper-tiny": {
+      "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    }
+  },
+  "runtime_evidence": {
+    "schema": 1,
+    "kind": "installed_runtime_evidence",
+    "status": "passed",
+    "environment_count": 1,
+    "environments": {
+      "dubbing-core-d0f02732e6f97170": {
+        "runtime_revision": "dubbing-core-d0f02732e6f97170",
+        "device": "cpu",
+        "python_version": "3.12.10",
+        "marker_sha256": "f83e403582f5a35794ebaf455bc6b51320c0f65a608efe60b252a99f1a43cab9",
+        "requirements": {
+          "path": "scripts/requirements-dubbing-core.txt",
+          "sha256": "ed7758c877da371d003a572fb76ed6f31906c523b41a42bb28a0c152f80b26c8"
+        },
+        "native_wheel_lock": {
+          "path": "forge/dubbing_wheel_locks/requirements-dubbing-core-windows-x64-py312-cpu.json",
+          "sha256": "9fd5f3a4e8e4a926705a4264ab7a99fa0bfee3cd9d072156901586ea04433bb4"
+        },
+        "wheel_artifacts": [
+          {
+            "package": "accelerate",
+            "version": "1.12.0",
+            "name": "accelerate-1.12.0-py3-none-any.whl",
+            "sha256": "3e2091cd341423207e2f084a6654b1efcd250dc326f2a37d6dde446e07cabb11",
+            "size": 380935
+          },
+          {
+            "package": "audioread",
+            "version": "3.1.0",
+            "name": "audioread-3.1.0-py3-none-any.whl",
+            "sha256": "b30d1df6c5d3de5dcef0fb0e256f6ea17bdcf5f979408df0297d8a408e2971b4",
+            "size": 23143
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "name": "av-18.1.0-cp311-abi3-win_amd64.whl",
+            "sha256": "ea1480b7a8d5405cb5f382b344731bf125fd2c1c6fae3964f6c48595628387ff",
+            "size": 27595679
+          },
+          {
+            "package": "certifi",
+            "version": "2026.10.23",
+            "name": "certifi-2026.10.23-py3-none-any.whl",
+            "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+            "size": 135082
+          },
+          {
+            "package": "cffi",
+            "version": "2.1.1",
+            "name": "cffi-2.1.1-cp312-cp312-win_amd64.whl",
+            "sha256": "f53e442b08449d42821fa4a4fba000095af9f62742a500f978a9f557ec44339a",
+            "size": 185919
+          },
+          {
+            "package": "charset-normalizer",
+            "version": "3.5.2",
+            "name": "charset_normalizer-3.5.2-cp312-cp312-win_amd64.whl",
+            "sha256": "780fbe7cab297b81dad9fb8dc5eb003c0468ffb0d9e5f65068c53a34661a96bc",
+            "size": 207486
+          },
+          {
+            "package": "click",
+            "version": "8.5.1",
+            "name": "click-8.5.1-py3-none-any.whl",
+            "sha256": "8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37",
+            "size": 126163
+          },
+          {
+            "package": "cloudpickle",
+            "version": "3.1.2",
+            "name": "cloudpickle-3.1.2-py3-none-any.whl",
+            "sha256": "9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a",
+            "size": 22228
+          },
+          {
+            "package": "colorama",
+            "version": "0.4.6",
+            "name": "colorama-0.4.6-py2.py3-none-any.whl",
+            "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+            "size": 25335
+          },
+          {
+            "package": "coloredlogs",
+            "version": "15.0.1",
+            "name": "coloredlogs-15.0.1-py2.py3-none-any.whl",
+            "sha256": "612ee75c546f53e92e70049c9dbfcc18c935a2b9a53b66085ce9ef6a6e5c0934",
+            "size": 46018
+          },
+          {
+            "package": "ctranslate2",
+            "version": "4.6.0",
+            "name": "ctranslate2-4.6.0-cp312-cp312-win_amd64.whl",
+            "sha256": "511cdf810a5bf6a2cec735799e5cd47966e63f8f7688fdee1b97fed621abda00",
+            "size": 19470040
+          },
+          {
+            "package": "decorator",
+            "version": "5.3.1",
+            "name": "decorator-5.3.1-py3-none-any.whl",
+            "sha256": "f47fe6fdbd2edd623ecfe36875d37aba411624e2670dd395dddae1358689bb3c",
+            "size": 10365
+          },
+          {
+            "package": "einops",
+            "version": "0.8.2",
+            "name": "einops-0.8.2-py3-none-any.whl",
+            "sha256": "54058201ac7087911181bfec4af6091bb59380360f069276601256a76af08193",
+            "size": 65638
+          },
+          {
+            "package": "faster-whisper",
+            "version": "1.2.1",
+            "name": "faster_whisper-1.2.1-py3-none-any.whl",
+            "sha256": "79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7",
+            "size": 1118909
+          },
+          {
+            "package": "filelock",
+            "version": "4.2.9",
+            "name": "filelock-4.2.9-py3-none-any.whl",
+            "sha256": "a379c50a729e5b68c8519a4d26489f755d9769960a236ecd838190e2a78db2e9",
+            "size": 164734
+          },
+          {
+            "package": "flatbuffers",
+            "version": "25.12.19",
+            "name": "flatbuffers-25.12.19-py2.py3-none-any.whl",
+            "sha256": "7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4",
+            "size": 26661
+          },
+          {
+            "package": "fsspec",
+            "version": "2026.9.0",
+            "name": "fsspec-2026.9.0-py3-none-any.whl",
+            "sha256": "8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f",
+            "size": 221738
+          },
+          {
+            "package": "huggingface-hub",
+            "version": "0.36.2",
+            "name": "huggingface_hub-0.36.2-py3-none-any.whl",
+            "sha256": "48f0c8eac16145dfce371e9d2d7772854a4f591bcb56c9cf548accf531d54270",
+            "size": 566395
+          },
+          {
+            "package": "humanfriendly",
+            "version": "10.0",
+            "name": "humanfriendly-10.0-py2.py3-none-any.whl",
+            "sha256": "1697e1a8a8f550fd43c2865cd84542fc175a61dcb779b6fee18cf6b6ccba1477",
+            "size": 86794
+          },
+          {
+            "package": "idna",
+            "version": "3.20",
+            "name": "idna-3.20-py3-none-any.whl",
+            "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+            "size": 69583
+          },
+          {
+            "package": "jinja2",
+            "version": "3.1.6",
+            "name": "jinja2-3.1.6-py3-none-any.whl",
+            "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+            "size": 134899
+          },
+          {
+            "package": "joblib",
+            "version": "1.6.0",
+            "name": "joblib-1.6.0-py3-none-any.whl",
+            "sha256": "3dbbf9f6e4b592a2357b854608e980fe6390d131d7a82f011a377ef2ebef7aba",
+            "size": 306115
+          },
+          {
+            "package": "lazy-loader",
+            "version": "0.6",
+            "name": "lazy_loader-0.6-py3-none-any.whl",
+            "sha256": "77253be3391b06124a0e16105bd663b6c54470af1a9ca8e1cf026f38d58ed056",
+            "size": 8791
+          },
+          {
+            "package": "librosa",
+            "version": "0.11.0",
+            "name": "librosa-0.11.0-py3-none-any.whl",
+            "sha256": "0b6415c4fd68bff4c29288abe67c6d80b587e0e1e2cfb0aad23e4559504a7fa1",
+            "size": 260749
+          },
+          {
+            "package": "llvmlite",
+            "version": "0.50.0",
+            "name": "llvmlite-0.50.0-cp312-cp312-win_amd64.whl",
+            "sha256": "c20595cc3a76e3c85140fdafbf9246c732ddf8e0e646ba2f4e4881f87567300d",
+            "size": 41865553
+          },
+          {
+            "package": "markupsafe",
+            "version": "3.0.4",
+            "name": "markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+            "sha256": "11935df9bf455ed0c04eb87bcd720f02b1fe5e02128a9430f23aed6f93336fc7",
+            "size": 14303
+          },
+          {
+            "package": "mpmath",
+            "version": "1.3.0",
+            "name": "mpmath-1.3.0-py3-none-any.whl",
+            "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+            "size": 536198
+          },
+          {
+            "package": "msgpack",
+            "version": "1.2.4",
+            "name": "msgpack-1.2.4-cp312-cp312-win_amd64.whl",
+            "sha256": "6e38b123681df22373d545520f54bbeddc4706d9235a1161061f12bd6648497d",
+            "size": 77272
+          },
+          {
+            "package": "narwhals",
+            "version": "2.28.0",
+            "name": "narwhals-2.28.0-py3-none-any.whl",
+            "sha256": "1f69d6385ec30e2fa6e1fdeb37c562ecabd0f713f6f3e3b58a668c5c9df9567f",
+            "size": 490591
+          },
+          {
+            "package": "networkx",
+            "version": "3.7",
+            "name": "networkx-3.7-py3-none-any.whl",
+            "sha256": "e3fd2c13a7814cee3746340d8d7f8598a67f16a58bf47fb7f8793fab6efca1b0",
+            "size": 2142205
+          },
+          {
+            "package": "numba",
+            "version": "0.68.1",
+            "name": "numba-0.68.1-cp312-cp312-win_amd64.whl",
+            "sha256": "6d115039768cc2eb3cc99b32355ca507e1bbc653eca5492c83ab6399f218df27",
+            "size": 2832823
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "name": "numpy-1.26.4-cp312-cp312-win_amd64.whl",
+            "sha256": "08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818",
+            "size": 15517754
+          },
+          {
+            "package": "onnxruntime",
+            "version": "1.23.2",
+            "name": "onnxruntime-1.23.2-cp312-cp312-win_amd64.whl",
+            "sha256": "25de5214923ce941a3523739d34a520aac30f21e631de53bba9174dc9c004435",
+            "size": 13470528
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "name": "packaging-26.3-py3-none-any.whl",
+            "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+            "size": 129956
+          },
+          {
+            "package": "platformdirs",
+            "version": "4.14.5",
+            "name": "platformdirs-4.14.5-py3-none-any.whl",
+            "sha256": "8e778c6fa421516f4d3369449f8df3b0e1b72c0e0005fe88e3ec772d0a14e750",
+            "size": 35402
+          },
+          {
+            "package": "pooch",
+            "version": "1.9.0",
+            "name": "pooch-1.9.0-py3-none-any.whl",
+            "sha256": "f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b",
+            "size": 67175
+          },
+          {
+            "package": "protobuf",
+            "version": "7.36.2",
+            "name": "protobuf-7.36.2-cp310-abi3-win_amd64.whl",
+            "sha256": "a300819d441e078a5608c0d3c709796bb548136058fda017ae51d425b44fd353",
+            "size": 456514
+          },
+          {
+            "package": "psutil",
+            "version": "7.2.2",
+            "name": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+            "sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988",
+            "size": 137737
+          },
+          {
+            "package": "pycparser",
+            "version": "3.12",
+            "name": "pycparser-3.12-py3-none-any.whl",
+            "sha256": "a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e",
+            "size": 62600
+          },
+          {
+            "package": "pyreadline3",
+            "version": "3.5.6",
+            "name": "pyreadline3-3.5.6-py3-none-any.whl",
+            "sha256": "8449b734232e42a5dcd74048e39b60db2839a4c38cf3ae2bf7707d58b5389c0d",
+            "size": 85243
+          },
+          {
+            "package": "pyyaml",
+            "version": "6.0.3",
+            "name": "pyyaml-6.0.3-cp312-cp312-win_amd64.whl",
+            "sha256": "5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b",
+            "size": 154003
+          },
+          {
+            "package": "regex",
+            "version": "2026.11.7",
+            "name": "regex-2026.11.7-cp312-cp312-win_amd64.whl",
+            "sha256": "824a2556804cdc5a6bdbd00c20dd93c7336b7db7f601ddcf099be8ad17a4ebf6",
+            "size": 280417
+          },
+          {
+            "package": "requests",
+            "version": "2.34.2",
+            "name": "requests-2.34.2-py3-none-any.whl",
+            "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+            "size": 73075
+          },
+          {
+            "package": "sacremoses",
+            "version": "0.1.1",
+            "name": "sacremoses-0.1.1-py3-none-any.whl",
+            "sha256": "31e04c98b169bfd902144824d191825cd69220cdb4ae4bcf1ec58a7db5587b1a",
+            "size": 897476
+          },
+          {
+            "package": "safetensors",
+            "version": "0.8.0",
+            "name": "safetensors-0.8.0-cp310-abi3-win_amd64.whl",
+            "sha256": "096ec1a98435df7beb08853bb5aa9081a84f23d0adc67ed1a0a10550f608373f",
+            "size": 355540
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "name": "scikit_learn-1.9.1-cp312-cp312-win_amd64.whl",
+            "sha256": "4b59abb30618121cc46b45972d6bf53a7128b4df4cd346c6ca6f4d5f9031e49c",
+            "size": 8262238
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "name": "scipy-1.17.1-cp312-cp312-win_amd64.whl",
+            "sha256": "41b71f4a3a4cab9d366cd9065b288efc4d4f3c0b37a91a8e0947fb5bd7f31d87",
+            "size": 36549682
+          },
+          {
+            "package": "sentencepiece",
+            "version": "0.2.1",
+            "name": "sentencepiece-0.2.1-cp312-cp312-win_amd64.whl",
+            "sha256": "4cdc7c36234fda305e85c32949c5211faaf8dd886096c7cea289ddc12a2d02de",
+            "size": 1054671
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "name": "setuptools-80.9.0-py3-none-any.whl",
+            "sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+            "size": 1201486
+          },
+          {
+            "package": "soundfile",
+            "version": "0.13.1",
+            "name": "soundfile-0.13.1-py2.py3-none-win_amd64.whl",
+            "sha256": "1e70a05a0626524a69e9f0f4dd2ec174b4e9567f4d8b6c11d38b5c289be36ee9",
+            "size": 1019162
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "name": "soxr-1.1.0-cp312-abi3-win_amd64.whl",
+            "sha256": "6ae2a174bffea94e8ead857dad85999d3f49f091774dbad5b046c0417d7092f4",
+            "size": 174357
+          },
+          {
+            "package": "sympy",
+            "version": "1.14.0",
+            "name": "sympy-1.14.0-py3-none-any.whl",
+            "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+            "size": 6299353
+          },
+          {
+            "package": "threadpoolctl",
+            "version": "3.8.0",
+            "name": "threadpoolctl-3.8.0-py3-none-any.whl",
+            "sha256": "f1b49c82704d50f13ffae019c727b0fa4f6791a58f48f06a09c45face1be66da",
+            "size": 32091
+          },
+          {
+            "package": "tokenizers",
+            "version": "0.22.2",
+            "name": "tokenizers-0.22.2-cp39-abi3-win_amd64.whl",
+            "sha256": "c9ea31edff2968b44a88f97d784c2f16dc0729b8b143ed004699ebca91f05c48",
+            "size": 2747786
+          },
+          {
+            "package": "torch",
+            "version": "2.8.0+cpu",
+            "name": "torch-2.8.0+cpu-cp312-cp312-win_amd64.whl",
+            "sha256": "2be20b2c05a0cce10430cc25f32b689259640d273232b2de357c35729132256d",
+            "size": 619352539
+          },
+          {
+            "package": "torchaudio",
+            "version": "2.8.0+cpu",
+            "name": "torchaudio-2.8.0+cpu-cp312-cp312-win_amd64.whl",
+            "sha256": "9b302192b570657c1cc787a4d487ae4bbb7f2aab1c01b1fcc46757e7f86f391e",
+            "size": 2495725
+          },
+          {
+            "package": "tqdm",
+            "version": "4.70.1",
+            "name": "tqdm-4.70.1-py3-none-any.whl",
+            "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73",
+            "size": 80199
+          },
+          {
+            "package": "transformers",
+            "version": "4.57.3",
+            "name": "transformers-4.57.3-py3-none-any.whl",
+            "sha256": "c77d353a4851b1880191603d36acb313411d3577f6e2897814f333841f7003f4",
+            "size": 11993463
+          },
+          {
+            "package": "typing-extensions",
+            "version": "4.16.0",
+            "name": "typing_extensions-4.16.0-py3-none-any.whl",
+            "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+            "size": 45571
+          },
+          {
+            "package": "urllib3",
+            "version": "2.8.0",
+            "name": "urllib3-2.8.0-py3-none-any.whl",
+            "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+            "size": 135717
+          }
+        ],
+        "installed_versions": {
+          "accelerate": "1.12.0",
+          "audioread": "3.1.0",
+          "av": "18.1.0",
+          "certifi": "2026.10.23",
+          "cffi": "2.1.1",
+          "charset-normalizer": "3.5.2",
+          "click": "8.5.1",
+          "cloudpickle": "3.1.2",
+          "colorama": "0.4.6",
+          "coloredlogs": "15.0.1",
+          "ctranslate2": "4.6.0",
+          "decorator": "5.3.1",
+          "einops": "0.8.2",
+          "faster-whisper": "1.2.1",
+          "filelock": "4.2.9",
+          "flatbuffers": "25.12.19",
+          "fsspec": "2026.9.0",
+          "huggingface-hub": "0.36.2",
+          "humanfriendly": "10.0",
+          "idna": "3.20",
+          "jinja2": "3.1.6",
+          "joblib": "1.6.0",
+          "lazy-loader": "0.6",
+          "librosa": "0.11.0",
+          "llvmlite": "0.50.0",
+          "markupsafe": "3.0.4",
+          "mpmath": "1.3.0",
+          "msgpack": "1.2.4",
+          "narwhals": "2.28.0",
+          "networkx": "3.7",
+          "numba": "0.68.1",
+          "numpy": "1.26.4",
+          "onnxruntime": "1.23.2",
+          "packaging": "26.3",
+          "pip": "25.0.1",
+          "platformdirs": "4.14.5",
+          "pooch": "1.9.0",
+          "protobuf": "7.36.2",
+          "psutil": "7.2.2",
+          "pycparser": "3.12",
+          "pyreadline3": "3.5.6",
+          "pyyaml": "6.0.3",
+          "regex": "2026.11.7",
+          "requests": "2.34.2",
+          "sacremoses": "0.1.1",
+          "safetensors": "0.8.0",
+          "scikit-learn": "1.9.1",
+          "scipy": "1.17.1",
+          "sentencepiece": "0.2.1",
+          "setuptools": "80.9.0",
+          "soundfile": "0.13.1",
+          "soxr": "1.1.0",
+          "sympy": "1.14.0",
+          "threadpoolctl": "3.8.0",
+          "tokenizers": "0.22.2",
+          "torch": "2.8.0+cpu",
+          "torchaudio": "2.8.0+cpu",
+          "tqdm": "4.70.1",
+          "transformers": "4.57.3",
+          "typing-extensions": "4.16.0",
+          "urllib3": "2.8.0"
+        },
+        "packages": [
+          {
+            "package": "accelerate",
+            "version": "1.12.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Apache",
+              "bytes": 6,
+              "sha256": "87ec4027e1c873944291bdd61ee07ed30d74d45cbb418c85ae256e0a18e9e2cc",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "audioread",
+            "version": "3.1.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 4
+          },
+          {
+            "package": "certifi",
+            "version": "2026.10.23",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MPL-2.0",
+              "bytes": 7,
+              "sha256": "09962c1dc23fac80a0e5a88b2eb7051b74a6443a568ca2a045a4ec2fb82aeee5",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "cffi",
+            "version": "2.1.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT-0",
+              "bytes": 5,
+              "sha256": "30c9d55094e8d7287191bb37b0b12c2ca9dcea700183f9d9ba536a650b0362bd",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "charset-normalizer",
+            "version": "3.5.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "click",
+            "version": "8.5.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "cloudpickle",
+            "version": "3.1.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "colorama",
+            "version": "0.4.6",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "coloredlogs",
+            "version": "15.0.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "ctranslate2",
+            "version": "4.6.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 0
+          },
+          {
+            "package": "decorator",
+            "version": "5.3.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD-2-Clause",
+              "bytes": 12,
+              "sha256": "248dd895a2f89e28813b4c8c0a7d21806a35699102e4f6e32f47784b82730428",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "einops",
+            "version": "0.8.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "faster-whisper",
+            "version": "1.2.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "filelock",
+            "version": "4.2.9",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "flatbuffers",
+            "version": "25.12.19",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Apache 2.0",
+              "bytes": 10,
+              "sha256": "cf989ea142f203f532233fa944ee1d8d5acfe6f6875e4d611f515ee108ba26df",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 0
+          },
+          {
+            "package": "fsspec",
+            "version": "2026.9.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "huggingface-hub",
+            "version": "0.36.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Apache",
+              "bytes": 6,
+              "sha256": "87ec4027e1c873944291bdd61ee07ed30d74d45cbb418c85ae256e0a18e9e2cc",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "humanfriendly",
+            "version": "10.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "idna",
+            "version": "3.20",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "jinja2",
+            "version": "3.1.6",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "joblib",
+            "version": "1.6.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "lazy-loader",
+            "version": "0.6",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "librosa",
+            "version": "0.11.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "ISC",
+              "bytes": 3,
+              "sha256": "d8d62d58d661d5ddeff06fdf1ebc08968da4743e369c74cef96eff0241eaea05",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "llvmlite",
+            "version": "0.50.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-2-Clause AND Apache-2.0 WITH LLVM-exception",
+              "bytes": 47,
+              "sha256": "5502056c783ed1a91f388e060f006db9d3d38b9d4f8045fddafef64e8488adb4",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "markupsafe",
+            "version": "3.0.4",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "mpmath",
+            "version": "1.3.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD",
+              "bytes": 3,
+              "sha256": "49d9777da612e1f4e9269fa9f93ea324a66f9dcc7722ad812de124ef3f266d93",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "msgpack",
+            "version": "1.2.4",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "Apache-2.0",
+              "bytes": 10,
+              "sha256": "2af71558e438db0b73a20beab92dc278a94e1bbe974c00c1a33e3ab62d53a608",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "narwhals",
+            "version": "2.28.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "networkx",
+            "version": "3.7",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "numba",
+            "version": "0.68.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD",
+              "bytes": 3,
+              "sha256": "49d9777da612e1f4e9269fa9f93ea324a66f9dcc7722ad812de124ef3f266d93",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Copyright (c) 2005-2023, NumPy Developers.\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n    * Redistributions of source code must retain the above copyright\n       notice, this list of conditions and the following disclaimer.\n\n    * Redistributions in binary form must reproduce the above\n       copyright notice, this list of conditions and the following\n       disclaimer in the documentation and/or other materials provided\n       with the distribution.\n\n    * Neither the name of the NumPy Developers nor the names of any\n       contributors may be used to endorse or promote products derived\n       from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAI",
+              "bytes": 47719,
+              "sha256": "1792a09d0d07b69a4e42c4306eb675b2877eb047dd3748608d8e50b57c19767a",
+              "truncated": true
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 4
+          },
+          {
+            "package": "onnxruntime",
+            "version": "1.23.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT License",
+              "bytes": 11,
+              "sha256": "abb2896dc3c2a9402f901b88d5035cf0a83d5cf7c17e73642cdf562b0b9d3bc5",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "Apache-2.0 OR BSD-2-Clause",
+              "bytes": 26,
+              "sha256": "f83c2e92648be1cbb1637ae2858514e098ea39d79224eb8f79abb92fca93bf69",
+              "truncated": false
+            },
+            "notice_file_count": 7
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "bootstrap_tool": true,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 6
+          },
+          {
+            "package": "platformdirs",
+            "version": "4.14.5",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "pooch",
+            "version": "1.9.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "protobuf",
+            "version": "7.36.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "3-Clause BSD License",
+              "bytes": 20,
+              "sha256": "15934bcfcb57d72b1b73d913180ce7f86d2773c32725efa41ddb6b14e143cb84",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "psutil",
+            "version": "7.2.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "pycparser",
+            "version": "3.12",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "pyreadline3",
+            "version": "3.5.6",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD",
+              "bytes": 3,
+              "sha256": "49d9777da612e1f4e9269fa9f93ea324a66f9dcc7722ad812de124ef3f266d93",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "pyyaml",
+            "version": "6.0.3",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "regex",
+            "version": "2026.11.7",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "Apache-2.0 AND CNRI-Python",
+              "bytes": 26,
+              "sha256": "df4fa55cf326e7f8be1c21a38faeaef9839cface29d6559d197b11ce09c37024",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "requests",
+            "version": "2.34.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Apache-2.0",
+              "bytes": 10,
+              "sha256": "2af71558e438db0b73a20beab92dc278a94e1bbe974c00c1a33e3ab62d53a608",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "sacremoses",
+            "version": "0.1.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "safetensors",
+            "version": "0.8.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 4
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Copyright (c) 2001-2002 Enthought, Inc. 2003, SciPy Developers.\n All rights reserved.\n\n Redistribution and use in source and binary forms, with or without\n modification, are permitted provided that the following conditions\n are met:\n\n 1. Redistributions of source code must retain the above copyright\n    notice, this list of conditions and the following disclaimer.\n\n 2. Redistributions in binary form must reproduce the above\n    copyright notice, this list of conditions and the following\n    disclaimer in the documentation and/or other materials provided\n    with the distribution.\n\n 3. Neither the name of the copyright holder nor the names of its\n    contributors may be used to endorse or promote products derived\n    from this software without specific prior written permission.\n\n THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\n LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\n A PARTICULAR PURPOSE ARE DI",
+              "bytes": 46547,
+              "sha256": "66fe93ccd5c416dc86656e53a65c6ffb7bc66a1e821e892654fd0dc4da494d55",
+              "truncated": true
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 5
+          },
+          {
+            "package": "sentencepiece",
+            "version": "0.2.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 0
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 28
+          },
+          {
+            "package": "soundfile",
+            "version": "0.13.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD 3-Clause License",
+              "bytes": 20,
+              "sha256": "4e552d1df242cd8fc0e5bffeee215434f9a38f1bf6ffd834b11dc00c29c5eb3f",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "LGPL-2.1-or-later",
+              "bytes": 17,
+              "sha256": "feb2b2000cf34d369bb3d993dace0ff396df2ac4af57ec43b9e130d8895e607a",
+              "truncated": false
+            },
+            "notice_file_count": 4
+          },
+          {
+            "package": "sympy",
+            "version": "1.14.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD",
+              "bytes": 3,
+              "sha256": "49d9777da612e1f4e9269fa9f93ea324a66f9dcc7722ad812de124ef3f266d93",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 3
+          },
+          {
+            "package": "threadpoolctl",
+            "version": "3.8.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "tokenizers",
+            "version": "0.22.2",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 0
+          },
+          {
+            "package": "torch",
+            "version": "2.8.0+cpu",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "BSD-3-Clause",
+              "bytes": 12,
+              "sha256": "118dbcd2d5c9f9b296a9ede9fcc469c5840f7b98ad2c88461055bf2ceda38037",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 2
+          },
+          {
+            "package": "torchaudio",
+            "version": "2.8.0+cpu",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "tqdm",
+            "version": "4.70.1",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "MPL-2.0 AND MIT",
+              "bytes": 15,
+              "sha256": "497716e0cebf8fb1944bbac349083f8ba656e10320c3f9811a955fc8786d0cc1",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "transformers",
+            "version": "4.57.3",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "Apache 2.0 License",
+              "bytes": 18,
+              "sha256": "075e5377ffe49ea3415840cb784d85a27084d48632eff977f849c2892e766840",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "typing-extensions",
+            "version": "4.16.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "PSF-2.0",
+              "bytes": 7,
+              "sha256": "606b04e71db9ca7a05d4fcb08cc69001946922a9b909de4932413ea640da9486",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          },
+          {
+            "package": "urllib3",
+            "version": "2.8.0",
+            "bootstrap_tool": false,
+            "license_declaration": {
+              "text": "",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "truncated": false
+            },
+            "license_expression_declaration": {
+              "text": "MIT",
+              "bytes": 3,
+              "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+              "truncated": false
+            },
+            "notice_file_count": 1
+          }
+        ],
+        "packages_without_recorded_notice_files": [
+          "ctranslate2",
+          "flatbuffers",
+          "sentencepiece",
+          "tokenizers"
+        ],
+        "notice_integrity_failures": [],
+        "notice_hash_bytes": 1740130,
+        "record_entries_examined": 35370,
+        "components": [
+          "opus-en-ru",
+          "qwen3-tts-0.6b-base",
+          "whisper-tiny"
+        ],
+        "pip_check": {
+          "exit_code": 0,
+          "summary": "No broken requirements reported by the resolved interpreter.",
+          "stdout_sha256": "672aec65a45bed50e70229c70934a7eebf0462595c459b83023027645d57cccf",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "notice_files": [
+          {
+            "package": "accelerate",
+            "version": "1.12.0",
+            "path": "accelerate-1.12.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 11357,
+            "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "audioread",
+            "version": "3.1.0",
+            "path": "audioread-3.1.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1063,
+            "sha256": "e00fff68a75a582132842e33426730699255986f1dec362252f7423db027019d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "path": "av-18.1.0.dist-info/licenses/AUTHORS.py",
+            "scope": "installed_distribution",
+            "size": 5740,
+            "sha256": "c7e6e5e0224b564d3df577fe9057fb86da3e1baf0d96f03cfd0325825e9b12a7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "path": "av-18.1.0.dist-info/licenses/AUTHORS.rst",
+            "scope": "installed_distribution",
+            "size": 6125,
+            "sha256": "72d1011120cc21e6c668e880c187534e84ad775b5b4485f3f3848065e474d83f",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "path": "av-18.1.0.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1528,
+            "sha256": "f32ebcb6007dcc05eea369b3820e6391b0a7ef1ed763f30f1aca15dfdbacbe96",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "av",
+            "version": "18.1.0",
+            "path": "av-18.1.0.dist-info/licenses/__pycache__/AUTHORS.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 6785,
+            "sha256": "ddbb142e3cf7a845994ff0af0fdaeba78f587d7763364206e1bdeeb89ca3effb",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "certifi",
+            "version": "2026.10.23",
+            "path": "certifi-2026.10.23.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 989,
+            "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "cffi",
+            "version": "2.1.1",
+            "path": "cffi-2.1.1.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1123,
+            "sha256": "5ba24ddc57067f9249add644c3afc41a5d6dc37e23433ef759d95df370b0af63",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "charset-normalizer",
+            "version": "3.5.2",
+            "path": "charset_normalizer-3.5.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1092,
+            "sha256": "18577485d3704f1a479ded8e573c0976cfed315fd2fd17983fa988da4c2f70d1",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "click",
+            "version": "8.5.1",
+            "path": "click-8.5.1.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1475,
+            "sha256": "9a8ad106a394e853bfe21f42f4e72d592819a22805d991b5f3275029292b658d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "cloudpickle",
+            "version": "3.1.2",
+            "path": "cloudpickle-3.1.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1754,
+            "sha256": "3029ea34173e9fdc233ad315dc6b100bd1ea71f529b1c1af97664a272fdc55f5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "colorama",
+            "version": "0.4.6",
+            "path": "colorama-0.4.6.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1491,
+            "sha256": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "coloredlogs",
+            "version": "15.0.1",
+            "path": "coloredlogs-15.0.1.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1056,
+            "sha256": "0bef4ffb1855b65570304f2018c6d44e4bab97bd5df8716ecd7800014d717267",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "decorator",
+            "version": "5.3.1",
+            "path": "decorator-5.3.1.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1308,
+            "sha256": "bd12cc51405c10872497c10ca21601f1d4abc50496595cc89e89ab5dad24fb62",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "einops",
+            "version": "0.8.2",
+            "path": "einops-0.8.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1073,
+            "sha256": "30d984364296f51ffaecad4b01ee127e95250c5068918d4b66fc96206723e434",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "faster-whisper",
+            "version": "1.2.1",
+            "path": "faster_whisper-1.2.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1064,
+            "sha256": "af6798135e729f8aa6c853936d037dfdea449734d26b8ea6a89805fca758c0d5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "filelock",
+            "version": "4.2.9",
+            "path": "filelock-4.2.9.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1088,
+            "sha256": "608c89d5060ae9921adccf3236695bc654a9946e12323ef6c021dfa04e294d48",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "fsspec",
+            "version": "2026.9.0",
+            "path": "fsspec-2026.9.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1513,
+            "sha256": "2dc35496ce53a7307915c008a844aad53e772b49b34cdd00445067691407ec94",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "huggingface-hub",
+            "version": "0.36.2",
+            "path": "huggingface_hub-0.36.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 11357,
+            "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "humanfriendly",
+            "version": "10.0",
+            "path": "humanfriendly-10.0.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1056,
+            "sha256": "4ac48f4117809f2734066150450f120b3bb110ac1d3b32170795e0560dbbc1f5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "idna",
+            "version": "3.20",
+            "path": "idna-3.20.dist-info/licenses/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 1541,
+            "sha256": "1a9a4f0e3d479a27240ddd59a9137a66ab4a0f9dfdc8ca6188cc0bfd85187f04",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "jinja2",
+            "version": "3.1.6",
+            "path": "jinja2-3.1.6.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1475,
+            "sha256": "3b49dcee4105eb37bac10faf1be260408fe85d252b8e9df2e0979fc1e094437b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "joblib",
+            "version": "1.6.0",
+            "path": "joblib-1.6.0.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1527,
+            "sha256": "42612911c1872c5e4b43f6ae0e8ee59467cd350332241cf72ce90640264fae6a",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "lazy-loader",
+            "version": "0.6",
+            "path": "lazy_loader-0.6.dist-info/licenses/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 1539,
+            "sha256": "797b6937a4f976836efbbbb3ae333d7866ddc3eb3cb152972b2be348d3529372",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "librosa",
+            "version": "0.11.0",
+            "path": "librosa-0.11.0.dist-info/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 766,
+            "sha256": "1746ca32b53fa31941c38b63a986e4126ab998e81a2f73a566000847a588e2a3",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "llvmlite",
+            "version": "0.50.0",
+            "path": "llvmlite-0.50.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1309,
+            "sha256": "7d6aa93e52a7ae9a995ff6a40c0ea5628311cdf1bd8dcd29c8ce9181f4af3a81",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "llvmlite",
+            "version": "0.50.0",
+            "path": "llvmlite-0.50.0.dist-info/licenses/LICENSE.thirdparty",
+            "scope": "installed_distribution",
+            "size": 12786,
+            "sha256": "7b564c7af9ab446d245ba66adc8cda2f61d1d162f842899557499e80b715993a",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "markupsafe",
+            "version": "3.0.4",
+            "path": "markupsafe-3.0.4.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1503,
+            "sha256": "4631ec0db5fd90a547e336817264c6798214338146f8ac94b4a57f96ee8c9ec4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "mpmath",
+            "version": "1.3.0",
+            "path": "mpmath-1.3.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1537,
+            "sha256": "c26cae81da4508e5e249985777a33821f183223ebb74d7f8cfbf90fe7eef2fb7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "msgpack",
+            "version": "1.2.4",
+            "path": "msgpack-1.2.4.dist-info/licenses/COPYING",
+            "scope": "installed_distribution",
+            "size": 628,
+            "sha256": "4fbdff42eba4593c16f7a7ea7078883b2b734870a1e2b636284ce2dce62bf4f7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "narwhals",
+            "version": "2.28.0",
+            "path": "narwhals-2.28.0.dist-info/licenses/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 1082,
+            "sha256": "811445f30147b8f0c9d444c9025fd528f9532c54b7b83f6e2368473dc91cfdf0",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "networkx",
+            "version": "3.7",
+            "path": "networkx-3.7.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1763,
+            "sha256": "6025f323ea29dc2f0ee0abd9523bf910186f55b0e148e6ebf646c55566278e2e",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numba",
+            "version": "0.68.1",
+            "path": "numba-0.68.1.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1310,
+            "sha256": "5f7ae5e48a0a107a9d86a9ef6c18dcce68e55959855d39380050deaea366631c",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numba",
+            "version": "0.68.1",
+            "path": "numba-0.68.1.dist-info/licenses/LICENSES.third-party",
+            "scope": "installed_distribution",
+            "size": 26891,
+            "sha256": "e5ea3f50f1c1aa518a86903b85dfd40c4765589998eb683b9382d111d91bb9ee",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "path": "numpy-1.26.4.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 48688,
+            "sha256": "e261222a74adff28f88160dac1c5cb302d93b67e9ca989eb83bf311e11a9970a",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "path": "numpy/core/include/numpy/random/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1039,
+            "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "path": "numpy/ma/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1616,
+            "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "numpy",
+            "version": "1.26.4",
+            "path": "numpy/random/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 3582,
+            "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "onnxruntime",
+            "version": "1.23.2",
+            "path": "onnxruntime/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1094,
+            "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "onnxruntime",
+            "version": "1.23.2",
+            "path": "onnxruntime/ThirdPartyNotices.txt",
+            "scope": "installed_distribution",
+            "size": 333022,
+            "sha256": "e00f828e0a33de591a355ae6606d2625f5758da7d2c844db7821c9dd3e3647b6",
+            "integrity": "record_verified",
+            "text_omission": "per_file_text_bound"
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging-26.3.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 197,
+            "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging-26.3.dist-info/licenses/LICENSE.APACHE",
+            "scope": "installed_distribution",
+            "size": 10174,
+            "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging-26.3.dist-info/licenses/LICENSE.BSD",
+            "scope": "installed_distribution",
+            "size": 1344,
+            "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging/licenses/__init__.py",
+            "scope": "installed_distribution",
+            "size": 7859,
+            "sha256": "590d12eee73ddbec53b4e9ee5bfc64d9cb3aacb4940e8ebcba260757ce56740b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging/licenses/__pycache__/__init__.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 5834,
+            "sha256": "b07cc7f31c17c7c03d94ebfb5d632fc942e715ceb0da0c0050ecc6a24486b3cb",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging/licenses/__pycache__/_spdx.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 49910,
+            "sha256": "0931263b988dd45a97e1ebeb086a26c912b7767af2f532dad0fe1e6db9e2b544",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "packaging",
+            "version": "26.3",
+            "path": "packaging/licenses/_spdx.py",
+            "scope": "installed_distribution",
+            "size": 51122,
+            "sha256": "596ec35e2ca0ebcba9fd8343ff0a51625af548786257815f24b41f7e08613314",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip-25.0.1.dist-info/AUTHORS.txt",
+            "scope": "installed_distribution",
+            "size": 11018,
+            "sha256": "1eace90552df4f5941b61a907e20e555e16483ae6127b650bef5a1a2af8102c0",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip-25.0.1.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1093,
+            "sha256": "634300a669d49aeae65b12c6c48c924c51a4cdf3d1ff086dc3456dc8bcaa2104",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip/_vendor/packaging/licenses/__init__.py",
+            "scope": "installed_distribution",
+            "size": 5727,
+            "sha256": "035d7af85538f7f0f3e35eb6338cb5b8089937846075cf3717135df048e57ea2",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip/_vendor/packaging/licenses/__pycache__/__init__.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 4182,
+            "sha256": "7357bf25e02f8266eb04304eacd59e5efbf37d1559b22119d96f0a0586a8ab24",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip/_vendor/packaging/licenses/__pycache__/_spdx.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 47426,
+            "sha256": "7b9a551891e3e9bcc3cd1fa44dadc0bc39444eee1098153a2b3c1c026e4795fb",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "pip",
+            "version": "25.0.1",
+            "path": "pip/_vendor/packaging/licenses/_spdx.py",
+            "scope": "installed_distribution",
+            "size": 48398,
+            "sha256": "a009b5ced3c5c25b2608a7bb94002cbff38839f4b57160eef5b34191ebbeda7b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "platformdirs",
+            "version": "4.14.5",
+            "path": "platformdirs-4.14.5.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1089,
+            "sha256": "29e0fd62e929850e86eb28c3fdccf0cefdf4fa94879011cffb3d0d4bed6d4db6",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pooch",
+            "version": "1.9.0",
+            "path": "pooch-1.9.0.dist-info/licenses/AUTHORS.md",
+            "scope": "installed_distribution",
+            "size": 3225,
+            "sha256": "6400dc5b23d3c56c955ab82c44fe49db242d4d9a6d9b80f5575d8b9ccdbc4631",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pooch",
+            "version": "1.9.0",
+            "path": "pooch-1.9.0.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1496,
+            "sha256": "af0482d59fc7a9d68d9f64682c74ce6e8a4684406bb3a21a191ae329950916b4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "protobuf",
+            "version": "7.36.2",
+            "path": "protobuf-7.36.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1732,
+            "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "psutil",
+            "version": "7.2.2",
+            "path": "psutil-7.2.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1577,
+            "sha256": "c7adc4d5d1337a548b967421f1fbe258b93033a0417708fd6f4e38f8ecbceb80",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pycparser",
+            "version": "3.12",
+            "path": "pycparser-3.12.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1543,
+            "sha256": "0a9e78156ae8b96caf1b4f11ac2df424b83de29736f9e757630548a6272fdf90",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pyreadline3",
+            "version": "3.5.6",
+            "path": "pyreadline3-3.5.6.dist-info/licenses/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 2250,
+            "sha256": "8fc4d8de61b40533023b16e64528d13371a2e9c68677df79ed5e93ba570471bd",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "pyyaml",
+            "version": "6.0.3",
+            "path": "pyyaml-6.0.3.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1101,
+            "sha256": "8d3928f9dc4490fd635707cb88eb26bd764102a7282954307d3e5167a577e8a4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "regex",
+            "version": "2026.11.7",
+            "path": "regex-2026.11.7.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 11792,
+            "sha256": "3d220c06594b826bbabf110312f60f385f99e57e529fa4b9e536f79091f8b4c7",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "requests",
+            "version": "2.34.2",
+            "path": "requests-2.34.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 10142,
+            "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "requests",
+            "version": "2.34.2",
+            "path": "requests-2.34.2.dist-info/licenses/NOTICE",
+            "scope": "installed_distribution",
+            "size": 38,
+            "sha256": "f5110972dedad2b4e9d314518daf3b7d72d6e02e499acd802181de6f74571dcc",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "sacremoses",
+            "version": "0.1.1",
+            "path": "sacremoses-0.1.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1066,
+            "sha256": "efe03a5e303b216ad2008b100da2ac2fbe6aa3ca442f2cfb931227f996fd2ebe",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "safetensors",
+            "version": "0.8.0",
+            "path": "safetensors-0.8.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 11558,
+            "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "path": "scikit_learn-1.9.1.dist-info/licenses/COPYING",
+            "scope": "installed_distribution",
+            "size": 2629,
+            "sha256": "014b1b1ad74cf00997f7081a1635c3c203cd70c08f39c13d9a39347fcd464979",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "path": "sklearn/externals/array_api_compat/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1118,
+            "sha256": "464569596b7e6162762669e4e4d1fe8d2618c03901ca7ba36e2603415fb6865d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "path": "sklearn/externals/array_api_extra/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1118,
+            "sha256": "8b2e8a4aa8a98ed811f17be2807b1eb90dcb021c1e5a0304d784d0a24f4ee907",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scikit-learn",
+            "version": "1.9.1",
+            "path": "sklearn/svm/src/liblinear/COPYRIGHT",
+            "scope": "installed_distribution",
+            "size": 1517,
+            "sha256": "5e6d496ace27b9b277e2311f894c8100660e8c95ce909c1c1f1abb4702946415",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "path": "scipy-1.17.1.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 46756,
+            "sha256": "564d63dbef2ef3eb1dec94908966d3edf5f11c487ee2cf2baf8bf3faef01bdd9",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "path": "scipy/_lib/_uarray/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1543,
+            "sha256": "e4c4acc31e8287066d7c995d26e3ef902ca1977ee187b260b11c278366503811",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "path": "scipy/fft/_pocketfft/LICENSE.md",
+            "scope": "installed_distribution",
+            "size": 1523,
+            "sha256": "c04661685cff9d8035fe1c4c3ab357e7f7633cafc06a73e9d90c3c5fede8a86a",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "path": "scipy/integrate/LICENSE_DOP",
+            "scope": "installed_distribution",
+            "size": 3648,
+            "sha256": "6cc2ed6e35b8f376ff3d8f86aeef4e0c34c2309bd6f4a0565936d577839ba023",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "scipy",
+            "version": "1.17.1",
+            "path": "scipy/spatial/qhull_src/COPYING_QHULL.txt",
+            "scope": "installed_distribution",
+            "size": 1759,
+            "sha256": "2a6ebb495e26dd5f88cbc40c593733da6edb27b64936f70409cd5a1acafb1c32",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools-80.9.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/autocommand-2.2.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 7634,
+            "sha256": "ade78d04982d69972d444a8e14a94f87a2334dd3855cc80348ea8e240aa0df2d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/backports.tarfile-1.2.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/importlib_metadata-8.0.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 11358,
+            "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/inflect-7.3.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/jaraco.collections-5.1.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/jaraco.context-5.3.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/jaraco.functools-4.0.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/jaraco.text-3.12.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/more_itertools-10.3.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1053,
+            "sha256": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging-24.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 197,
+            "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.APACHE",
+            "scope": "installed_distribution",
+            "size": 10174,
+            "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.BSD",
+            "scope": "installed_distribution",
+            "size": 1344,
+            "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging/licenses/__init__.py",
+            "scope": "installed_distribution",
+            "size": 5715,
+            "sha256": "d71e4cd671188dc83011b2edd1d5f0cf6ba48ebd7c0e20b30b4b2b690a89f96c",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging/licenses/__pycache__/__init__.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 4177,
+            "sha256": "be677f8edaf5df5d13431fd06c751333b2323a7721a52182e57e4341aa6b8698",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging/licenses/__pycache__/_spdx.cpython-312.pyc",
+            "scope": "installed_distribution",
+            "size": 47433,
+            "sha256": "69d84f0b2ca673b9c5835465eb78088ffbf4f684c697a3557bdd2082d29fb688",
+            "integrity": "pending",
+            "text_omission": "record_hash_or_size_unavailable"
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/packaging/licenses/_spdx.py",
+            "scope": "installed_distribution",
+            "size": 48398,
+            "sha256": "a009b5ced3c5c25b2608a7bb94002cbff38839f4b57160eef5b34191ebbeda7b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/platformdirs-4.2.2.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1089,
+            "sha256": "29e0fd62e929850e86eb28c3fdccf0cefdf4fa94879011cffb3d0d4bed6d4db6",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/tomli-2.0.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1072,
+            "sha256": "b80816b0d530b8accb4c2211783790984a6e3b61922c2b5ee92f3372ab2742fe",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/typeguard-4.3.0.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1130,
+            "sha256": "6163f7987dfb38d6bc320ce2b70b2f02b862bc41126516d552ef1cd43247e758",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/typing_extensions-4.12.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 13936,
+            "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/wheel-0.45.1.dist-info/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1107,
+            "sha256": "30c23618679108f3e8ea1d2a658c7ca417bdfc891c98ef1a89fa4ff0c9828654",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/wheel/vendored/packaging/LICENSE",
+            "scope": "installed_distribution",
+            "size": 197,
+            "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/wheel/vendored/packaging/LICENSE.APACHE",
+            "scope": "installed_distribution",
+            "size": 10174,
+            "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/wheel/vendored/packaging/LICENSE.BSD",
+            "scope": "installed_distribution",
+            "size": 1344,
+            "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/_vendor/zipp-3.19.2.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1023,
+            "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/config/NOTICE",
+            "scope": "installed_distribution",
+            "size": 493,
+            "sha256": "2dddf08818297a3b89d43d95ff659d8da85741108c9136dfa3a4d856c0623bd8",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "setuptools",
+            "version": "80.9.0",
+            "path": "setuptools/config/_validate_pyproject/NOTICE",
+            "scope": "installed_distribution",
+            "size": 18737,
+            "sha256": "5d300dbfa643138b013b75ac9caeee591f951b8b0ee24288c34ccd926c4780c8",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "soundfile",
+            "version": "0.13.1",
+            "path": "_soundfile_data/COPYING",
+            "scope": "installed_distribution",
+            "size": 26518,
+            "sha256": "ad01ea5cd2755f6048383c8d54c88459cd6fcb17757c5c8892f8c5ea060f6140",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "soundfile",
+            "version": "0.13.1",
+            "path": "soundfile-0.13.1.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1512,
+            "sha256": "0dd2e411fed553ba891845077e5a32c5b726d1bbc46ff31a2118ae1ccf816752",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "path": "soxr-1.1.0.dist-info/licenses/COPYING.LGPL",
+            "scope": "installed_distribution",
+            "size": 26934,
+            "sha256": "317dfba8116739654c8c2d8acbc9c7edfcf34e3932e7a4b15307435228f98c3a",
+            "integrity": "record_verified",
+            "text_omission": "non_text_control_bytes"
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "path": "soxr-1.1.0.dist-info/licenses/LICENSE-PFFFT.txt",
+            "scope": "installed_distribution",
+            "size": 2174,
+            "sha256": "7847a2f45a0da613240a7e542980677c16613b1c8258190c15f8bf275032bb2d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "path": "soxr-1.1.0.dist-info/licenses/LICENSE-libsoxr.txt",
+            "scope": "installed_distribution",
+            "size": 1047,
+            "sha256": "73b946c198ad27fc2ae7bea2de6ec6d1b6c0733340d1759a450150271347e5af",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "soxr",
+            "version": "1.1.0",
+            "path": "soxr-1.1.0.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 728,
+            "sha256": "16ce7f03077f25fac6a9b89fdf6136927595f6b85db9197381ee99c1ecba357b",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "sympy",
+            "version": "1.14.0",
+            "path": "sympy-1.14.0.dist-info/licenses/AUTHORS",
+            "scope": "installed_distribution",
+            "size": 55779,
+            "sha256": "82b1038521b0696c63c90b31ed4a0a2c9c4c16871c648b157b07ca44b6f18f8d",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "sympy",
+            "version": "1.14.0",
+            "path": "sympy-1.14.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 7885,
+            "sha256": "07a5e9819f727b4986ad2829c7a29a6320d42575f720eb24d71b7fef573a0286",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "sympy",
+            "version": "1.14.0",
+            "path": "sympy/parsing/latex/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1075,
+            "sha256": "007bc30a58fa40a996e772047120de4eaf31f5110e4f9c3b5f93fcdfbe2eaca1",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "threadpoolctl",
+            "version": "3.8.0",
+            "path": "threadpoolctl-3.8.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1508,
+            "sha256": "ecd5f3320c3064582c4ebd53e413d8cd3ee5bb85f039e4137a3e9d3497a43cd4",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "torch",
+            "version": "2.8.0+cpu",
+            "path": "torch-2.8.0+cpu.dist-info/LICENSE",
+            "scope": "installed_distribution",
+            "size": 506902,
+            "sha256": "d61701e874c39a858d92c47c2cbf3bd8b9e498032a18ae42832fba591752ce1f",
+            "integrity": "record_verified",
+            "text_omission": "per_file_text_bound"
+          },
+          {
+            "package": "torch",
+            "version": "2.8.0+cpu",
+            "path": "torch-2.8.0+cpu.dist-info/NOTICE",
+            "scope": "installed_distribution",
+            "size": 24088,
+            "sha256": "1c3dec6c0342c7ed9e12af59b296c7bb1d394af5cf881db74191cc8299efce5c",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "torchaudio",
+            "version": "2.8.0+cpu",
+            "path": "torchaudio-2.8.0+cpu.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 1363,
+            "sha256": "32638e179931bfe551eabf67b0e67a13b483e166b58dd7263634ab7f89f396f5",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "tqdm",
+            "version": "4.70.1",
+            "path": "tqdm-4.70.1.dist-info/licenses/LICENCE",
+            "scope": "installed_distribution",
+            "size": 1985,
+            "sha256": "fcff87c3a47ce8028a8512aa182d4fcf0ad1c90544ee75cf9b343684cac194de",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "transformers",
+            "version": "4.57.3",
+            "path": "transformers-4.57.3.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 11418,
+            "sha256": "77fd4710def9ec3c0f6225800e0235f15a425abd4a8b03559127fcd782612049",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "typing-extensions",
+            "version": "4.16.0",
+            "path": "typing_extensions-4.16.0.dist-info/licenses/LICENSE",
+            "scope": "installed_distribution",
+            "size": 13936,
+            "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+            "integrity": "record_verified",
+            "text_collected": true
+          },
+          {
+            "package": "urllib3",
+            "version": "2.8.0",
+            "path": "urllib3-2.8.0.dist-info/licenses/LICENSE.txt",
+            "scope": "installed_distribution",
+            "size": 1093,
+            "sha256": "130e3a64d5fdd5d096a752694634a7d9df284469de86e5732100268041e3d686",
+            "integrity": "record_verified",
+            "text_collected": true
+          }
+        ],
+        "source_notice_files": [
+          {
+            "path": "licenses/qwen-tts-API-source/LICENSE",
+            "sha256": "a44a6081c73ad75f0255bb2bb5cab74ef1829565a895a24e53a4f11290ab7655",
+            "size": 11343,
+            "text_omission": "source_archive_text_review_pending"
+          },
+          {
+            "path": "licenses/python-sox-import-dependency/LICENSE",
+            "sha256": "852a7b5216348945fe66a6481b522fc1b4d5f8e209f9704e1d156482fd4af47e",
+            "size": 1477,
+            "text_omission": "source_archive_text_review_pending"
+          }
+        ],
+        "auxiliary_source_receipt_sha256": "40cb878e13bf9ad431d543b185d7865c0ed5c35c226b39dcee067bf026b21cd3",
+        "auxiliary_source_files": 27,
+        "source_notice_text_review_pending": true,
+        "legal_review_status": "pending",
+        "full_notice_review_status": "pending"
+      }
+    },
+    "license_declarations_are_approval": false,
+    "legal_review_status": "pending"
+  },
+  "runtime_notice_artifact": {
+    "filename": "DUBBING_RUNTIME_NOTICES.json",
+    "sha256": "307f5a0e957052a92b0959d404f8a2ce81605c31c52d22866e354749944241db",
+    "size": 763857,
+    "included_texts": 110,
+    "omitted_texts": 0,
+    "legal_review_status": "pending"
+  },
+  "reference_provenance": "Windows installed English SAPI voice, generated locally from fixed harness text.",
+  "reference_text": "Hello. This is a local speech recognition test. The next meeting is on Friday at ten in the morning.",
+  "reference_media": {
+    "duration": 7.853208,
+    "sample_rate": 24000,
+    "channels": 1,
+    "codec": "pcm_s16le",
+    "bytes": 377032,
+    "sha256": "20b8490cbf626ba054a9bc9c57acda710491c3ecef789aadffaec157089db362",
+    "decoded_and_probed": true,
+    "finite_samples": true,
+    "peak": 0.957855224609375,
+    "rms": 0.08767134380963373
+  },
+  "reference_unchanged": true,
+  "verified_after_fresh_controller": true,
+  "reopened_models": [
+    {
+      "id": "opus-en-ru",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "bb09c99d180016eac6819df3dae68edb1690fdee",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    {
+      "id": "qwen3-tts-0.6b-base",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    },
+    {
+      "id": "whisper-tiny",
+      "ready": true,
+      "inference_verified": true,
+      "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "runtime_revision": "dubbing-core-d0f02732e6f97170",
+      "device": "cpu"
+    }
+  ],
+  "controller_environment_unchanged": true
+}

@@ -193,6 +193,8 @@ OPTION_MODELS = {'transcribe': Transcribe, 'retune': Retune, 'metadata': Metadat
                  'qr': QR, 'download_audio': Download, 'download_video': Download}
 from .speech_options import SpeechOptions, EffectsOptions
 OPTION_MODELS.update(tts=SpeechOptions, audio_effects=EffectsOptions)
+from .dubbing_options import DubbingJobOptions, STAGE_TITLES
+OPTION_MODELS.update({stage:DubbingJobOptions for stage in STAGE_TITLES})
 
 # New options live beside their processors; legacy model/API names stay stable.
 from .watermark import WatermarkOptions
