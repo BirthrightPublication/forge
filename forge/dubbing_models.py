@@ -70,9 +70,13 @@ SOX_SOURCE = {
 CHATTERBOX_CODE_REVISION = 'ab55923c27757c90cfcc407baa57dc25a7d25217'
 INFERENCE_TIMEOUT_SECONDS = 7200
 
-# Model snapshots must be populated from reviewed publisher metadata, never
-# guessed. Discovery can prepare that metadata, but does not activate a model.
-MODEL_PINS: dict[str, str] = {}
+# Reverified against official immutable publisher metadata and model cards.
+# Pins establish artifact identity, not installed-model or release acceptance.
+MODEL_PINS: dict[str, str] = {
+    'Helsinki-NLP/opus-mt-en-ru': 'bb09c99d180016eac6819df3dae68edb1690fdee',
+    'Qwen/Qwen3-TTS-12Hz-0.6B-Base': '5d83992436eae1d760afd27aff78a71d676296fc',
+    'Systran/faster-whisper-tiny': 'd90ca5fe260221311c53c58e660288d3deb8d356',
+}
 
 
 def _part(id, repository, patterns, required, license):
@@ -82,7 +86,9 @@ def _part(id, repository, patterns, required, license):
 
 def _base_specs():
     qwen_patterns = ['*.json', '*.safetensors', '*.txt', '*.jinja', 'speech_tokenizer/*', 'LICENSE*', 'NOTICE*', 'README.md']
-    qwen_required = ['config.json', 'generation_config.json', 'tokenizer_config.json', 'speech_tokenizer/config.json']
+    qwen_required = ['config.json', 'generation_config.json', 'tokenizer_config.json', 'model.safetensors',
+                     'merges.txt', 'vocab.json', 'preprocessor_config.json', 'speech_tokenizer/config.json',
+                     'speech_tokenizer/model.safetensors', 'speech_tokenizer/preprocessor_config.json']
     result = [{
         'id': 'opus-en-ru', 'label': 'OPUS-MT · English → Russian', 'kind': 'translation',
         'family': 'core', 'recommended': True, 'requirements': 'scripts/requirements-dubbing-core.txt',
@@ -295,24 +301,43 @@ def discover_part(part, *, revision=None):
     if revision != 'main' and not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('Choose an immutable publisher revision.')
     info = _fetch_json('https://huggingface.co/api/models/' + repository + '/revision/' + revision + '?blobs=true')
+    publisher_id = info.get('id')
+    if not isinstance(publisher_id, str) or publisher_id.casefold() != repository.casefold():
+        raise ComponentUnavailable('The model repository has moved or its publisher identity differs. Review the new publisher before installation.')
     actual = info.get('sha', '')
-    if not re.fullmatch(r'[a-f0-9]{40}', actual) or (revision != 'main' and actual != revision):
+    if not isinstance(actual, str) or not re.fullmatch(r'[a-f0-9]{40}', actual) or (revision != 'main' and actual != revision):
         raise ComponentUnavailable('Publisher metadata does not identify the requested immutable revision.')
-    license = str(info.get('cardData', {}).get('license') or '').lower()
+    card = info.get('cardData')
+    if not isinstance(card, dict):
+        raise ComponentUnavailable('The publisher supplied no verifiable model license metadata.')
+    license = str(card.get('license') or '').lower()
     expected_license = str(part.get('license') or '').lower()
     if expected_license and license != expected_license:
         raise ComponentUnavailable('The model license must be reviewed before installation; its publisher license differs from the registered component.')
-    artifacts = []
-    for item in info.get('siblings', []):
+    siblings = info.get('siblings')
+    if not isinstance(siblings, list) or not siblings or any(not isinstance(item, dict) for item in siblings):
+        raise ComponentUnavailable('The publisher returned an invalid model artifact inventory.')
+    artifacts = []; seen = set()
+    for item in siblings:
         name = item.get('rfilename', '')
+        if not isinstance(name, str):
+            raise ComponentUnavailable('The publisher returned an invalid model artifact filename.')
         if not any(fnmatch.fnmatchcase(name, pattern) for pattern in part.get('allow_patterns', [])):
             continue
         _safe_relative(name)
+        if name.casefold() in seen:
+            raise ComponentUnavailable('The publisher returned duplicate or conflicting model artifact filenames.')
+        seen.add(name.casefold())
         size = item.get('size')
-        lfs = item.get('lfs') or {}
+        lfs = item.get('lfs')
+        if lfs is not None and not isinstance(lfs, dict):
+            raise ComponentUnavailable('The publisher returned invalid model object metadata.')
+        lfs = lfs or {}
         identity = lfs.get('sha256') or lfs.get('oid') or item.get('blobId') or item.get('blob_id')
         algorithm = 'sha256' if lfs else 'git-sha1'
-        if not isinstance(size, int) or not 0 < size <= 20_000_000_000 or not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{64}' if lfs else '[a-f0-9]{40}', identity):
+        if (type(size) is not int or not 0 < size <= 20_000_000_000
+                or lfs and (type(lfs.get('size')) is not int or lfs['size'] != size)
+                or not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{64}' if lfs else '[a-f0-9]{40}', identity)):
             raise ComponentUnavailable('The publisher did not supply a verifiable size and object identity for every model artifact.')
         artifacts.append({'name': name, 'size': size, 'algorithm': algorithm, 'digest': identity,
                           'url': f'https://huggingface.co/{repository}/resolve/{actual}/' + urllib.parse.quote(name, safe='/')})
@@ -1084,13 +1109,15 @@ def install(component, data, *, consent=False, device='auto', progress=None, pla
             try:
                 receipt = _verify_bundle(root)
                 if not repair:
+                    if receipt.get('runtime_id') != selected['runtime_id'] or receipt.get('device') != selected['device']:
+                        raise ComponentUnavailable('The cached component uses another device or runtime. Review Repair for the selected profile.')
                     resolved = resolve(component, data, receipt['model_revision'])
                     _activate(component, data, receipt['model_revision'])
                     return {'status': 'ready', 'component': component, 'model_revision': receipt['model_revision'], 'cached': True,
                             'runtime_revision': receipt['runtime_id'], 'inference_verified': False}
             except (ValueError, ComponentUnavailable):
                 if not repair:
-                    raise ComponentUnavailable('This installed component failed verification. Use Repair; existing models were preserved.') from None
+                    raise ComponentUnavailable('This installed component does not verify against the approved device/runtime. Use Repair; existing models were preserved.') from None
         environment = _environment(data, selected, plan['runtime'], progress)
         staging = root.parent / ('.install-' + uuid.uuid4().hex); staging.mkdir(parents=True, exist_ok=False)
         files = {}

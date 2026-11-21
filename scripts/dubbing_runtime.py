@@ -148,7 +148,10 @@ def translate(request):
 
     def unit(value):
         nonlocal generations
-        if not value.strip():
+        # Protected dates/glossary terms can leave punctuation-only fragments.
+        # Decoding those in isolation can repeat punctuation up to the token
+        # limit. Retain them exactly, like whitespace and protected values.
+        if not any(character.isalpha() for character in value):
             return value
         leading = value[:len(value) - len(value.lstrip())]
         trailing = value[len(value.rstrip()):]

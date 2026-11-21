@@ -78,6 +78,7 @@ def test_all_official_ids_catalog_without_network_or_false_readiness(tmp_path, m
 
 
 def test_unknown_pins_block_planning_without_installation(tmp_path, monkeypatch):
+    monkeypatch.setattr(models, 'MODEL_PINS', {})
     monkeypatch.setattr(models, '_fetch_json', lambda *_: pytest.fail('An unreviewed revision must not be fetched as approved.'))
     with pytest.raises(models.ComponentUnavailable, match='awaiting verification'):
         models.installation_plan(['opus-en-ru'], tmp_path / 'data', device='cpu')
@@ -365,6 +366,41 @@ def _runtime_module():
     spec = importlib.util.spec_from_file_location('owned_dubbing_runtime', models.ROOT / 'scripts/dubbing_runtime.py')
     runtime = importlib.util.module_from_spec(spec); spec.loader.exec_module(runtime)
     return runtime
+
+
+@pytest.mark.parametrize('source,expected,calls', [
+    ('Hello: 2026-11-13 [3] . — 🚀\nFORGE!', 'Перевод 2026-11-13 [3] . — 🚀\nФОРДЖ!', ['Hello:']),
+    ('2026-11-13 10:30.', '2026-11-13 10:30.', []),
+    ('FORGE!', 'ФОРДЖ!', []),
+    ('... — 🚀', '... — 🚀', []),
+])
+def test_translation_never_decodes_punctuation_left_by_protected_values(tmp_path, monkeypatch, source, expected, calls):
+    from contextlib import nullcontext
+    runtime = _runtime_module(); seen = []
+    class Tensor:
+        shape = (1, 4)
+        def to(self, device): return self
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs): return cls()
+        def __call__(self, text, **kwargs):
+            seen.append(text)
+            return {'input_ids': Tensor()}
+        def batch_decode(self, *args, **kwargs): return ['Перевод']
+    class Model:
+        config = SimpleNamespace(max_position_embeddings=512)
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs): return cls()
+        def to(self, device): return self
+        def eval(self): return self
+        def generate(self, **kwargs): return []
+    monkeypatch.setitem(sys.modules, 'torch', SimpleNamespace(float32='owned-fixture', inference_mode=nullcontext))
+    monkeypatch.setitem(sys.modules, 'transformers', SimpleNamespace(MarianMTModel=Model, MarianTokenizer=Tokenizer))
+    result = runtime.translate({'model_paths': {'translation': str(tmp_path)}, 'device': 'cpu', 'mode': 'faithful',
+        'model_revision': 'b' * 40, 'glossary': {'FORGE': 'ФОРДЖ'}, 'segments': [{'id': 'stable-source', 'source_text': source}]})
+    assert result['segments'][0]['text'] == expected
+    assert seen == calls and result['generation_calls'] == len(calls)
+    assert result['inference_tested'] is bool(calls)
 
 
 @pytest.mark.parametrize('collision', [False, True])
